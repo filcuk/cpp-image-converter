@@ -348,3 +348,17 @@ static const uint16_t data[1][1] = { { 0xf800 } };
   assert.equal(back.error, null);
   assert.match(back.source, /0xf800/i);
 });
+
+test("svgToPixels reads style=fill colours", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const inkscape = `<svg viewBox="0 0 2 1"><rect
+     style="fill:#ff0000;fill-opacity:1;stroke:none"
+     width="1" height="1" x="0" y="0" /></svg>`;
+  const back = convertSvgToC({ source: inkscape, format: "argb32" });
+  assert.equal(back.error, null);
+  assert.match(back.source, /0xff0000ff/i);
+
+  const styleOnG = `<svg viewBox="0 0 2 1"><g style="fill:#00FF00"><rect x="0" y="0" width="1" height="1"/></g></svg>`;
+  const backG = convertSvgToC({ source: styleOnG, format: "argb32" });
+  assert.match(backG.source, /0xff00ff00/i);
+});

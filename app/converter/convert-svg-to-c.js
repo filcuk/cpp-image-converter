@@ -2,7 +2,7 @@
  * High-level SVG → C array conversion.
  */
 
-import { svgToPixels } from "./svg-to-pixels.js";
+import { svgToPixels, svgToPixelsAsync } from "./svg-to-pixels.js";
 import { encodePixels } from "./encode-pixels.js";
 import { toCArray } from "./to-c-array.js";
 import { isManualFormat } from "./formats.js";
@@ -29,17 +29,21 @@ import { isManualFormat } from "./formats.js";
 
 /**
  * @param {ConvertSvgToCOptions} options
+ * @param {{
+ *   width: number,
+ *   height: number,
+ *   frames: (import("./decode-pixels.js").Rgba | null)[][],
+ *   warnings: string[],
+ *   error: string | null
+ * }} raster
  * @returns {ConvertSvgToCResult}
  */
-export function convertSvgToC({
-  source,
-  format: formatSelection = "argb32",
-  bitOrder = "msb",
-  arrayName = "image",
-}) {
+function encodeRaster(options, raster) {
   const format =
-    formatSelection && formatSelection !== "auto" && isManualFormat(formatSelection)
-      ? formatSelection
+    options.format &&
+    options.format !== "auto" &&
+    isManualFormat(options.format)
+      ? options.format
       : "argb32";
 
   /** @type {ConvertSvgToCResult} */
@@ -50,12 +54,10 @@ export function convertSvgToC({
     frameCount: 0,
     format,
     elementType: "uint32_t",
-    warnings: [],
+    warnings: [...raster.warnings],
     error: null,
   };
 
-  const raster = svgToPixels(source);
-  result.warnings.push(...raster.warnings);
   if (raster.error || !raster.frames.length) {
     result.error = raster.error || "No frames to encode.";
     return result;
@@ -65,6 +67,7 @@ export function convertSvgToC({
   result.height = raster.height;
   result.frameCount = raster.frames.length;
 
+  const bitOrder = options.bitOrder === "lsb" ? "lsb" : "msb";
   /** @type {number[][]} */
   const encodedFrames = [];
   /** @type {number[] | null} */
@@ -87,7 +90,7 @@ export function convertSvgToC({
 
   result.elementType = elementType;
   result.source = toCArray({
-    arrayName,
+    arrayName: options.arrayName ?? "image",
     width: raster.width,
     height: raster.height,
     elementType,
@@ -96,4 +99,23 @@ export function convertSvgToC({
   });
 
   return result;
+}
+
+/**
+ * Sync conversion (rect-based rasteriser). Prefer {@link convertSvgToCAsync} in the browser.
+ * @param {ConvertSvgToCOptions} options
+ * @returns {ConvertSvgToCResult}
+ */
+export function convertSvgToC(options) {
+  return encodeRaster(options, svgToPixels(options.source));
+}
+
+/**
+ * Async conversion using canvas rasterisation in the browser (paths, strokes, etc.).
+ * @param {ConvertSvgToCOptions} options
+ * @returns {Promise<ConvertSvgToCResult>}
+ */
+export async function convertSvgToCAsync(options) {
+  const raster = await svgToPixelsAsync(options.source);
+  return encodeRaster(options, raster);
 }

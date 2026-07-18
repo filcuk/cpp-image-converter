@@ -5,7 +5,7 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
 ## Features
 
 - **C → SVG** — paste or upload `.c` / `.h` / `.txt`, preview, download `.svg`
-- **SVG → C** — paste or upload rect-based `.svg`, download a Piskel-like `.c` array
+- **SVG → C** — paste or upload `.svg` (including path-based artwork); download a Piskel-like `.c` array
 - **Pixel formats** — Auto-detect from element type, or pick manually:
   - ARGB32 (Piskel little-endian RGBA / `0xAABBGGRR`) and classic AARRGGBB
   - XRGB8888, RGB888 / BGR888
@@ -39,7 +39,7 @@ Then open `http://localhost:3000`.
 ### SVG → C
 
 1. Choose **SVG → C**
-2. Paste SVG or upload an `.svg` (rect fills from this app round-trip best)
+2. Paste SVG or upload an `.svg` (paths and shapes are rasterised in the browser)
 3. Pick output format and array name
 4. Download the `.c` file
 

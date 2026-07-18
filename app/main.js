@@ -9,7 +9,7 @@ import { initToggle } from "./components/toggle.js";
 import { initColorPicker } from "./components/color-picker.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
-import { convertSvgToC } from "./converter/convert-svg-to-c.js";
+import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
 import { parseCArray } from "./converter/parse-c-array.js";
 import {
   formatLabel as formatIdLabel,
@@ -204,6 +204,12 @@ function setDirection(next) {
 
   if (svgMode) {
     clearPreview();
+    // Carry over the last C→SVG result so round-trips don't require re-paste
+    if (latestSvg && svgTextarea && !svgTextarea.value.trim()) {
+      svgTextarea.value = latestSvg;
+      downloadCFilename = downloadFilename.replace(/\.svg$/i, ".c") || "converted.c";
+      syncSvgActionVisibility();
+    }
     if (svgTextarea?.value.trim()) runConvert({ showSuccess: false });
     else clearCOutput();
   } else {
@@ -601,7 +607,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
 /**
  * @param {{ showSuccess?: boolean }} [options]
  */
-function runConvertSvgToC({ showSuccess = true } = {}) {
+async function runConvertSvgToC({ showSuccess = true } = {}) {
   const source = svgTextarea?.value ?? "";
   if (!source.trim()) {
     clearCOutput();
@@ -615,7 +621,7 @@ function runConvertSvgToC({ showSuccess = true } = {}) {
 
   let result;
   try {
-    result = convertSvgToC({
+    result = await convertSvgToCAsync({
       source,
       format: selectedFormat === "auto" ? "argb32" : selectedFormat,
       bitOrder: /** @type {"msb" | "lsb"} */ (
@@ -657,7 +663,7 @@ function runConvertSvgToC({ showSuccess = true } = {}) {
  * @param {{ showSuccess?: boolean }} [options]
  */
 function runConvert(options = {}) {
-  if (isSvgToC()) runConvertSvgToC(options);
+  if (isSvgToC()) void runConvertSvgToC(options);
   else runConvertCToSvg(options);
 }
 

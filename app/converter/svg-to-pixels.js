@@ -62,9 +62,31 @@ export function parseCssColor(raw) {
  * @returns {string | null}
  */
 function getAttr(attrs, name) {
-  const match = attrs.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)')`, "i"));
+  const match = attrs.match(
+    new RegExp(
+      `\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>"'/]+))`,
+      "i"
+    )
+  );
   if (!match) return null;
-  return match[2] ?? match[3] ?? null;
+  return match[1] ?? match[2] ?? match[3] ?? null;
+}
+
+/**
+ * Resolve paint colour from `fill="…"` or `style="fill:…"`.
+ * @param {string} attrs
+ * @returns {string | null}
+ */
+export function resolveFillValue(attrs) {
+  const style = getAttr(attrs, "style");
+  if (style) {
+    const fillMatch = style.match(/(?:^|;)\s*fill\s*:\s*([^;]+)/i);
+    if (fillMatch) {
+      const value = fillMatch[1].trim();
+      if (value) return value;
+    }
+  }
+  return getAttr(attrs, "fill");
 }
 
 /**
@@ -111,7 +133,8 @@ export function readSvgSizeFromMarkup(markup) {
 }
 
 /**
- * Collect rects from markup, inheriting fill from ancestor `<g fill="…">` tags.
+ * Collect rects from markup, inheriting fill from ancestor `<g>` tags
+ * (`fill` attribute or `style="fill:…"`).
  * @param {string} markup
  * @returns {SvgRect[]}
  */
@@ -134,14 +157,14 @@ export function collectRects(markup) {
 
     if (lower.startsWith("<g")) {
       const attrs = token.slice(2, -1);
-      const fill = getAttr(attrs, "fill");
+      const fill = resolveFillValue(attrs);
       fillStack.push(fill ?? fillStack[fillStack.length - 1] ?? null);
       continue;
     }
 
     if (lower.startsWith("<rect")) {
       const attrs = token.slice(5, token.endsWith("/>") ? -2 : -1);
-      const ownFill = getAttr(attrs, "fill");
+      const ownFill = resolveFillValue(attrs);
       const x = Number.parseFloat(getAttr(attrs, "x") ?? "0");
       const y = Number.parseFloat(getAttr(attrs, "y") ?? "0");
       const width = Number.parseFloat(getAttr(attrs, "width") ?? "0");
@@ -230,6 +253,85 @@ function extractFrameGroups(body) {
 
 /**
  * @param {string} source
+ */
+function ensureSvgXmlns(source) {
+  if (/<svg\b[^>]*\bxmlns\s*=/i.test(source)) return source;
+  return source.replace(/<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+}
+
+/**
+ * Wrap inner markup as a standalone SVG document for canvas drawing.
+ * @param {string} inner
+ * @param {number} width
+ * @param {number} height
+ */
+function wrapSvgDocument(inner, width, height) {
+  return ensureSvgXmlns(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}">${inner}</svg>`
+  );
+}
+
+/**
+ * Rasterise any SVG via canvas (paths, circles, etc.). Browser only.
+ * @param {string} svgDocument
+ * @param {number} width
+ * @param {number} height
+ * @returns {Promise<(Rgba | null)[]>}
+ */
+export async function rasterizeSvgDocumentWithCanvas(svgDocument, width, height) {
+  if (typeof document === "undefined" || typeof Image === "undefined") {
+    throw new Error("Canvas SVG rasterisation requires a browser.");
+  }
+
+  const blob = new Blob([ensureSvgXmlns(svgDocument)], {
+    type: "image/svg+xml;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const img = new Image();
+    img.decoding = "sync";
+    await new Promise((resolve, reject) => {
+      img.onload = () => resolve(undefined);
+      img.onerror = () => reject(new Error("Browser could not decode the SVG image."));
+      img.src = url;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) throw new Error("Could not create canvas context.");
+
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const { data } = ctx.getImageData(0, 0, width, height);
+
+    /** @type {(Rgba | null)[]} */
+    const pixels = new Array(width * height);
+    for (let i = 0; i < width * height; i++) {
+      const o = i * 4;
+      const a = data[o + 3];
+      if (a === 0) {
+        pixels[i] = null;
+      } else {
+        pixels[i] = {
+          r: data[o],
+          g: data[o + 1],
+          b: data[o + 2],
+          a,
+        };
+      }
+    }
+    return pixels;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Sync rect-only rasteriser (Node tests + fallback).
+ * @param {string} source
  * @returns {{
  *   width: number,
  *   height: number,
@@ -280,7 +382,7 @@ export function svgToPixels(source) {
 
   if (/<(path|circle|ellipse|polygon|polyline|image|use|text)\b/i.test(cleaned)) {
     warnings.push(
-      "Ignored unsupported elements (only <rect> fills are rasterised)."
+      "This environment only rasterises <rect> fills; path-based shapes need the browser canvas path."
     );
   }
 
@@ -314,4 +416,134 @@ export function svgToPixels(source) {
     warnings,
     error: null,
   };
+}
+
+/**
+ * Prefer canvas rasterisation in the browser (paths, strokes, etc.).
+ * Falls back to the rect-only parser when canvas is unavailable.
+ * @param {string} source
+ * @returns {Promise<{
+ *   width: number,
+ *   height: number,
+ *   frames: (Rgba | null)[][],
+ *   warnings: string[],
+ *   error: string | null
+ * }>}
+ */
+export async function svgToPixelsAsync(source) {
+  const canUseCanvas =
+    typeof document !== "undefined" &&
+    typeof Image !== "undefined" &&
+    typeof URL !== "undefined" &&
+    typeof URL.createObjectURL === "function";
+
+  if (!canUseCanvas) {
+    return svgToPixels(source);
+  }
+
+  /** @type {string[]} */
+  const warnings = [];
+
+  if (typeof source !== "string" || !source.trim()) {
+    return {
+      width: 0,
+      height: 0,
+      frames: [],
+      warnings,
+      error: "No SVG source provided.",
+    };
+  }
+
+  const cleaned = source
+    .replace(/<\?xml[\s\S]*?\?>/i, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+
+  if (!/<svg\b/i.test(cleaned)) {
+    return {
+      width: 0,
+      height: 0,
+      frames: [],
+      warnings,
+      error: "Root element is not <svg>.",
+    };
+  }
+
+  const size = readSvgSizeFromMarkup(cleaned);
+  warnings.push(...size.warnings);
+  if (!size.width || !size.height) {
+    return {
+      width: 0,
+      height: 0,
+      frames: [],
+      warnings,
+      error: size.warnings[0] || "Could not determine SVG size.",
+    };
+  }
+
+  const openMatch = cleaned.match(/<svg\b[^>]*>/i);
+  const closeIdx = cleaned.toLowerCase().lastIndexOf("</svg>");
+  const body =
+    openMatch && closeIdx !== -1
+      ? cleaned.slice((openMatch.index ?? 0) + openMatch[0].length, closeIdx)
+      : cleaned;
+
+  const frameGroups = extractFrameGroups(body);
+
+  try {
+    /** @type {(Rgba | null)[][]} */
+    let frames;
+    if (frameGroups.length > 0) {
+      frameGroups.sort((a, b) => {
+        const ia = Number.parseInt(a.id.replace(/\D/g, ""), 10);
+        const ib = Number.parseInt(b.id.replace(/\D/g, ""), 10);
+        return ia - ib;
+      });
+      frames = [];
+      for (const g of frameGroups) {
+        // Drop SMIL so canvas shows the frame’s static artwork
+        const inner = g.markup.replace(/<animate\b[^>]*\/?>/gi, "");
+        frames.push(
+          await rasterizeSvgDocumentWithCanvas(
+            wrapSvgDocument(inner, size.width, size.height),
+            size.width,
+            size.height
+          )
+        );
+      }
+    } else {
+      frames = [
+        await rasterizeSvgDocumentWithCanvas(
+          ensureSvgXmlns(cleaned),
+          size.width,
+          size.height
+        ),
+      ];
+    }
+
+    const opaque = frames.reduce(
+      (sum, frame) => sum + frame.filter((p) => p && p.a > 0).length,
+      0
+    );
+    if (opaque === 0) {
+      warnings.push(
+        "Canvas rasterisation produced no opaque pixels; check that the SVG has visible fills and a valid viewBox."
+      );
+    }
+
+    return {
+      width: size.width,
+      height: size.height,
+      frames,
+      warnings,
+      error: null,
+    };
+  } catch (err) {
+    const fallback = svgToPixels(source);
+    fallback.warnings.unshift(
+      err instanceof Error
+        ? `Canvas rasterisation failed (${err.message}); fell back to <rect>-only parsing.`
+        : "Canvas rasterisation failed; fell back to <rect>-only parsing."
+    );
+    return fallback;
+  }
 }
