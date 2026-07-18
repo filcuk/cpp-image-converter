@@ -310,3 +310,41 @@ static const uint32_t data[2][2] = {
   assert.match(result.svg, /fill="#FF0000"/);
   assert.match(result.svg, /fill="#FFFFFF"/);
 });
+
+test("svg round-trip preserves ARGB32 red pixel", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][2] = { { 0xff0000ff, 0x00000000 } };
+`;
+  const forward = convertCToSvg({
+    source,
+    format: "argb32",
+    displayScale: 1,
+  });
+  assert.ok(forward.svg);
+  const back = convertSvgToC({
+    source: forward.svg,
+    format: "argb32",
+    arrayName: "roundtrip",
+  });
+  assert.equal(back.error, null);
+  assert.ok(back.source);
+  assert.match(back.source, /0xff0000ff/i);
+  assert.match(back.source, /ROUNDTRIP_FRAME_WIDTH 2/);
+});
+
+test("svg round-trip preserves RGB565 red", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint16_t data[1][1] = { { 0xf800 } };
+`;
+  const forward = convertCToSvg({ source, format: "rgb565", displayScale: 1 });
+  assert.ok(forward.svg);
+  const back = convertSvgToC({ source: forward.svg, format: "rgb565" });
+  assert.equal(back.error, null);
+  assert.match(back.source, /0xf800/i);
+});

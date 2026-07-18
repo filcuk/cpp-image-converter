@@ -35,7 +35,7 @@
         />
         <h1>C++ Image Converter</h1>
       </div>
-      <p class="tagline">Convert C/C++ image arrays to SVG in the browser.</p>
+      <p class="tagline">Convert between C/C++ image arrays and SVG in the browser.</p>
     </header>
 
     <main id="main">
@@ -68,9 +68,44 @@
         <span class="banner-body" id="converter-success-body">SVG ready.</span>
       </div>
 
+      <section id="direction" aria-labelledby="direction-heading">
+        <h2 id="direction-heading" class="visually-hidden">Direction</h2>
+        <div
+          class="segmented-control"
+          id="direction-control"
+          data-segmented-control-default="c-to-svg"
+        >
+          <div
+            class="segmented-control-list"
+            role="radiogroup"
+            aria-label="Conversion direction"
+          >
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="true"
+              data-segmented-control-value="c-to-svg"
+            >
+              C → SVG
+            </button>
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="false"
+              data-segmented-control-value="svg-to-c"
+            >
+              SVG → C
+            </button>
+          </div>
+          <input type="hidden" class="segmented-control-value" value="c-to-svg" />
+        </div>
+      </section>
+
       <section id="input" aria-labelledby="input-heading">
         <h2 id="input-heading">Input</h2>
-        <div class="converter-input">
+        <div class="converter-input" id="c-input-panel">
           <div class="file-dropzone" id="source-dropzone">
             <div class="file-dropzone-target">
               <input
@@ -106,6 +141,43 @@
             </button>
             <button type="button" class="btn" id="load-example-btn">
               Load Example
+            </button>
+          </div>
+        </div>
+
+        <div class="converter-input hidden" id="svg-input-panel" hidden>
+          <div class="file-dropzone" id="svg-dropzone">
+            <div class="file-dropzone-target">
+              <input
+                type="file"
+                class="file-dropzone-input"
+                aria-label="Upload an SVG file"
+              />
+              <div class="file-dropzone-prompt" aria-hidden="true">
+                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+                <span class="file-dropzone-text">
+                  <span class="file-dropzone-primary">Drop an .svg file here</span>
+                  <span class="file-dropzone-secondary">or click to browse</span>
+                </span>
+              </div>
+            </div>
+            <ul class="file-dropzone-list hidden" hidden></ul>
+          </div>
+
+          <label class="field converter-source-field" for="svg-textarea">
+            <span class="field-label">Or paste SVG markup</span>
+            <textarea
+              id="svg-textarea"
+              class="textarea converter-source-textarea"
+              rows="16"
+              spellcheck="false"
+              placeholder="Paste SVG (rect-based exports work best)"
+            ></textarea>
+          </label>
+
+          <div class="toolbar converter-source-actions">
+            <button type="button" class="btn hidden" id="clear-svg-btn" hidden>
+              Clear
             </button>
           </div>
         </div>
@@ -366,7 +438,7 @@
               </div>
             </div>
 
-            <div class="converter-options__row">
+            <div class="converter-options__row converter-c-to-svg-only" id="size-options-row">
               <div
                 class="stepper"
                 id="width-stepper"
@@ -519,7 +591,7 @@
             </div>
 
             <div
-              class="converter-options__row converter-animate-row hidden"
+              class="converter-options__row converter-animate-row converter-c-to-svg-only hidden"
               id="animate-options-wrap"
               hidden
             >
@@ -585,7 +657,7 @@
               </div>
             </div>
 
-            <div class="converter-options__row">
+            <div class="converter-options__row converter-c-to-svg-only" id="fill-options-row">
               <div class="toggle" id="override-fill-toggle" data-toggle-default="false">
                 <button
                   type="button"
@@ -648,6 +720,21 @@
                 <input type="hidden" class="toggle-value" />
               </div>
             </div>
+
+            <div class="converter-options__row converter-svg-to-c-only hidden" id="svg-to-c-options-row" hidden>
+              <label class="field" for="array-name-input">
+                <span class="field-label">Array name</span>
+                <input
+                  type="text"
+                  id="array-name-input"
+                  class="input"
+                  value="image"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="C array name prefix"
+                />
+              </label>
+            </div>
           </div>
 
           <hr class="section-panel__divider" />
@@ -656,22 +743,47 @@
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
               Download SVG
             </button>
+            <button
+              type="button"
+              class="btn btn-primary hidden"
+              id="download-c-btn"
+              disabled
+              hidden
+            >
+              Download .c
+            </button>
           </div>
         </div>
       </section>
 
       <section id="output" aria-labelledby="output-heading">
         <h2 id="output-heading">Output</h2>
-        <div
-          class="converter-preview"
-          id="svg-preview"
-          aria-live="polite"
-        >
-          <p class="converter-preview__empty" id="svg-preview-empty">
-            Load array to see a preview
-          </p>
+        <div id="svg-output-panel">
+          <div
+            class="converter-preview"
+            id="svg-preview"
+            aria-live="polite"
+          >
+            <p class="converter-preview__empty" id="svg-preview-empty">
+              Load array to see a preview
+            </p>
+          </div>
+          <p class="converter-meta" id="converter-meta" hidden></p>
         </div>
-        <p class="converter-meta" id="converter-meta" hidden></p>
+        <div class="hidden" id="c-output-panel" hidden>
+          <label class="field converter-source-field" for="c-output-textarea">
+            <span class="field-label">Generated C source</span>
+            <textarea
+              id="c-output-textarea"
+              class="textarea converter-source-textarea"
+              rows="18"
+              spellcheck="false"
+              readonly
+              placeholder="Converted C array will appear here"
+            ></textarea>
+          </label>
+          <p class="converter-meta" id="c-converter-meta" hidden></p>
+        </div>
       </section>
     </main>
 
