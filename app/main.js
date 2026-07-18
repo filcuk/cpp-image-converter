@@ -46,6 +46,8 @@ let widthStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
 let heightStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
+let scaleStepper = null;
+/** @type {ReturnType<typeof initStepper>} */
 let frameStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
 let overrideToggle = null;
@@ -245,6 +247,10 @@ function runConvert({ showSuccess = true } = {}) {
   const widthFromUi = Math.round(widthStepper?.getValue() ?? 0);
   const heightFromUi = Math.round(heightStepper?.getValue() ?? 0);
 
+  const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
+  const displayScale =
+    Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
+
   let result;
   try {
     result = convertCToSvg({
@@ -257,7 +263,7 @@ function runConvert({ showSuccess = true } = {}) {
       frameIndex: getFrameIndex(),
       overrideFill: overrideToggle?.getChecked() ?? false,
       fillColor: fillPicker?.getValue() ?? "#FFFFFF",
-      displayScale: 10,
+      displayScale,
       minify: minifyToggle?.getChecked() ?? false,
     });
   } catch (err) {
@@ -299,7 +305,9 @@ function runConvert({ showSuccess = true } = {}) {
         : "";
 
   if (metaEl) {
-    metaEl.textContent = `${result.width}×${result.height} · ${formatLabel}${detected} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
+    const outW = Number((result.width * displayScale).toFixed(4));
+    const outH = Number((result.height * displayScale).toFixed(4));
+    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
   }
   setHidden(metaEl, false);
   setDownloadEnabled(true);
@@ -321,6 +329,10 @@ try {
   });
 
   heightStepper = initStepper(document.getElementById("height-stepper"), {
+    onChange: onOptionChange,
+  });
+
+  scaleStepper = initStepper(document.getElementById("scale-stepper"), {
     onChange: onOptionChange,
   });
 

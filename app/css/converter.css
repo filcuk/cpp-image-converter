@@ -27,8 +27,12 @@
 
 .converter-preview svg {
   image-rendering: pixelated;
-  max-width: 100%;
+  /* Keep tiny 1× exports readable in the preview panel */
+  width: auto;
   height: auto;
+  max-width: 100%;
+  max-height: 20rem;
+  min-width: min(100%, 8rem);
   background: transparent;
 }
 

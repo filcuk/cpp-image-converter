@@ -235,6 +235,44 @@
               </div>
 
               <div
+                class="stepper"
+                id="scale-stepper"
+                data-stepper-min="0.1"
+                data-stepper-max="100"
+                data-stepper-step="0.1"
+                data-stepper-default="1"
+                data-stepper-format="decimal"
+              >
+                <label class="field-label" for="scale-stepper-input">Scale</label>
+                <div class="stepper-control">
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-decrement"
+                    data-stepper-decrement
+                    aria-label="Decrease scale"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="text"
+                    id="scale-stepper-input"
+                    class="input stepper-input"
+                    inputmode="decimal"
+                    aria-label="Output scale"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-increment"
+                    data-stepper-increment
+                    aria-label="Increase scale"
+                  >
+                    +
+                  </button>
+                  <input type="hidden" class="stepper-value" />
+                </div>
+              </div>
+
+              <div
                 class="stepper hidden"
                 id="frame-stepper"
                 data-stepper-min="0"
