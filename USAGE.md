@@ -15,7 +15,6 @@ Edit [`index.html`](index.html):
 
 - `<title>`, header `<h1>`, and `.tagline`
 - Replace the `<main>` content with your app UI
-- Remove the link to `demo.html` when you drop the demo page (see below)
 - Swap logo files under `app/res/` or update the `<img>` paths
 
 Wire your page logic in [`app/main.js`](app/main.js). Every HTML entry point should follow the same boot pattern:
@@ -96,24 +95,16 @@ If you rename `themeStorageKey`, update the inline bridge in every HTML entry po
 
 Also set `APP_VERSION` in [`app/version.js`](app/version.js) when you ship your app.
 
-### 3. Remove or keep the demo
+### 3. Demo page
 
-The demo is for exploring components — not required for your app.
+The upstream template ships an optional `demo.html` component showcase. This project has already removed it (`demo.html`, `app/demo.js`) and publishes only `index.html` via [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
 
-| Keep as reference | Remove when shipping |
-| ----------------- | -------------------- |
-| [`demo.html`](demo.html) | Delete `demo.html` |
-| [`app/demo.js`](app/demo.js) | Delete `app/demo.js` |
-| Prism vendor + `app/prism.css` (only if you do not use code blocks) | `app/vendor/prism/`, `app/prism.css` |
-| Toast UI vendor + `app/toastui-editor.css` (only if you do not use the rich text editor) | `app/rich-text-editor.js`, `app/toastui-editor.js`, `app/toastui-editor.css`, `app/css/rich-text-editor.css`, `app/vendor/toastui-editor/`, `app/vendor/toastui-editor-plugin-table-merged-cell/` |
+Optional further trim if you will never use those features:
 
-If you **remove** `demo.html`, update [`.github/workflows/pages.yml`](.github/workflows/pages.yml) — drop `demo.html` from the `cp` line:
-
-```yaml
-cp index.html _site/
-```
-
-If you **keep** the demo, leave the workflow as-is and optionally link to it from `index.html` while developing.
+| Feature | Paths to delete |
+| ------- | --------------- |
+| Prism / code blocks | `app/vendor/prism/`, `app/prism.css`, `app/components/code-block.js`, `app/css/code-block.css` |
+| Toast UI rich text editor | `app/components/rich-text-editor.js`, `app/components/toastui-editor.js`, `app/toastui-editor.css`, `app/css/rich-text-editor.css`, `app/vendor/toastui-editor/`, `app/vendor/toastui-editor-plugin-table-merged-cell/` |
 
 ### 4. Trim unused modules (optional)
 
@@ -142,7 +133,6 @@ For header logos, set a meaningful `alt` on the visible theme variant and `aria-
 - [ ] `index.html` title, heading, and content updated
 - [ ] `APP_VERSION` set in `app/version.js` for your app
 - [ ] `app/main.js` implements your app (not just `initShell()`)
-- [ ] Demo removed or intentionally kept
 - [ ] `pages.yml` matches published HTML files
 - [ ] GitHub **Settings → Pages → Source** set to **GitHub Actions**
 
@@ -163,7 +153,7 @@ npm run lint
 npm test
 ```
 
-Then open `http://localhost:3000` and, if kept, `http://localhost:3000/demo.html`.
+Then open `http://localhost:3000`.
 
 ---
 
@@ -173,7 +163,7 @@ Then open `http://localhost:3000` and, if kept, `http://localhost:3000/demo.html
 2. In the repo **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**.
 3. After the workflow runs, the site is at `https://<username>.github.io/<repo>/`.
 
-The workflow copies only publishable files into `_site/` (`index.html`, optional `demo.html`, `.nojekyll`, `app/`). `README.md`, `USAGE.md`, and other repo files are not published.
+The workflow copies only publishable files into `_site/` (`index.html`, `.nojekyll`, `app/`). `README.md`, `USAGE.md`, and other repo files are not published.
 
 ---
 
@@ -181,7 +171,6 @@ The workflow copies only publishable files into `_site/` (`index.html`, optional
 
 ```
 index.html          # Your app homepage
-demo.html           # Component showcase (optional)
 .nojekyll           # Skip Jekyll on GitHub Pages
 app/
   styles.css            # Imports tokens.css + app/css/*.css partials
@@ -202,7 +191,6 @@ app/
   config.js             # Fork defaults (repo URL, brand, theme key)
   version.js            # APP_VERSION + TEMPLATE_VERSION (SemVer 2.0.0)
   main.js               # index.html entry
-  demo.js               # demo.html entry (optional)
   shell/
     shell.js            # initShell() — shared page boot
     render-shell.js     # Footer, page nav, skip link
@@ -231,7 +219,7 @@ JS modules live under `app/shell/`, `app/utils/`, and `app/components/` — the 
 
 | Layer | Path | When you need it |
 | ----- | ---- | ---------------- |
-| **Entry** | `main.js`, `demo.js`, `theme-init.js`, `config.js`, `version.js` | Always — wired from HTML |
+| **Entry** | `main.js`, `theme-init.js`, `config.js`, `version.js` | Always — wired from HTML |
 | **Shell** | `app/shell/` | Always — call `initShell()` from `app/shell/shell.js` |
 | **Infrastructure** | `app/utils/` | Keep if any popup menu, icons, or shared helpers remain |
 | **Components** | `app/components/` | Import and init only the features your page uses; delete unused files |
@@ -245,13 +233,13 @@ Component CSS lives under `app/css/` (imported via `styles.css`). Match a compon
 | Feature | Description |
 | -------- | ----------- |
 | **Design tokens** | CSS custom properties in [`app/tokens.css`](app/tokens.css) for background, surface, section panels, `--control-height` (single-line controls), text, borders, accent, banners, and code blocks. Light and dark values via `[data-theme="dark"]`. Component styles in [`app/css/`](app/css/) partials (imported by [`app/styles.css`](app/styles.css)). |
-| **Theme toggle** | Footer control (injected by `initShell()`): light, dark, or system (`auto`). Stored in `localStorage` under `microapp-theme`. `app/theme-init.js` runs in `<head>` to avoid flash of wrong theme. |
+| **Theme toggle** | Footer control (injected by `initShell()`): light, dark, or system (`auto`). Stored in `localStorage` under the key from `APP_CONFIG.themeStorageKey`. `app/theme-init.js` runs in `<head>` to avoid flash of wrong theme. |
 | **Layout shell** | Semantic `header` / `main` / `footer` (footer rendered by JS), max-width 1200px, flex column page. App version in footer; template version on hover. |
 | **Buttons** | `.btn` (default), `.btn-primary`, `.btn-icon`, `.btn-toggle` (`aria-pressed` — accent border when on), `.btn-link`, disabled state. |
 | **Inputs** | `.field` / `.field-label` with `.input`, `.textarea`, `.checkbox`, `.radio`, `.toggle`, `.segmented-control`, `.progress-bar`, `.spinner`, `.date-picker`, `.slider`, `.stepper`, `.color-picker`, and `.combobox`. |
 | **File dropzone** | `.file-dropzone` drag-and-drop / browse picker with file list and remove buttons. [`app/file-dropzone.js`](app/file-dropzone.js). |
 | **File download** | `.file-download` file list rows (like dropzone items) with on-demand download. [`app/file-download.js`](app/file-download.js). |
-| **Section panel** | `.section-panel` three-column grid rows, divider, submit row with expiring banner. See [`demo.html`](demo.html). |
+| **Section panel** | `.section-panel` three-column grid rows, divider, submit row with expiring banner. See **Using components**. |
 | **Combo button** | Split `.combo-btn` with main action + chevron menu; behaviour from [`app/combo.js`](app/combo.js). |
 | **Combobox** | Text input with filterable suggestion list. [`app/combobox.js`](app/combobox.js). |
 | **Slider** | Range control with editable value field; integer, decimal, percentage; optional disabled. [`app/slider.js`](app/slider.js). |
@@ -278,11 +266,11 @@ Component CSS lives under `app/css/` (imported via `styles.css`). Match a compon
 | **Code blocks** | `.code-block` with Prism highlighting, line numbers, copy, view/select/edit modes. [`app/code-block.js`](app/code-block.js). |
 | **Expandable surface** | Maximize code blocks or textareas to page width. [`app/expandable-surface.js`](app/expandable-surface.js). |
 | **Icons** | Inline SVGs in [`app/icons.js`](app/icons.js); use `data-icon` in HTML or `createIcon()` in JS. Source from [Icônes — Material Icons (Round)](https://icones.js.org/collection/ic?s=info&variant=Round). Logo files stay in `app/res/`. |
-| **Toolbar helper** | `.toolbar` flex row for button groups. See [`demo.html`](demo.html). |
+| **Toolbar helper** | `.toolbar` flex row for button groups. See **Using components**. |
 | **Code highlighting** | Optional [Prism.js](https://prismjs.com/) via [`app/code-block.js`](app/code-block.js) and [`app/vendor/prism/`](app/vendor/prism/). Load vendor scripts on the page (see Code blocks in **Using components**). |
 | **Rich text editor** | Markdown + WYSIWYG via [Toast UI Editor](https://github.com/nhn/tui.editor); table merged-cell plugin; base64 image paste. [`app/rich-text-editor.js`](app/rich-text-editor.js). Large vendor bundle (~500KB+). |
 
-For live examples of each component, open [`demo.html`](demo.html) on a local server or your deployed site.
+Markup and init examples for each component are in **Using components** below.
 
 ---
 
@@ -606,8 +594,6 @@ submitBtn.addEventListener("click", () => {
 });
 ```
 
-See the interactive example on [`demo.html`](demo.html).
-
 ### Combo button
 
 ```javascript
@@ -662,8 +648,6 @@ initComboboxes(document); // all `.combobox` blocks
 ```
 
 Keyboard: ArrowDown / ArrowUp navigate suggestions, Enter selects, Escape closes and restores the last committed value.
-
-See the interactive example on [`demo.html`](demo.html).
 
 ### Slider
 
@@ -1355,7 +1339,7 @@ Markdown and WYSIWYG editing with live preview. Includes the [table merged-cell]
 
 The vendor bundle is large (~500KB+ minified). Omit `app/vendor/toastui-editor*` and related modules if you do not need rich text.
 
-**Page setup** — link Toast UI CSS in `<head>` and load vendor scripts before your ES module entry (see [`demo.html`](demo.html)):
+**Page setup** — link Toast UI CSS in `<head>` and load vendor scripts before your ES module entry:
 
 ```html
 <link rel="stylesheet" href="app/toastui-editor.css" />
@@ -1412,13 +1396,13 @@ editor?.destroy();
 initRichTextEditors(document); // every `.rich-text-editor` with a mount node
 ```
 
-Theme (light/dark) follows the page `data-theme` attribute and updates on `microapp-theme-change` from [`app/theme.js`](app/theme.js).
+Theme (light/dark) follows the page `data-theme` attribute and updates on `APP_CONFIG.themeChangeEvent` from [`app/theme.js`](app/shell/theme.js).
 
 Switch between Markdown and WYSIWYG using Toast UI’s built-in mode control in the toolbar. Converting between Markdown and HTML is lossy for complex formatting (tables, nested lists, etc.) — treat one format as canonical when persisting content.
 
 ### Code highlighting (Prism)
 
-Optional syntax highlighting for docs or demos. See [`demo.html`](demo.html) for examples with line numbers, highlight toggle, copy, and maximise.
+Optional syntax highlighting for docs or sample code.
 
 ```html
 <link rel="stylesheet" href="app/prism.css" />

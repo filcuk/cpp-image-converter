@@ -122,7 +122,7 @@ Modules live under `app/shell/`, `app/utils/`, and `app/components/` (no build s
 
 | Layer | Examples | Role |
 | ----- | -------- | ---- |
-| Entry | `main.js`, `demo.js`, `theme-init.js`, `config.js`, `version.js` | Loaded directly from HTML |
+| Entry | `main.js`, `theme-init.js`, `config.js`, `version.js` | Loaded directly from HTML |
 | Shell | `app/shell/shell.js`, `render-shell.js`, `theme.js`, `page-nav.js`, … | Shared page chrome via `initShell()` |
 | Infrastructure | `app/utils/dom.js`, `document-listeners.js`, `icons.js`, `menu.js`, `brand-icon.js` | Shared helpers and registries |
 | Components | `app/components/dialog.js`, `dropdown.js`, `tabs.js`, `code-block.js`, … | One `initX` (or `initXs`) per feature — import only what you need |
@@ -142,7 +142,7 @@ CI runs the same checks on push and pull requests (`.github/workflows/ci.yml`).
 
 ## Keep GitHub Pages deployable
 
-- Entry HTML files live at the repo root (`index.html`, optional pages like `demo.html`)
+- Entry HTML files live at the repo root (`index.html`)
 - Shared assets live under `app/`
 - Avoid features that require a backend or server-only APIs
 - ES modules need a local server for development (`npx serve .`) — document if adding fetch-based features
@@ -167,8 +167,7 @@ Match the established look (based on [pqm-stepper](https://github.com/filcuk/pqm
 
 ## When extending this template
 
-1. Read `USAGE.md` for available components and fork instructions
-2. Check `demo.html` for usage examples
-3. Keep changes focused — one concern per file when possible
-4. Update `USAGE.md` when you add or change a reusable component, module API, or deploy workflow (see `.cursor/rules/usage-docs.mdc`)
-5. Update `AGENTS.md` if you add a new `initX` pattern to the module conventions table
+1. Read `USAGE.md` for available components and markup examples
+2. Keep changes focused — one concern per file when possible
+3. Update `USAGE.md` when you add or change a reusable component, module API, or deploy workflow (see `.cursor/rules/usage-docs.mdc`)
+4. Update `AGENTS.md` if you add a new `initX` pattern to the module conventions table
