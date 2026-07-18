@@ -272,3 +272,41 @@ static const uint32_t data[1] = { 0xffff0000 };
   const piskel = convertCToSvg({ source, format: "argb32" });
   assert.match(piskel.svg, /fill="#0000FF"/);
 });
+
+test("opacityKeyframes cycles frames", async () => {
+  const { opacityKeyframes } = await import("../app/converter/to-animated-svg.js");
+  assert.deepEqual(opacityKeyframes(0, 2), {
+    values: "1;0;1",
+    keyTimes: "0;0.5;1",
+  });
+  assert.deepEqual(opacityKeyframes(1, 2), {
+    values: "0;1;0",
+    keyTimes: "0;0.5;1",
+  });
+});
+
+test("convertCToSvg animateFrames emits SMIL groups", () => {
+  const source = `
+#define FRAME_COUNT 2
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint32_t data[2][2] = {
+  { 0xff0000ff, 0xff0000ff },
+  { 0xffffffff, 0xffffffff }
+};
+`;
+  const result = convertCToSvg({
+    source,
+    format: "argb32",
+    animateFrames: true,
+    frameDurationMs: 100,
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.animated, true);
+  assert.equal(result.frameCount, 2);
+  assert.match(result.svg, /id="frame-0"/);
+  assert.match(result.svg, /id="frame-1"/);
+  assert.match(result.svg, /<animate attributeName="opacity"/);
+  assert.match(result.svg, /fill="#FF0000"/);
+  assert.match(result.svg, /fill="#FFFFFF"/);
+});

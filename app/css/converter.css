@@ -79,6 +79,10 @@
   max-width: 22rem;
 }
 
+.converter-animate-row {
+  align-items: flex-end;
+}
+
 .converter-actions {
   display: flex;
   flex-wrap: wrap;

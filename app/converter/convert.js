@@ -8,6 +8,7 @@ import { frameValueCount, formatLabel } from "./formats.js";
 import { decodePixels, pixelColorKey } from "./decode-pixels.js";
 import { mergeRects } from "./merge-rects.js";
 import { toSvg } from "./to-svg.js";
+import { toAnimatedSvg } from "./to-animated-svg.js";
 
 /**
  * @typedef {object} ConvertOptions
@@ -21,6 +22,8 @@ import { toSvg } from "./to-svg.js";
  * @property {string | null} [fillColor] `#RRGGBB`
  * @property {number} [displayScale]
  * @property {boolean} [minify]
+ * @property {boolean} [animateFrames]
+ * @property {number} [frameDurationMs]
  */
 
 /**
@@ -33,10 +36,53 @@ import { toSvg } from "./to-svg.js";
  * @property {number} frameCount
  * @property {number} frameIndex
  * @property {number} rectCount
+ * @property {boolean} animated
  * @property {string | null} elementType
  * @property {string[]} warnings
  * @property {string | null} error
  */
+
+/**
+ * @param {object} options
+ * @param {string} options.format
+ * @param {number[]} options.allValues
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {number} options.frameIndex
+ * @param {number} options.frameSize
+ * @param {"msb" | "lsb"} options.bitOrder
+ * @param {number[] | null} options.palette
+ * @param {import("./decode-pixels.js").Rgba} options.oneBitForeground
+ * @param {string | null} options.fill
+ * @returns {{ rects: import("./merge-rects.js").MergedRect[], warnings: string[] }}
+ */
+function decodeFrameToRects({
+  format,
+  allValues,
+  width,
+  height,
+  frameIndex,
+  frameSize,
+  bitOrder,
+  palette,
+  oneBitForeground,
+  fill,
+}) {
+  const values = sliceFrameValues(allValues, frameIndex, frameSize);
+  const decoded = decodePixels({
+    format,
+    values,
+    width,
+    height,
+    frameIndex: 0,
+    oneBitForeground,
+    bitOrder,
+    palette,
+  });
+  const colorGrid = decoded.pixels.map((p) => pixelColorKey(p, fill));
+  const rects = mergeRects(colorGrid, width, height);
+  return { rects, warnings: decoded.warnings };
+}
 
 /**
  * @param {ConvertOptions} options
@@ -53,6 +99,8 @@ export function convertCToSvg({
   fillColor = "#000000",
   displayScale = 10,
   minify = false,
+  animateFrames = false,
+  frameDurationMs = 100,
 }) {
   const parsed = parseCArray(source);
   const { format, detected } = resolveFormat(formatSelection, parsed.elementType);
@@ -70,6 +118,7 @@ export function convertCToSvg({
     frameCount: parsed.frameCount,
     frameIndex,
     rectCount: 0,
+    animated: false,
     elementType: parsed.elementType,
     warnings: [...parsed.warnings],
     error: null,
@@ -85,24 +134,22 @@ export function convertCToSvg({
   result.height = height;
 
   const frameSize = frameValueCount(format, width, height);
-  let values = parsed.values;
+  const allValues = parsed.values;
   const expected = parsed.frameCount * frameSize;
 
-  if (values.length < frameSize) {
+  if (allValues.length < frameSize) {
     result.warnings.push(
-      `Expected at least ${frameSize} values for one frame; found ${values.length}.`
+      `Expected at least ${frameSize} values for one frame; found ${allValues.length}.`
     );
-  } else if (parsed.frameCount === 1 && values.length > frameSize) {
+  } else if (parsed.frameCount === 1 && allValues.length > frameSize) {
     result.warnings.push(
-      `Found ${values.length} values but frame size is ${frameSize}; using the first ${frameSize}.`
+      `Found ${allValues.length} values but frame size is ${frameSize}; using the first ${frameSize}.`
     );
-  } else if (values.length < expected && parsed.frameCount > 1) {
+  } else if (allValues.length < expected && parsed.frameCount > 1) {
     result.warnings.push(
-      `Expected about ${expected} values for ${parsed.frameCount} frames; found ${values.length}.`
+      `Expected about ${expected} values for ${parsed.frameCount} frames; found ${allValues.length}.`
     );
   }
-
-  values = sliceFrameValues(values, frameIndex, frameSize);
 
   const fill =
     overrideFill && fillColor
@@ -121,21 +168,59 @@ export function convertCToSvg({
     : { r: 0, g: 0, b: 0, a: 255 };
 
   const resolvedBitOrder = bitOrder === "lsb" ? "lsb" : "msb";
+  const shouldAnimate = Boolean(animateFrames) && parsed.frameCount > 1;
+  const duration = Number.isFinite(frameDurationMs)
+    ? Math.max(16, frameDurationMs)
+    : 100;
 
-  const decoded = decodePixels({
+  if (shouldAnimate) {
+    /** @type {import("./merge-rects.js").MergedRect[][]} */
+    const frames = [];
+    let totalRects = 0;
+    for (let i = 0; i < parsed.frameCount; i++) {
+      const { rects, warnings } = decodeFrameToRects({
+        format,
+        allValues,
+        width,
+        height,
+        frameIndex: i,
+        frameSize,
+        bitOrder: resolvedBitOrder,
+        palette: parsed.palette,
+        oneBitForeground,
+        fill,
+      });
+      result.warnings.push(...warnings);
+      frames.push(rects);
+      totalRects += rects.length;
+    }
+    result.rectCount = totalRects;
+    result.animated = true;
+    result.frameIndex = 0;
+    result.svg = toAnimatedSvg({
+      width,
+      height,
+      frames,
+      displayScale,
+      frameDurationMs: duration,
+      minify,
+    });
+    return result;
+  }
+
+  const { rects, warnings } = decodeFrameToRects({
     format,
-    values,
+    allValues,
     width,
     height,
-    frameIndex: 0,
-    oneBitForeground,
+    frameIndex,
+    frameSize,
     bitOrder: resolvedBitOrder,
     palette: parsed.palette,
+    oneBitForeground,
+    fill,
   });
-  result.warnings.push(...decoded.warnings);
-
-  const colorGrid = decoded.pixels.map((p) => pixelColorKey(p, fill));
-  const rects = mergeRects(colorGrid, width, height);
+  result.warnings.push(...warnings);
   result.rectCount = rects.length;
   result.svg = toSvg({ width, height, rects, displayScale, minify });
 
@@ -148,6 +233,7 @@ export {
   decodePixels,
   mergeRects,
   toSvg,
+  toAnimatedSvg,
   pixelColorKey,
   formatLabel,
   frameValueCount,

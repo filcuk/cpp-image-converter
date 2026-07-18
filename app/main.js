@@ -26,6 +26,7 @@ const previewEl = document.getElementById("svg-preview");
 const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
 const frameStepperEl = document.getElementById("frame-stepper");
+const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const fillWrapEl = document.getElementById("fill-color-picker");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
 const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
@@ -61,6 +62,10 @@ let heightStepper = null;
 let scaleStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
 let frameStepper = null;
+/** @type {ReturnType<typeof initToggle>} */
+let animateFramesToggle = null;
+/** @type {ReturnType<typeof initStepper>} */
+let frameDurationStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
 let overrideToggle = null;
 /** @type {ReturnType<typeof initToggle>} */
@@ -146,12 +151,27 @@ function applySourceMetadata(source) {
  */
 function updateFrameStepper(frameCount) {
   lastFrameCount = Math.max(1, frameCount || 1);
-  const show = lastFrameCount > 1;
-  setHidden(frameStepperEl, !show);
-  if (!show) {
+  const multi = lastFrameCount > 1;
+  setHidden(animateOptionsWrapEl, !multi);
+
+  const animate = Boolean(animateFramesToggle?.getChecked());
+  setHidden(frameStepperEl, !multi || animate);
+
+  if (!multi) {
     frameStepper?.setValue(0);
+    if (animateFramesToggle?.getChecked()) {
+      applyingMetadata = true;
+      try {
+        animateFramesToggle.setChecked(false);
+      } finally {
+        applyingMetadata = false;
+      }
+    }
     return;
   }
+
+  if (animate) return;
+
   const maxIndex = lastFrameCount - 1;
   let current = Math.round(frameStepper?.getValue() ?? 0);
   if (current > maxIndex) current = 0;
@@ -356,6 +376,8 @@ function runConvert({ showSuccess = true } = {}) {
       fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       displayScale,
       minify: minifyToggle?.getChecked() ?? false,
+      animateFrames: animateFramesToggle?.getChecked() ?? false,
+      frameDurationMs: Math.round(frameDurationStepper?.getValue() ?? 100),
     });
   } catch (err) {
     showError(
@@ -398,7 +420,11 @@ function runConvert({ showSuccess = true } = {}) {
   if (metaEl) {
     const outW = Number((result.width * displayScale).toFixed(4));
     const outH = Number((result.height * displayScale).toFixed(4));
-    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
+    const anim =
+      result.animated && result.frameCount > 1
+        ? ` · ${result.frameCount} frames animated`
+        : "";
+    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected}${anim} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
   }
   setHidden(metaEl, false);
   setDownloadEnabled(true);
@@ -436,6 +462,17 @@ try {
   });
 
   frameStepper = initStepper(frameStepperEl, {
+    onChange: onOptionChange,
+  });
+
+  animateFramesToggle = initToggle(document.getElementById("animate-frames-toggle"), {
+    onChange: () => {
+      updateFrameStepper(lastFrameCount);
+      onOptionChange();
+    },
+  });
+
+  frameDurationStepper = initStepper(document.getElementById("frame-duration-stepper"), {
     onChange: onOptionChange,
   });
 
