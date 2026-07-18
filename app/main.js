@@ -202,21 +202,9 @@ function setDirection(next) {
   hideBanner(successBanner);
   hideBanner(warningBanner);
 
-  if (svgMode) {
-    clearPreview();
-    // Carry over the last C→SVG result so round-trips don't require re-paste
-    if (latestSvg && svgTextarea && !svgTextarea.value.trim()) {
-      svgTextarea.value = latestSvg;
-      downloadCFilename = downloadFilename.replace(/\.svg$/i, ".c") || "converted.c";
-      syncSvgActionVisibility();
-    }
-    if (svgTextarea?.value.trim()) runConvert({ showSuccess: false });
-    else clearCOutput();
-  } else {
-    clearCOutput();
-    if (sourceTextarea?.value.trim()) runConvert({ showSuccess: false });
-    else clearPreview();
-  }
+  // Fresh inputs/outputs whenever the direction changes
+  clearSourceInputs();
+  clearSvgInputs();
 }
 
 /**
