@@ -1,6 +1,6 @@
 ---
 description: Keep USAGE.md in sync when adding or changing reusable components
-globs: app/**/*.js,app/**/*.css,demo.html,USAGE.md,.github/workflows/**
+globs: app/**/*.js,app/**/*.css,USAGE.md,.github/workflows/**
 alwaysApply: false
 ---
 
@@ -16,7 +16,6 @@ When you add or materially change a **reusable** feature, update USAGE.md in the
 | ------ | ---------------- |
 | New `app/*.js` module or public API (`initX`, `showX`) | **Available features** table + **Using components** (markup + import example) |
 | New CSS component pattern (`.foo`, BEM block) | **Available features** table + usage example if non-obvious; styles go in the matching `app/css/` partial |
-| New `demo.html` section | Ensure **Using components** matches live demo; mention demo in feature row |
 | Fork/deploy workflow (`pages.yml`, entry HTML) | **Creating a new app**, **GitHub Pages**, or **Project structure** |
 | New optional asset path (`app/res/`, `vendor/`) | **Project structure** and/or fork checklist |
 
@@ -33,7 +32,6 @@ Mirror existing entries (e.g. Dropdown, Toggle dropdown, Banners).
 ## Also update when relevant
 
 - [`AGENTS.md`](AGENTS.md) — module conventions table if a new `initX` / pattern is added
-- [`demo.html`](demo.html) — interactive example for user-facing components
 - Do **not** duplicate full usage into README; at most add a table row linking to USAGE.md
 
 ## Skip USAGE.md updates for

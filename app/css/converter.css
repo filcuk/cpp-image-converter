@@ -1,0 +1,105 @@
+/* Converter app layout */
+
+.converter-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--border) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-color: var(--surface);
+  overflow: auto;
+}
+
+.converter-preview__empty {
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.converter-preview svg {
+  image-rendering: pixelated;
+  /* Keep tiny 1× exports readable in the preview panel */
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 20rem;
+  min-width: min(100%, 8rem);
+  background: transparent;
+}
+
+.converter-meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.converter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.converter-options__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.converter-options__row > * {
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  max-width: 14rem;
+}
+
+.converter-format {
+  max-width: none;
+  flex: 1 1 100%;
+}
+
+.converter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Tabs default to 32rem in the design system; converter input needs page width */
+.converter-input {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: none;
+}
+
+.converter-source-field {
+  max-width: none;
+  width: 100%;
+}
+
+.converter-source-textarea {
+  width: 100%;
+  min-height: 14rem;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.8125rem;
+  box-sizing: border-box;
+}
+
+#load-example-btn {
+  align-self: flex-start;
+}
+
+.converter-fill-wrap.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

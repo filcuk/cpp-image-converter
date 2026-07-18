@@ -5,19 +5,25 @@ import { createIcon } from "../utils/icons.js";
  * Drag-and-drop / click-to-browse file picker.
  *
  * Markup:
- *   <div class="file-dropzone" data-file-accept=".json,.txt" data-file-multiple data-file-max="5">
- *     <input type="file" class="file-dropzone-input" hidden />
- *     <button type="button" class="file-dropzone-prompt">
- *       <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
- *       <span class="file-dropzone-text">
- *         <span class="file-dropzone-primary">Drop files here</span>
- *         <span class="file-dropzone-secondary">or browse</span>
- *       </span>
- *     </button>
+ *   <div class="file-dropzone" data-file-multiple data-file-max="5">
+ *     <div class="file-dropzone-target">
+ *       <input type="file" class="file-dropzone-input" aria-label="Upload a file" />
+ *       <div class="file-dropzone-prompt" aria-hidden="true">
+ *         <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+ *         <span class="file-dropzone-text">
+ *           <span class="file-dropzone-primary">Drop files here</span>
+ *           <span class="file-dropzone-secondary">or browse</span>
+ *         </span>
+ *       </div>
+ *     </div>
  *     <ul class="file-dropzone-list hidden" hidden></ul>
  *   </div>
  *
- * data-file-accept — passed to the hidden input's `accept`
+ * The file input is a full-size transparent overlay so browse and drop both use
+ * the native control. Avoid a restrictive `accept` attribute — Windows often
+ * omits MIME types for `.c` / `.h` and the browser will reject the drop.
+ * Filter by extension in `onFiles` if needed.
+ *
  * data-file-multiple — presence or "true" for multiple files
  * data-file-max — optional maximum file count
  */
@@ -32,10 +38,19 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function syncInputFiles(input, files) {
-  const transfer = new DataTransfer();
-  files.forEach((file) => transfer.items.add(file));
-  input.files = transfer.files;
+function ensureTarget(dropzoneEl, input, prompt) {
+  let target = dropzoneEl.querySelector(".file-dropzone-target");
+  if (target) {
+    if (!target.contains(input)) target.prepend(input);
+    if (!target.contains(prompt)) target.append(prompt);
+    return target;
+  }
+
+  target = document.createElement("div");
+  target.className = "file-dropzone-target";
+  input.replaceWith(target);
+  target.append(input, prompt);
+  return target;
 }
 
 export function initFileDropzone(
@@ -49,14 +64,33 @@ export function initFileDropzone(
   const list = dropzoneEl.querySelector(".file-dropzone-list");
   if (!input || !prompt) return null;
 
-  const acceptTypes = accept ?? dropzoneEl.dataset.fileAccept ?? "";
+  const target = ensureTarget(dropzoneEl, input, prompt);
+
+  input.hidden = false;
+  input.removeAttribute("hidden");
+  input.classList.remove("hidden");
+  // Restrictive accept breaks drop for .c/.h on Windows — keep picker open to all
+  input.removeAttribute("accept");
+  if (prompt.tagName === "BUTTON") {
+    // Visual only; the overlay input receives clicks
+    prompt.setAttribute("tabindex", "-1");
+  }
+  prompt.setAttribute("aria-hidden", "true");
+
+  if (!input.getAttribute("aria-label")) {
+    input.setAttribute("aria-label", "Upload a file");
+  }
+
   const isMultiple =
     multiple ?? parseBooleanAttr(dropzoneEl.dataset.fileMultiple) ?? false;
   const max =
     maxFiles ??
     (dropzoneEl.dataset.fileMax ? Number(dropzoneEl.dataset.fileMax) : undefined);
 
-  if (acceptTypes) input.accept = acceptTypes;
+  // accept option is intentionally ignored for the native attribute (see header).
+  // Callers may still pass it for documentation; filtering belongs in onFiles.
+  void accept;
+
   input.multiple = isMultiple;
 
   /** @type {File[]} */
@@ -70,16 +104,23 @@ export function initFileDropzone(
   function commitFiles(nextFiles) {
     const hadFiles = files.length > 0;
     files = nextFiles;
-    syncInputFiles(input, files);
-    renderList();
 
     if (!files.length) {
       if (hadFiles) onClear?.({ dropzoneEl });
       onFiles?.({ dropzoneEl, files });
-      return;
+    } else {
+      onFiles?.({ dropzoneEl, files });
     }
 
-    onFiles?.({ dropzoneEl, files });
+    try {
+      renderList();
+    } catch {
+      onError?.({
+        dropzoneEl,
+        message: "Could not update the file list UI.",
+        files,
+      });
+    }
   }
 
   function trimToMax(candidateFiles) {
@@ -96,7 +137,6 @@ export function initFileDropzone(
 
   function addFiles(incoming) {
     if (!incoming.length) return;
-
     const next = isMultiple ? [...files, ...incoming] : incoming.slice(0, 1);
     commitFiles(trimToMax(next));
   }
@@ -149,12 +189,8 @@ export function initFileDropzone(
     input.click();
   }
 
-  function onPromptClick() {
-    openPicker();
-  }
-
   function onInputChange() {
-    const incoming = [...input.files];
+    const incoming = [...(input.files ?? [])];
     if (!incoming.length) return;
 
     if (isMultiple) {
@@ -167,17 +203,20 @@ export function initFileDropzone(
 
   function onDragEnter(event) {
     event.preventDefault();
+    event.stopPropagation();
     dragDepth += 1;
     setDragover(true);
   }
 
   function onDragOver(event) {
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
   }
 
   function onDragLeave(event) {
     event.preventDefault();
+    event.stopPropagation();
     dragDepth -= 1;
     if (dragDepth <= 0) {
       dragDepth = 0;
@@ -186,12 +225,17 @@ export function initFileDropzone(
   }
 
   function onDrop(event) {
+    // Prefer our handler so we always get files even when the OS MIME is empty
     event.preventDefault();
+    event.stopPropagation();
     dragDepth = 0;
     setDragover(false);
 
     const incoming = [...(event.dataTransfer?.files ?? [])];
     if (!incoming.length) return;
+
+    // Clear native selection so a later identical browse still fires change
+    input.value = "";
 
     if (isMultiple) {
       addFiles(incoming);
@@ -201,26 +245,27 @@ export function initFileDropzone(
     commitFiles(incoming.slice(0, 1));
   }
 
-  prompt.addEventListener("click", onPromptClick);
   input.addEventListener("change", onInputChange);
-  dropzoneEl.addEventListener("dragenter", onDragEnter);
-  dropzoneEl.addEventListener("dragover", onDragOver);
-  dropzoneEl.addEventListener("dragleave", onDragLeave);
-  dropzoneEl.addEventListener("drop", onDrop);
+  target.addEventListener("dragenter", onDragEnter);
+  target.addEventListener("dragover", onDragOver);
+  target.addEventListener("dragleave", onDragLeave);
+  target.addEventListener("drop", onDrop, true);
 
   renderList();
 
   return {
     openPicker,
-    clear: () => commitFiles([]),
+    clear: () => {
+      input.value = "";
+      commitFiles([]);
+    },
     getFiles: () => [...files],
     destroy: () => {
-      prompt.removeEventListener("click", onPromptClick);
       input.removeEventListener("change", onInputChange);
-      dropzoneEl.removeEventListener("dragenter", onDragEnter);
-      dropzoneEl.removeEventListener("dragover", onDragOver);
-      dropzoneEl.removeEventListener("dragleave", onDragLeave);
-      dropzoneEl.removeEventListener("drop", onDrop);
+      target.removeEventListener("dragenter", onDragEnter);
+      target.removeEventListener("dragover", onDragOver);
+      target.removeEventListener("dragleave", onDragLeave);
+      target.removeEventListener("drop", onDrop, true);
       dragDepth = 0;
       setDragover(false);
     },

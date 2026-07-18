@@ -36,20 +36,22 @@ function bindGlobalErrorHandlers(onError) {
  * @param {string} [options.brandName]
  * @param {string} [options.appVersion] Override app SemVer (default from `app/version.js`)
  * @param {string} [options.templateVersion] Override template SemVer (default from `app/version.js`)
- * @param {import("./page-nav.js").PageNavOptions} [options.pageNav] Passed to `initPageNavPanel()`
+ * @param {import("./page-nav.js").PageNavOptions | false} [options.pageNav] Passed to `initPageNavPanel()`, or `false` to omit page nav
  * @param {boolean} [options.showErrors=true] Show `.banner[data-app-error]` on uncaught errors
  * @param {(detail: object) => void} [options.onError] Called before the error banner is shown
  */
 export function initShell(options = {}) {
   const { pageNav, showErrors = true, onError, ...shellOptions } = options;
-  renderPageShell(shellOptions);
+  renderPageShell({ ...shellOptions, pageNav });
   initIcons();
   initExternalLinks(document);
   initHeadingLinks(document);
   initTheme();
   initThemeToggle(document.getElementById("theme-toggle"));
   initTooltips(document);
-  initPageNavPanel("#page-nav", pageNav);
+  if (pageNav !== false) {
+    initPageNavPanel("#page-nav", pageNav);
+  }
 
   if (showErrors && document.querySelector(".banner[data-app-error]")) {
     bindGlobalErrorHandlers(onError);
