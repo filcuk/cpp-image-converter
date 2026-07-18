@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Component demo · Microapp template</title>
+  <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
+  <script>window.__MICROAPP__={themeStorageKey:"microapp-theme"};</script>
+  <script src="app/theme-init.js"></script>
+  <link rel="stylesheet" href="app/styles.css" />
+  <link rel="stylesheet" href="app/prism.css" />
+  <link rel="stylesheet" href="app/toastui-editor.css" />
+</head>
+
+<body>
+  <header>
+    <div class="site-brand">
+      <img class="site-logo brand-icon--light" src="app/res/app-light.svg" alt="Component demo" width="40" height="40" />
+      <img class="site-logo brand-icon--dark" src="app/res/app-dark.svg" alt="" width="40" height="40" aria-hidden="true" />
+      <h1>Component demo</h1>
+    </div>
+    <p class="tagline">
+      Examples of <a href="index.html">template</a> building blocks.
+    </p>
+  </header>
+
+  <main id="main">
+    <section class="demo-tier" id="demo-tier-basic" aria-labelledby="demo-tier-basic-title">
+      <header class="demo-tier-header">
+        <h2 id="demo-tier-basic-title" class="demo-tier-title" data-page-nav-tier>Basic</h2>
+        <p class="demo-tier-lead">
+          Simple common blocks & controls.
+        </p>
+      </header>
+
+      <div class="demo-tier-body">
+        <section class="demo-section" aria-labelledby="demo-actions">
+          <h2 id="demo-actions" class="section-heading">Actions</h2>
+          <div class="demo-grid demo-grid-2">
+            <div class="demo-card">
+              <h3 class="demo-card-title">Buttons</h3>
+              <p class="demo-hint">Standard set of buttons.</p>
+              <div class="demo-row">
+                <button type="button" class="btn">Default</button>
+                <button type="button" class="btn btn-primary">Primary</button>
+                <button type="button" class="btn" disabled>Disabled</button>
+                <button type="button" id="icon-toggle-btn" class="btn btn-icon btn-toggle" aria-pressed="false"
+                  aria-label="Toggle feature" data-tooltip="Icon button with toggle state" data-icon="lines"
+                  data-icon-class="btn-icon-svg"></button>
+                <button type="button" class="btn-link">Link button</button>
+              </div>
+            </div>
+            <div class="demo-card">
+              <h3 class="demo-card-title">Toolbar</h3>
+              <p class="demo-hint">Group of actions in a flex row.</p>
+              <div class="toolbar" role="toolbar" aria-label="Example actions">
+                <button type="button" class="btn">Undo</button>
+                <button type="button" class="btn">Redo</button>
+                <button type="button" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-icon" aria-label="More options" data-tooltip="More options"
+                  data-icon="lines" data-icon-class="btn-icon-svg"></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-fields">
+          <h2 id="demo-fields" class="section-heading">Form fields</h2>
+          <p class="demo-hint">Standard inputs.</p>
+          <div class="demo-fields">
+            <div class="demo-grid demo-grid-2">
+              <label class="field" for="demo-input-single">
+                <span class="field-label">Single line</span>
+                <input type="text" id="demo-input-single" class="input" placeholder="Enter text…" />
+              </label>
+              <label class="field" for="demo-input-multiline">
+                <span class="field-label">Multi-line</span>
+                <textarea id="demo-input-multiline" class="textarea" rows="3" placeholder="Enter longer text…"></textarea>
+              </label>
+            </div>
+            <div class="demo-grid demo-grid-2">
+              <div class="field">
+                <span class="field-label">Checkbox</span>
+                <div class="checkbox-group" id="demo-checkbox-group">
+                  <label class="checkbox" for="demo-checkbox-default">
+                    <input type="checkbox" class="checkbox-input" id="demo-checkbox-default" />
+                    <span>Option one</span>
+                  </label>
+                  <label class="checkbox" for="demo-checkbox-checked">
+                    <input type="checkbox" class="checkbox-input" id="demo-checkbox-checked" checked />
+                    <span>Option two (checked)</span>
+                  </label>
+                  <label class="checkbox" for="demo-checkbox-disabled">
+                    <input type="checkbox" class="checkbox-input" id="demo-checkbox-disabled" disabled />
+                    <span>Option three (disabled)</span>
+                  </label>
+                </div>
+                <p id="demo-checkbox-result" class="demo-hint" aria-live="polite">Selected: Option two (checked)</p>
+              </div>
+              <div class="field">
+                <span class="field-label" id="demo-radio-label">Radio</span>
+                <div class="radio-group" id="demo-radio-group" role="radiogroup" aria-labelledby="demo-radio-label">
+                  <label class="radio" for="demo-radio-a">
+                    <input type="radio" class="radio-input" name="demo-radio" id="demo-radio-a" value="a" checked />
+                    <span>Option A</span>
+                  </label>
+                  <label class="radio" for="demo-radio-b">
+                    <input type="radio" class="radio-input" name="demo-radio" id="demo-radio-b" value="b" />
+                    <span>Option B</span>
+                  </label>
+                  <label class="radio" for="demo-radio-c">
+                    <input type="radio" class="radio-input" name="demo-radio" id="demo-radio-c" value="c" disabled />
+                    <span>Option C (disabled)</span>
+                  </label>
+                </div>
+                <p id="demo-radio-result" class="demo-hint" aria-live="polite">Selected: Option A</p>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">Toggle</span>
+              <div class="toggle-group" id="demo-toggle-group">
+                <div class="toggle" id="demo-toggle-off" data-toggle-default="false">
+                  <button type="button" class="toggle-btn" role="switch" aria-checked="false">
+                    <span class="toggle-track" aria-hidden="true">
+                      <span class="toggle-thumb">
+                        <span data-icon="check" data-icon-class="toggle-thumb-icon" aria-hidden="true"></span>
+                      </span>
+                    </span>
+                    <span class="toggle-label">Notifications off by default</span>
+                  </button>
+                  <input type="hidden" class="toggle-value" value="false" />
+                </div>
+                <div class="toggle" id="demo-toggle-on" data-toggle-default="true">
+                  <button type="button" class="toggle-btn" role="switch" aria-checked="true">
+                    <span class="toggle-track" aria-hidden="true">
+                      <span class="toggle-thumb">
+                        <span data-icon="check" data-icon-class="toggle-thumb-icon" aria-hidden="true"></span>
+                      </span>
+                    </span>
+                    <span class="toggle-label">Dark mode preview on by default</span>
+                  </button>
+                  <input type="hidden" class="toggle-value" value="true" />
+                </div>
+                <div class="toggle" id="demo-toggle-disabled" data-toggle-default="true" data-toggle-disabled>
+                  <button type="button" class="toggle-btn" role="switch" aria-checked="true" disabled>
+                    <span class="toggle-track" aria-hidden="true">
+                      <span class="toggle-thumb">
+                        <span data-icon="check" data-icon-class="toggle-thumb-icon" aria-hidden="true"></span>
+                      </span>
+                    </span>
+                    <span class="toggle-label">Disabled (on)</span>
+                  </button>
+                  <input type="hidden" class="toggle-value" value="true" />
+                </div>
+              </div>
+              <p id="demo-toggle-result" class="demo-hint" aria-live="polite">Notifications: off · Preview: on</p>
+            </div>
+            <div class="demo-grid demo-grid-2">
+              <div class="field">
+                <span class="field-label" id="demo-segmented-view-label">Segmented control</span>
+                <div class="segmented-control segmented-control--full" id="demo-segmented-view"
+                  data-segmented-control-default="list" aria-labelledby="demo-segmented-view-label">
+                  <div class="segmented-control-list" role="radiogroup" aria-label="View mode">
+                    <button type="button" class="segmented-control-item" role="radio" aria-checked="true"
+                      data-segmented-control-value="list">List</button>
+                    <button type="button" class="segmented-control-item" role="radio" aria-checked="false"
+                      data-segmented-control-value="grid">Grid</button>
+                    <button type="button" class="segmented-control-item" role="radio" aria-checked="false"
+                      data-segmented-control-value="map">Map</button>
+                  </div>
+                  <input type="hidden" class="segmented-control-value" name="demo-view" value="list" />
+                </div>
+                <p id="demo-segmented-view-result" class="demo-hint" aria-live="polite">View: list</p>
+              </div>
+              <div class="field">
+                <span class="field-label" id="demo-segmented-panels-label">Segmented control (with panels)</span>
+                <div class="segmented-control segmented-control--full" id="demo-segmented-panels" data-segmented-control-default="week"
+                  aria-labelledby="demo-segmented-panels-label">
+                  <div class="segmented-control-list" role="radiogroup" aria-label="Time range">
+                    <button type="button" class="segmented-control-item" role="radio" id="demo-segmented-day"
+                      aria-checked="false" aria-controls="demo-segmented-panel-day" data-segmented-control-value="day">Day</button>
+                    <button type="button" class="segmented-control-item" role="radio" id="demo-segmented-week"
+                      aria-checked="true" aria-controls="demo-segmented-panel-week" data-segmented-control-value="week">Week</button>
+                    <button type="button" class="segmented-control-item" role="radio" id="demo-segmented-month"
+                      aria-checked="false" aria-controls="demo-segmented-panel-month" data-segmented-control-value="month"
+                      disabled>Month</button>
+                  </div>
+                  <input type="hidden" class="segmented-control-value" value="week" />
+                  <div class="segmented-control-panels">
+                    <div class="segmented-control-panel" id="demo-segmented-panel-day" role="region"
+                      aria-labelledby="demo-segmented-day" hidden>
+                      <p>Daily breakdown — hourly totals and trends.</p>
+                    </div>
+                    <div class="segmented-control-panel" id="demo-segmented-panel-week" role="region"
+                      aria-labelledby="demo-segmented-week">
+                      <p>Weekly overview — seven-day summary with comparisons.</p>
+                    </div>
+                    <div class="segmented-control-panel" id="demo-segmented-panel-month" role="region"
+                      aria-labelledby="demo-segmented-month" hidden>
+                      <p>Monthly rollup — calendar grid and month-over-month change.</p>
+                    </div>
+                  </div>
+                </div>
+                <p id="demo-segmented-panels-result" class="demo-hint" aria-live="polite">Range: week</p>
+              </div>
+            </div>
+            <div class="demo-grid demo-grid-2">
+              <div class="slider" id="demo-slider-integer" data-slider-min="0" data-slider-max="10" data-slider-default="4" data-slider-format="integer">
+                <label class="field-label" for="demo-slider-integer-range">Slider (integer)</label>
+                <div class="slider-row">
+                  <input type="range" id="demo-slider-integer-range" class="slider-range" />
+                  <div class="slider-input-wrap">
+                    <input type="text" class="input slider-input" inputmode="numeric" aria-label="Integer value" />
+                    <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                  </div>
+                  <input type="hidden" class="slider-value" />
+                </div>
+              </div>
+              <div class="slider" id="demo-slider-decimal" data-slider-min="0" data-slider-max="1" data-slider-step="0.05" data-slider-default="0.5" data-slider-format="decimal">
+                <label class="field-label" for="demo-slider-decimal-range">Slider (decimal)</label>
+                <div class="slider-row">
+                  <input type="range" id="demo-slider-decimal-range" class="slider-range" />
+                  <div class="slider-input-wrap">
+                    <input type="text" class="input slider-input" inputmode="decimal" aria-label="Decimal value" />
+                    <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                  </div>
+                  <input type="hidden" class="slider-value" />
+                </div>
+              </div>
+            </div>
+            <div class="demo-grid demo-grid-2">
+              <div class="slider" id="demo-slider-percentage" data-slider-min="0" data-slider-max="100" data-slider-default="75" data-slider-format="percentage">
+                <label class="field-label" for="demo-slider-percentage-range">Slider (percentage)</label>
+                <div class="slider-row">
+                  <input type="range" id="demo-slider-percentage-range" class="slider-range" />
+                  <div class="slider-input-wrap">
+                    <input type="text" class="input slider-input" inputmode="decimal" aria-label="Percentage value" />
+                    <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                  </div>
+                  <input type="hidden" class="slider-value" />
+                </div>
+              </div>
+              <div class="slider" id="demo-slider-disabled" data-slider-min="0" data-slider-max="10" data-slider-default="6" data-slider-format="integer" data-slider-disabled>
+                <label class="field-label" for="demo-slider-disabled-range">Slider (disabled)</label>
+                <div class="slider-row">
+                  <input type="range" id="demo-slider-disabled-range" class="slider-range" disabled />
+                  <div class="slider-input-wrap">
+                    <input type="text" class="input slider-input" inputmode="numeric" aria-label="Disabled value" disabled />
+                    <span class="slider-suffix hidden" aria-hidden="true">%</span>
+                  </div>
+                  <input type="hidden" class="slider-value" />
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">Slider result</span>
+              <p id="demo-slider-result" class="demo-hint" aria-live="polite">Integer: 4</p>
+            </div>
+            <div class="demo-grid demo-grid-2">
+              <div class="stepper" id="demo-stepper" data-stepper-min="0" data-stepper-max="10" data-stepper-default="2">
+                <label class="field-label" for="demo-stepper-input">Stepper (integer)</label>
+                <div class="stepper-control">
+                  <button type="button" class="btn btn-icon stepper-decrement" data-stepper-decrement
+                    aria-label="Decrease">−</button>
+                  <input type="text" id="demo-stepper-input" class="input stepper-input" inputmode="numeric"
+                    aria-label="Integer quantity" />
+                  <button type="button" class="btn btn-icon stepper-increment" data-stepper-increment
+                    aria-label="Increase">+</button>
+                  <input type="hidden" class="stepper-value" />
+                </div>
+              </div>
+              <div class="stepper" id="demo-stepper-decimal" data-stepper-min="0" data-stepper-max="5"
+                data-stepper-step="0.5" data-stepper-default="1.5" data-stepper-format="decimal">
+                <label class="field-label" for="demo-stepper-decimal-input">Stepper (decimal)</label>
+                <div class="stepper-control">
+                  <button type="button" class="btn btn-icon stepper-decrement" data-stepper-decrement
+                    aria-label="Decrease">−</button>
+                  <input type="text" id="demo-stepper-decimal-input" class="input stepper-input" inputmode="decimal"
+                    aria-label="Decimal quantity" />
+                  <button type="button" class="btn btn-icon stepper-increment" data-stepper-increment
+                    aria-label="Increase">+</button>
+                  <input type="hidden" class="stepper-value" />
+                </div>
+              </div>
+            </div>
+            <p id="demo-stepper-result" class="demo-hint" aria-live="polite">Integer: 2 · Decimal: 1.5</p>
+            <div class="demo-grid demo-grid-2">
+              <div class="color-picker" id="demo-color-picker" data-color-picker-default="#0969da">
+                <label class="field-label" for="demo-color-picker-input">Colour picker</label>
+                <div class="color-picker-control">
+                  <input type="text" id="demo-color-picker-input" class="input color-picker-input"
+                    placeholder="#0969DA" autocomplete="off" spellcheck="false" aria-label="Hex colour" />
+                  <span class="color-picker-swatch" aria-hidden="true"></span>
+                  <input type="hidden" class="color-picker-value" />
+                </div>
+              </div>
+              <div class="color-picker" id="demo-color-picker-empty">
+                <label class="field-label" for="demo-color-picker-empty-input">Colour picker (empty)</label>
+                <div class="color-picker-control">
+                  <input type="text" id="demo-color-picker-empty-input" class="input color-picker-input"
+                    placeholder="#RRGGBB" autocomplete="off" spellcheck="false" aria-label="Hex colour" />
+                  <span class="color-picker-swatch" aria-hidden="true"></span>
+                  <input type="hidden" class="color-picker-value" />
+                </div>
+              </div>
+            </div>
+            <p id="demo-color-picker-result" class="demo-hint" aria-live="polite">Colour: #0969DA · Empty: —</p>
+            <div class="demo-grid demo-grid-2">
+              <div class="progress-bar" id="demo-progress-bar" data-progress-bar-value="40" data-progress-bar-max="100"
+                aria-labelledby="demo-progress-bar-label">
+                <span class="field-label" id="demo-progress-bar-label">Progress bar</span>
+                <div class="progress-bar-row">
+                  <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                    aria-valuenow="40" aria-labelledby="demo-progress-bar-label">
+                    <span class="progress-bar-fill"></span>
+                  </div>
+                </div>
+                <input type="hidden" class="progress-bar-value" value="40" />
+              </div>
+              <div class="progress-bar" id="demo-progress-bar-percent" data-progress-bar-value="75"
+                data-progress-bar-max="100" data-progress-bar-label="percent" aria-labelledby="demo-progress-bar-percent-label">
+                <span class="field-label" id="demo-progress-bar-percent-label">Progress bar (%)</span>
+                <div class="progress-bar-row">
+                  <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                    aria-valuenow="75" aria-labelledby="demo-progress-bar-percent-label">
+                    <span class="progress-bar-fill"></span>
+                  </div>
+                  <span class="progress-bar-label" aria-hidden="true">75%</span>
+                </div>
+                <input type="hidden" class="progress-bar-value" value="75" />
+              </div>
+            </div>
+            <div class="progress-bar" id="demo-progress-bar-fraction" data-progress-bar-value="7" data-progress-bar-max="12"
+              data-progress-bar-label="fraction" aria-labelledby="demo-progress-bar-fraction-label">
+              <span class="field-label" id="demo-progress-bar-fraction-label">Progress bar (fraction)</span>
+              <div class="progress-bar-row">
+                <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="12"
+                  aria-valuenow="7" aria-labelledby="demo-progress-bar-fraction-label">
+                  <span class="progress-bar-fill"></span>
+                </div>
+                <span class="progress-bar-label" aria-hidden="true">7/12</span>
+              </div>
+              <input type="hidden" class="progress-bar-value" value="7" />
+            </div>
+            <div class="demo-row">
+              <button type="button" class="btn" id="demo-progress-bar-advance">Advance progress</button>
+              <button type="button" class="btn" id="demo-progress-bar-reset">Reset</button>
+            </div>
+            <p id="demo-progress-bar-result" class="demo-hint" aria-live="polite">Bar: 40% · Percent: 75% · Fraction: 7/12</p>
+            <div class="field">
+              <span class="field-label">Spinner</span>
+              <div class="demo-row">
+                <div class="spinner spinner--sm" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
+                  <span class="spinner-indicator" aria-hidden="true"></span>
+                </div>
+                <div class="spinner" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
+                  <span class="spinner-indicator" aria-hidden="true"></span>
+                </div>
+                <div class="spinner spinner--lg" role="status" aria-live="polite" aria-busy="true" aria-label="Loading">
+                  <span class="spinner-indicator" aria-hidden="true"></span>
+                </div>
+                <div class="spinner" role="status" aria-live="polite" aria-busy="true" aria-label="Loading data">
+                  <span class="spinner-indicator" aria-hidden="true"></span>
+                  <span class="spinner-label">Loading data…</span>
+                </div>
+                <div class="spinner hidden" id="demo-spinner-inline" data-spinner-visible="false"
+                  data-spinner-label="Fetching results…" role="status" aria-live="polite" aria-busy="false"
+                  aria-label="Fetching results…" hidden>
+                  <span class="spinner-indicator" aria-hidden="true"></span>
+                  <span class="spinner-label">Fetching results…</span>
+                </div>
+                <button type="button" class="btn" id="demo-spinner-toggle">Toggle spinner</button>
+              </div>
+            </div>
+            <div class="demo-card">
+              <h3 class="demo-card-title">Spinner overlay</h3>
+              <p class="demo-hint">Blocks interaction with the panel below until loading finishes.</p>
+              <div class="spinner-host spinner-demo-panel" id="demo-spinner-host">
+                <p>Account settings and preferences appear here once loaded.</p>
+                <button type="button" class="btn" disabled>Edit settings</button>
+                <div class="spinner-overlay hidden" hidden>
+                  <div class="spinner" role="status" aria-live="polite" aria-busy="true" aria-label="Loading data">
+                    <span class="spinner-indicator" aria-hidden="true"></span>
+                    <span class="spinner-label">Loading data…</span>
+                  </div>
+                </div>
+              </div>
+              <div class="demo-row">
+                <button type="button" class="btn btn-primary" id="demo-spinner-load">Simulate load</button>
+              </div>
+              <p id="demo-spinner-result" class="demo-hint" aria-live="polite">Panel ready.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-tooltips">
+          <h2 id="demo-tooltips" class="section-heading">Tooltips</h2>
+          <p class="demo-hint">Add <code>data-tooltip</code> to any element; include optional <code>data-tooltip-position</code>.</p>
+          <div class="demo-row">
+            <button type="button" class="btn" data-tooltip="Save your changes">
+              Hover me
+            </button>
+            <button type="button" class="btn btn-icon" aria-label="Help" data-tooltip="Inline help for this control"
+              data-tooltip-position="right">
+              <span class="help-icon" aria-hidden="true">?</span>
+            </button>
+            <span class="demo-inline">
+              Positions:
+              <button type="button" class="btn btn-link" data-tooltip="Above the trigger" data-tooltip-position="top">
+                top
+              </button>
+              <button type="button" class="btn btn-link" data-tooltip="Below the trigger" data-tooltip-position="bottom">
+                bottom
+              </button>
+              <button type="button" class="btn btn-link" data-tooltip="Left of the trigger" data-tooltip-position="left">
+                left
+              </button>
+              <button type="button" class="btn btn-link" data-tooltip="Right of the trigger" data-tooltip-position="right">
+                right
+              </button>
+            </span>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-banners">
+          <h2 id="demo-banners" class="section-heading">Banners</h2>
+          <p class="demo-hint">
+            Inline feedback below the trigger row. Toggle to show or hide; trigger to flash with auto-dismiss.
+          </p>
+          <div class="demo-banner-controls">
+            <div class="demo-banner-group">
+              <p class="demo-banner-group-label">Toggle visibility</p>
+              <div class="demo-row">
+                <button type="button" class="btn" id="toggle-note-banner">Note</button>
+                <button type="button" class="btn" id="toggle-info-banner">Info</button>
+                <button type="button" class="btn" id="toggle-success-banner">Success</button>
+                <button type="button" class="btn" id="toggle-important-banner">Important</button>
+                <button type="button" class="btn" id="toggle-warning-banner">Warning</button>
+                <button type="button" class="btn" id="toggle-error-banner">Error</button>
+                <button type="button" class="btn btn-primary" id="toggle-all-banners">All</button>
+              </div>
+            </div>
+            <div class="demo-banner-group">
+              <p class="demo-banner-group-label">Auto-dismiss (3 s)</p>
+              <div class="demo-row">
+                <button type="button" class="btn" id="trigger-note-banner">Note</button>
+                <button type="button" class="btn" id="trigger-info-banner">Info</button>
+                <button type="button" class="btn" id="trigger-success-banner">Success</button>
+                <button type="button" class="btn" id="trigger-important-banner">Important</button>
+                <button type="button" class="btn" id="trigger-warning-banner">Warning</button>
+                <button type="button" class="btn" id="trigger-error-banner">Error</button>
+              </div>
+            </div>
+          </div>
+          <div class="demo-banner-stack">
+            <div id="demo-note-banner" class="banner banner-note hidden" role="note" hidden>
+              <span class="banner-icon" data-icon="note" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Note — supplementary detail that is easy to skim past.</span>
+            </div>
+            <div id="demo-info-banner" class="banner banner-info hidden" role="status" hidden>
+              <span class="banner-icon" data-icon="info" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Info — neutral guidance or context.</span>
+            </div>
+            <div id="demo-success-banner" class="banner banner-success hidden" role="status" hidden>
+              <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Success — completed actions or positive outcomes.</span>
+            </div>
+            <div id="demo-important-banner" class="banner banner-important hidden" role="status" hidden>
+              <span class="banner-icon" data-icon="important" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Important — high-priority messages.</span>
+            </div>
+            <div id="demo-warning-banner" class="banner banner-warning hidden" role="status" hidden>
+              <span class="banner-icon" data-icon="warning" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Warning — non-blocking notices.</span>
+            </div>
+            <div id="demo-error-banner" class="banner banner-error hidden" role="alert" hidden>
+              <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
+              <span class="banner-body">Error — something that needs attention.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-dialogs">
+          <h2 id="demo-dialogs" class="section-heading">Dialogs</h2>
+          <p class="demo-hint">Modal overlays with focus trap.</p>
+          <div class="demo-row">
+            <button type="button" class="btn" id="open-info-dialog">
+              Open info dialog
+            </button>
+            <button type="button" class="btn btn-primary" id="open-confirm-dialog">
+              Open confirm dialog
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="demo-tier" id="demo-tier-advanced" aria-labelledby="demo-tier-advanced-title">
+      <header class="demo-tier-header">
+        <h2 id="demo-tier-advanced-title" class="demo-tier-title" data-page-nav-tier>Advanced</h2>
+        <p class="demo-tier-lead">
+          A set of more complex and interactive components.
+        </p>
+      </header>
+
+      <div class="demo-tier-body">
+        <section class="demo-section" aria-labelledby="demo-menus">
+          <h2 id="demo-menus" class="section-heading">Menus &amp; pickers</h2>
+          <div class="demo-grid demo-grid-2">
+            <div class="demo-card">
+              <h3 class="demo-card-title">Combobox</h3>
+              <p class="demo-hint">Arrow key navigation, <kbd>Enter</kbd> selection, <kbd>Esc</kbd> to close.</p>
+              <div class="combobox" id="demo-combobox">
+                <label class="field-label" for="demo-combobox-input">City</label>
+                <div class="combobox-control">
+                  <input type="text" id="demo-combobox-input" class="input combobox-input" role="combobox"
+                    aria-expanded="false" aria-autocomplete="list" aria-controls="demo-combobox-list" autocomplete="off"
+                    placeholder="Search cities…" />
+                  <ul id="demo-combobox-list" class="combobox-list hidden" role="listbox" hidden>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="nyc">New York</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="la">Los Angeles</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="chi">Chicago</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="hou">Houston</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="phx">Phoenix</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="phl">Philadelphia</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="sa">San Antonio</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="sd">San Diego</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="dal">Dallas</button>
+                    </li>
+                    <li role="presentation">
+                      <button type="button" class="combobox-option" role="option" data-value="sj">San Jose</button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <p id="demo-combobox-result" class="demo-hint" aria-live="polite">No city selected.</p>
+            </div>
+
+            <div class="demo-card">
+              <h3 class="demo-card-title">Combo button</h3>
+              <p class="demo-hint">Primary action plus a chevron menu.</p>
+              <div class="combo-btn" id="demo-combo">
+                <button type="button" class="btn combo-btn-main" id="demo-combo-main">
+                  Pick random
+                </button>
+                <button type="button" class="btn combo-btn-toggle" id="demo-combo-toggle" aria-haspopup="menu"
+                  aria-expanded="false" aria-controls="demo-combo-menu" aria-label="Choose option">
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul id="demo-combo-menu" class="combo-menu hidden" role="menu">
+                  <li role="none">
+                    <button type="button" class="combo-menu-item" role="menuitem" data-value="example-1">
+                      Example 1
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="combo-menu-item" role="menuitem" data-value="example-2">
+                      Example 2
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="combo-menu-item" role="menuitem" data-value="example-3">
+                      Example 3
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <p id="demo-combo-result" class="demo-hint" aria-live="polite"></p>
+            </div>
+
+            <div class="demo-card">
+              <h3 class="demo-card-title">Dropdown</h3>
+              <p class="demo-hint">Single-select menu; closes after a choice.</p>
+              <div class="dropdown" id="demo-dropdown">
+                <button type="button" class="btn dropdown-trigger" id="demo-dropdown-trigger" aria-haspopup="menu"
+                  aria-expanded="false" aria-controls="demo-dropdown-menu">
+                  Choose item
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul id="demo-dropdown-menu" class="dropdown-menu hidden" role="menu">
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitem" data-value="example-1">
+                      Example 1
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitem" data-value="example-2">
+                      Example 2
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitem" data-value="example-3">
+                      Example 3
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <p id="demo-dropdown-result" class="demo-hint" aria-live="polite"></p>
+            </div>
+
+            <div class="demo-card">
+              <h3 class="demo-card-title">Toggle dropdown</h3>
+              <p class="demo-hint">Multi-select; menu stays open while toggling items.</p>
+              <div class="dropdown" id="demo-toggle-dropdown">
+                <button type="button" class="btn dropdown-trigger" id="demo-toggle-dropdown-trigger" aria-haspopup="menu"
+                  aria-expanded="false" aria-controls="demo-toggle-dropdown-menu">
+                  <span class="dropdown-trigger-label">Toggle items</span>
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul id="demo-toggle-dropdown-menu" class="dropdown-menu hidden" role="menu">
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitemcheckbox" aria-checked="false"
+                      data-value="alpha">
+                      Alpha
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitemcheckbox" aria-checked="false"
+                      data-value="beta">
+                      Beta
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button type="button" class="dropdown-menu-item" role="menuitemcheckbox" aria-checked="false"
+                      data-value="gamma">
+                      Gamma
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <p id="demo-toggle-dropdown-result" class="demo-hint" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-dates-files">
+          <h2 id="demo-dates-files" class="section-heading">Dates</h2>
+          <p class="demo-hint">Calendar popups with optional time input.</p>
+          <div class="demo-fields">
+            <div class="demo-grid demo-grid-2">
+              <div class="field date-picker" id="demo-date-picker">
+                <label class="field-label" for="demo-date-picker-input">Date picker</label>
+                <div class="date-picker-control">
+                  <input type="hidden" class="date-picker-value" />
+                  <input type="text" id="demo-date-picker-input" class="input date-picker-input"
+                    placeholder="Jun 20, 2026" autocomplete="off" />
+                  <button type="button" class="date-picker-trigger" aria-label="Open calendar"
+                    data-icon="calendar" data-icon-class="date-picker-icon" aria-expanded="false"></button>
+                </div>
+                <div class="date-picker-popup hidden" role="dialog" aria-modal="true" aria-label="Choose date" hidden>
+                  <div class="date-picker-header">
+                    <button type="button" class="date-picker-nav btn btn-link" data-date-picker-prev
+                      aria-label="Previous month">‹</button>
+                    <div class="date-picker-caption" aria-live="polite"></div>
+                    <button type="button" class="date-picker-nav btn btn-link" data-date-picker-next
+                      aria-label="Next month">›</button>
+                  </div>
+                  <div class="date-picker-weekdays" aria-hidden="true">
+                    <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                  </div>
+                  <div class="date-picker-grid" role="grid"></div>
+                  <div class="date-picker-actions">
+                    <button type="button" class="btn date-picker-quick-btn" data-date-picker-today>Today</button>
+                  </div>
+                </div>
+                <p id="demo-date-picker-result" class="demo-hint" aria-live="polite">No date selected.</p>
+              </div>
+
+              <div class="field date-picker" id="demo-date-picker-time" data-date-picker-time>
+                <label class="field-label" for="demo-date-picker-time-input">Date picker with time</label>
+                <div class="date-picker-row">
+                  <div class="date-picker-control">
+                    <input type="hidden" class="date-picker-value" />
+                    <input type="text" id="demo-date-picker-time-input" class="input date-picker-input"
+                      placeholder="Jun 20, 2026" autocomplete="off" />
+                    <button type="button" class="date-picker-trigger" aria-label="Open calendar"
+                      data-icon="calendar" data-icon-class="date-picker-icon" aria-expanded="false"></button>
+                  </div>
+                  <input type="time" class="input date-picker-time hidden" hidden />
+                  <div class="date-picker-popup hidden" role="dialog" aria-modal="true" aria-label="Choose date" hidden>
+                    <div class="date-picker-header">
+                      <button type="button" class="date-picker-nav btn btn-link" data-date-picker-prev
+                        aria-label="Previous month">‹</button>
+                      <div class="date-picker-caption" aria-live="polite"></div>
+                      <button type="button" class="date-picker-nav btn btn-link" data-date-picker-next
+                        aria-label="Next month">›</button>
+                    </div>
+                    <div class="date-picker-weekdays" aria-hidden="true">
+                      <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                    </div>
+                    <div class="date-picker-grid" role="grid"></div>
+                    <div class="date-picker-actions">
+                      <button type="button" class="btn date-picker-quick-btn" data-date-picker-today>Today</button>
+                      <button type="button" class="btn date-picker-quick-btn" data-date-picker-now>Now</button>
+                    </div>
+                  </div>
+                </div>
+                <p id="demo-date-picker-time-result" class="demo-hint" aria-live="polite">No date or time selected.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-layout">
+          <h2 id="demo-layout" class="section-heading">Layout patterns</h2>
+          <p class="demo-hint">Composite surfaces for settings forms and progressive disclosure.</p>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">Section panel</h3>
+            <p class="demo-hint">Bordered grid for labels, toggles, and a submit row with inline banners.</p>
+            <div class="section-panel" id="demo-section-panel-block">
+              <div class="section-panel__grid">
+                <label class="field section-panel__field" for="demo-section-input">
+                  <span class="field-label">Label</span>
+                  <input type="text" id="demo-section-input" class="input" placeholder="Enter text…" />
+                </label>
+              </div>
+              <div class="section-panel__grid">
+                <button type="button" id="demo-section-toggle" class="btn btn-toggle section-panel__toggle"
+                  aria-pressed="false">Toggle</button>
+              </div>
+              <div class="section-panel__grid">
+                <label class="checkbox section-panel__checkbox" for="demo-section-checkbox">
+                  <input type="checkbox" class="checkbox-input" id="demo-section-checkbox" />
+                  <span>Remember settings</span>
+                </label>
+              </div>
+              <hr class="section-panel__divider" />
+              <div class="section-panel__row">
+                <div class="section-panel__feedback">
+                  <div id="demo-section-success" class="banner banner-success hidden" role="status" hidden
+                    data-banner-expire="1500">
+                    <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
+                    <span class="banner-body">Submitted</span>
+                  </div>
+                  <div id="demo-section-error" class="banner banner-error hidden" role="alert" hidden
+                    data-banner-expire="1500">
+                    <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
+                    <span class="banner-body">Input text</span>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-primary section-panel__submit" id="demo-section-submit">
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-grid demo-grid-2">
+            <div class="demo-card">
+              <h3 class="demo-card-title">Tabs</h3>
+              <p class="demo-hint">Split related content without leaving the page.</p>
+              <div class="tabs" id="demo-tabs">
+                <div class="tabs-list" role="tablist" aria-label="Example sections">
+                  <button type="button" class="tabs-tab" role="tab" id="demo-tab-overview" aria-selected="true"
+                    aria-controls="demo-tab-panel-overview">
+                    Overview
+                  </button>
+                  <button type="button" class="tabs-tab" role="tab" id="demo-tab-details" aria-selected="false"
+                    aria-controls="demo-tab-panel-details" tabindex="-1">
+                    Details
+                  </button>
+                  <button type="button" class="tabs-tab" role="tab" id="demo-tab-notes" aria-selected="false"
+                    aria-controls="demo-tab-panel-notes" tabindex="-1">
+                    Notes
+                  </button>
+                </div>
+                <div id="demo-tab-panel-overview" class="tabs-panel" role="tabpanel" aria-labelledby="demo-tab-overview">
+                  <div class="tabs-body">
+                    <p>Overview content for the active tab.</p>
+                  </div>
+                </div>
+                <div id="demo-tab-panel-details" class="tabs-panel hidden" role="tabpanel" aria-labelledby="demo-tab-details"
+                  hidden>
+                  <div class="tabs-body">
+                    <p>Details — settings, parameters, or a deeper breakdown.</p>
+                  </div>
+                </div>
+                <div id="demo-tab-panel-notes" class="tabs-panel hidden" role="tabpanel" aria-labelledby="demo-tab-notes"
+                  hidden>
+                  <div class="tabs-body">
+                    <p>Notes and supplementary text. Arrow keys move between tabs when the tab list is focused.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="demo-card">
+              <h3 class="demo-card-title">Expand</h3>
+              <p class="demo-hint">Single disclosure - one trigger, one panel.</p>
+              <div class="expand" id="demo-expand">
+                <button type="button" class="expand-trigger" aria-expanded="false" aria-controls="demo-expand-panel">
+                  <span class="expand-notch" aria-hidden="true"></span>
+                  <span class="expand-label">Reveal more content</span>
+                </button>
+                <div id="demo-expand-panel" class="expand-panel hidden" hidden>
+                  <div class="expand-body">
+                    <p>
+                      Extra settings or detail live here. Wire up with <code>initExpand()</code> or
+                      <code>initExpands()</code> for every <code>.expand</code> block.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">Pagination</h3>
+            <p class="demo-hint">Split content across pages and navigate in place.</p>
+            <div class="pagination" id="demo-pagination" data-pagination-default="1">
+              <div class="pagination-panels">
+                <div class="pagination-panel" data-pagination-panel="1" role="region" aria-label="Page 1">
+                  <ul class="pagination-demo-list">
+                    <li>Alpha</li>
+                    <li>Bravo</li>
+                    <li>Charlie</li>
+                    <li>Delta</li>
+                    <li>Echo</li>
+                  </ul>
+                </div>
+                <div class="pagination-panel hidden" data-pagination-panel="2" role="region" aria-label="Page 2" hidden>
+                  <ul class="pagination-demo-list">
+                    <li>Foxtrot</li>
+                    <li>Golf</li>
+                    <li>Hotel</li>
+                    <li>India</li>
+                    <li>Juliet</li>
+                  </ul>
+                </div>
+                <div class="pagination-panel hidden" data-pagination-panel="3" role="region" aria-label="Page 3" hidden>
+                  <ul class="pagination-demo-list">
+                    <li>Kilo</li>
+                    <li>Lima</li>
+                    <li>Mike</li>
+                    <li>November</li>
+                    <li>Oscar</li>
+                  </ul>
+                </div>
+              </div>
+              <nav class="pagination-nav" aria-label="Demo results pages">
+                <button type="button" class="btn btn-icon pagination-prev" data-pagination-prev
+                  aria-label="Previous page" disabled>‹</button>
+                <ul class="pagination-list">
+                  <li class="pagination-item">
+                    <button type="button" class="pagination-page is-active" data-pagination-page="1"
+                      aria-current="page">1</button>
+                  </li>
+                  <li class="pagination-item">
+                    <button type="button" class="pagination-page" data-pagination-page="2" tabindex="-1">2</button>
+                  </li>
+                  <li class="pagination-item">
+                    <button type="button" class="pagination-page" data-pagination-page="3" tabindex="-1">3</button>
+                  </li>
+                </ul>
+                <button type="button" class="btn btn-icon pagination-next" data-pagination-next
+                  aria-label="Next page">›</button>
+              </nav>
+              <input type="hidden" class="pagination-value" value="1" />
+            </div>
+            <p id="demo-pagination-result" class="demo-hint" aria-live="polite">Page 1 of 3</p>
+          </div>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">Data table</h3>
+            <p class="demo-hint">Sortable columns and row selection. Numeric columns use <code>.table-num</code>.</p>
+            <div class="table-block table-block--wide" id="demo-table" data-table-sortable data-table-selectable>
+              <div class="table-wrap">
+                <table class="table table--striped">
+                  <caption class="table-caption">Open issues</caption>
+                  <thead>
+                    <tr>
+                      <th class="table-select-col" scope="col">
+                        <label class="checkbox">
+                          <input type="checkbox" class="checkbox-input" data-table-select-all
+                            aria-label="Select all rows" />
+                        </label>
+                      </th>
+                      <th scope="col" data-table-sort data-sort-type="text">
+                        <button type="button" class="table-sort-button">Title</button>
+                      </th>
+                      <th scope="col" data-table-sort data-sort-type="text">Status</th>
+                      <th scope="col" data-table-sort data-sort-type="date" class="table-num">
+                        <button type="button" class="table-sort-button">Updated</button>
+                      </th>
+                      <th scope="col" data-table-sort data-sort-type="number" class="table-num">
+                        <button type="button" class="table-sort-button">Comments</button>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-table-row-id="42">
+                      <td class="table-select-col">
+                        <label class="checkbox">
+                          <input type="checkbox" class="checkbox-input" data-table-row-select
+                            aria-label="Select Fix nav overlap on mobile" />
+                        </label>
+                      </td>
+                      <td>Fix nav overlap on mobile</td>
+                      <td>Open</td>
+                      <td class="table-num">2026-03-01</td>
+                      <td class="table-num">3</td>
+                    </tr>
+                    <tr data-table-row-id="38">
+                      <td class="table-select-col">
+                        <label class="checkbox">
+                          <input type="checkbox" class="checkbox-input" data-table-row-select
+                            aria-label="Select Add export to CSV" />
+                        </label>
+                      </td>
+                      <td>Add export to CSV</td>
+                      <td>In review</td>
+                      <td class="table-num">2026-02-18</td>
+                      <td class="table-num">12</td>
+                    </tr>
+                    <tr data-table-row-id="31">
+                      <td class="table-select-col">
+                        <label class="checkbox">
+                          <input type="checkbox" class="checkbox-input" data-table-row-select
+                            aria-label="Select Document table component" />
+                        </label>
+                      </td>
+                      <td>Document table component</td>
+                      <td>Closed</td>
+                      <td class="table-num">2026-01-09</td>
+                      <td class="table-num">1</td>
+                    </tr>
+                    <tr data-table-row-id="27">
+                      <td class="table-select-col">
+                        <label class="checkbox">
+                          <input type="checkbox" class="checkbox-input" data-table-row-select
+                            aria-label="Select Theme flash on slow networks" />
+                        </label>
+                      </td>
+                      <td>Theme flash on slow networks</td>
+                      <td>Open</td>
+                      <td class="table-num">2026-03-12</td>
+                      <td class="table-num">7</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p id="demo-table-result" class="demo-hint" aria-live="polite">No rows selected.</p>
+          </div>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">Accordion</h3>
+            <p class="demo-hint">
+              Stack of headings with panels below - only one section open at a time. Arrow keys move between headers.
+            </p>
+            <div class="accordion" id="demo-accordion" data-accordion-default-open="1">
+              <div class="accordion-item">
+                <h3 class="accordion-heading">
+                  <button type="button" class="accordion-trigger" id="demo-accordion-trigger-1" aria-expanded="false"
+                    aria-controls="demo-accordion-panel-1">
+                    <span class="accordion-notch" aria-hidden="true"></span>
+                    <span class="accordion-label">What is this template?</span>
+                  </button>
+                </h3>
+                <div id="demo-accordion-panel-1" class="accordion-panel hidden" role="region"
+                  aria-labelledby="demo-accordion-trigger-1" hidden>
+                  <div class="accordion-body">
+                    <p>
+                      A vanilla HTML, CSS, and JavaScript starter for small static apps deployed to GitHub Pages.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h3 class="accordion-heading">
+                  <button type="button" class="accordion-trigger" id="demo-accordion-trigger-2" aria-expanded="false"
+                    aria-controls="demo-accordion-panel-2">
+                    <span class="accordion-notch" aria-hidden="true"></span>
+                    <span class="accordion-label">How do I use components?</span>
+                  </button>
+                </h3>
+                <div id="demo-accordion-panel-2" class="accordion-panel hidden" role="region"
+                  aria-labelledby="demo-accordion-trigger-2" hidden>
+                  <div class="accordion-body">
+                    <p>
+                      Copy markup from <code>demo.html</code>, import the matching module from
+                      <code>app/</code>, and call its <code>init</code> helper. See
+                      <code>USAGE.md</code> for the full catalogue.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="accordion-item">
+                <h3 class="accordion-heading">
+                  <button type="button" class="accordion-trigger" id="demo-accordion-trigger-3" aria-expanded="false"
+                    aria-controls="demo-accordion-panel-3">
+                    <span class="accordion-notch" aria-hidden="true"></span>
+                    <span class="accordion-label">Accordion vs expand?</span>
+                  </button>
+                </h3>
+                <div id="demo-accordion-panel-3" class="accordion-panel hidden" role="region"
+                  aria-labelledby="demo-accordion-trigger-3" hidden>
+                  <div class="accordion-body">
+                    <p>
+                      Use <code>.expand</code> for a single disclosure. Use <code>.accordion</code> when you have
+                      several related sections and want one open panel at a time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p id="demo-accordion-result" class="demo-hint" aria-live="polite">Open: How do I use components?</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="demo-tier" id="demo-tier-specialised" aria-labelledby="demo-tier-specialised-title">
+      <header class="demo-tier-header">
+        <h2 id="demo-tier-specialised-title" class="demo-tier-title" data-page-nav-tier>Specialised</h2>
+        <p class="demo-tier-lead">
+          Documentation-heavy patterns and site-wide chrome.
+        </p>
+      </header>
+
+      <div class="demo-tier-body">
+        <section class="demo-section" aria-labelledby="demo-specialised-components">
+          <h2 id="demo-specialised-components" class="section-heading">Specialised components</h2>
+          <p class="demo-hint">Multi-step flows, drag-and-drop uploads, and client-side file downloads.</p>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">Progress indicator</h3>
+            <p class="demo-hint">Linear wizard flow — horizontal (default) or vertical step list.</p>
+            <div class="demo-grid demo-grid-2">
+              <div>
+                <p class="demo-hint">Horizontal</p>
+                <div class="progress-indicator" id="demo-progress-indicator" data-progress-indicator-linear
+                  data-progress-indicator-default="0">
+                  <ol class="progress-indicator-list">
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-step-1"
+                        aria-current="step">
+                        <span class="progress-indicator-marker" aria-hidden="true">1</span>
+                        <span class="progress-indicator-label">Account</span>
+                      </button>
+                    </li>
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-step-2" disabled>
+                        <span class="progress-indicator-marker" aria-hidden="true">2</span>
+                        <span class="progress-indicator-label">Settings</span>
+                      </button>
+                    </li>
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-step-3" disabled>
+                        <span class="progress-indicator-marker" aria-hidden="true">3</span>
+                        <span class="progress-indicator-label">Review</span>
+                      </button>
+                    </li>
+                  </ol>
+                  <div class="progress-indicator-panels">
+                    <div class="progress-indicator-panel" id="demo-progress-indicator-panel-1" role="region"
+                      aria-labelledby="demo-progress-indicator-step-1">
+                      <div class="progress-indicator-body">
+                        <p>Enter account details. Completed steps stay clickable when linear mode is on.</p>
+                      </div>
+                    </div>
+                    <div class="progress-indicator-panel hidden" id="demo-progress-indicator-panel-2" role="region"
+                      aria-labelledby="demo-progress-indicator-step-2" hidden>
+                      <div class="progress-indicator-body">
+                        <p>Adjust settings for this step. Use Back to return to a previous step.</p>
+                      </div>
+                    </div>
+                    <div class="progress-indicator-panel hidden" id="demo-progress-indicator-panel-3" role="region"
+                      aria-labelledby="demo-progress-indicator-step-3" hidden>
+                      <div class="progress-indicator-body">
+                        <p>Review your choices, then click Finish.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="progress-indicator-actions">
+                    <button type="button" class="btn" data-progress-indicator-back hidden>Back</button>
+                    <button type="button" class="btn btn-primary" data-progress-indicator-next>Next</button>
+                  </div>
+                </div>
+                <p id="demo-progress-indicator-result" class="demo-hint" aria-live="polite">Step 1 of 3: Account</p>
+              </div>
+              <div>
+                <p class="demo-hint">Vertical</p>
+                <div class="progress-indicator" id="demo-progress-indicator-vertical" data-progress-indicator-vertical
+                  data-progress-indicator-linear data-progress-indicator-default="0">
+                  <ol class="progress-indicator-list">
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-vertical-step-1"
+                        aria-current="step">
+                        <span class="progress-indicator-marker" aria-hidden="true">1</span>
+                        <span class="progress-indicator-label">Details</span>
+                      </button>
+                    </li>
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-vertical-step-2"
+                        disabled>
+                        <span class="progress-indicator-marker" aria-hidden="true">2</span>
+                        <span class="progress-indicator-label">Options</span>
+                      </button>
+                    </li>
+                    <li class="progress-indicator-item">
+                      <button type="button" class="progress-indicator-step" id="demo-progress-indicator-vertical-step-3"
+                        disabled>
+                        <span class="progress-indicator-marker" aria-hidden="true">3</span>
+                        <span class="progress-indicator-label">Confirm</span>
+                      </button>
+                    </li>
+                  </ol>
+                  <div class="progress-indicator-panels">
+                    <div class="progress-indicator-panel" id="demo-progress-indicator-vertical-panel-1" role="region"
+                      aria-labelledby="demo-progress-indicator-vertical-step-1">
+                      <div class="progress-indicator-body">
+                        <p>Fill in the details for this step.</p>
+                      </div>
+                    </div>
+                    <div class="progress-indicator-panel hidden" id="demo-progress-indicator-vertical-panel-2"
+                      role="region" aria-labelledby="demo-progress-indicator-vertical-step-2" hidden>
+                      <div class="progress-indicator-body">
+                        <p>Choose your options.</p>
+                      </div>
+                    </div>
+                    <div class="progress-indicator-panel hidden" id="demo-progress-indicator-vertical-panel-3"
+                      role="region" aria-labelledby="demo-progress-indicator-vertical-step-3" hidden>
+                      <div class="progress-indicator-body">
+                        <p>Confirm and finish.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="progress-indicator-actions">
+                    <button type="button" class="btn" data-progress-indicator-back hidden>Back</button>
+                    <button type="button" class="btn btn-primary" data-progress-indicator-next>Next</button>
+                  </div>
+                </div>
+                <p id="demo-progress-indicator-vertical-result" class="demo-hint" aria-live="polite">Step 1 of 3: Details</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">File dropzone</h3>
+            <div class="demo-grid demo-grid-2">
+              <div class="field">
+                <span class="field-label">Single file</span>
+                <div class="file-dropzone" id="demo-file-dropzone-single">
+                  <input type="file" class="file-dropzone-input" hidden />
+                  <button type="button" class="file-dropzone-prompt">
+                    <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+                    <span class="file-dropzone-text">
+                      <span class="file-dropzone-primary">Drop a file here</span>
+                      <span class="file-dropzone-secondary">or browse</span>
+                    </span>
+                  </button>
+                  <ul class="file-dropzone-list hidden" hidden></ul>
+                </div>
+                <p id="demo-file-dropzone-single-result" class="demo-hint" aria-live="polite">No file selected.</p>
+              </div>
+              <div class="field">
+                <span class="field-label">Multiple images (up to 5)</span>
+                <div class="file-dropzone" id="demo-file-dropzone-multi" data-file-accept="image/*" data-file-multiple
+                  data-file-max="5">
+                  <input type="file" class="file-dropzone-input" hidden />
+                  <button type="button" class="file-dropzone-prompt">
+                    <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+                    <span class="file-dropzone-text">
+                      <span class="file-dropzone-primary">Drop images here</span>
+                      <span class="file-dropzone-secondary">or browse</span>
+                    </span>
+                  </button>
+                  <ul class="file-dropzone-list hidden" hidden></ul>
+                </div>
+                <p id="demo-file-dropzone-multi-result" class="demo-hint" aria-live="polite">No files selected.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card">
+            <h3 class="demo-card-title">File download</h3>
+            <p class="demo-hint">Click a row to download generated file content in the browser.</p>
+            <div class="field">
+              <div class="file-download" id="demo-file-download">
+                <ul class="file-download-list">
+                  <li class="file-download-item" data-file-download-name="hello.txt">
+                    <span class="file-download-item-name">hello.txt</span>
+                    <span class="file-download-item-meta">Plain text</span>
+                    <button type="button" class="file-download-action btn btn-icon" aria-label="Download hello.txt"
+                      data-icon="upload" data-icon-class="file-download-action-icon"></button>
+                  </li>
+                  <li class="file-download-item" data-file-download-name="notes.txt">
+                    <span class="file-download-item-name">notes.txt</span>
+                    <span class="file-download-item-meta">Plain text</span>
+                    <button type="button" class="file-download-action btn btn-icon" aria-label="Download notes.txt"
+                      data-icon="upload" data-icon-class="file-download-action-icon"></button>
+                  </li>
+                  <li class="file-download-item" data-file-download-name="summary.txt">
+                    <span class="file-download-item-name">summary.txt</span>
+                    <span class="file-download-item-meta">Plain text</span>
+                    <button type="button" class="file-download-action btn btn-icon" aria-label="Download summary.txt"
+                      data-icon="upload" data-icon-class="file-download-action-icon"></button>
+                  </li>
+                </ul>
+              </div>
+              <p id="demo-file-download-result" class="demo-hint" aria-live="polite">Use the download buttons on each row.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-code">
+          <h2 id="demo-code" class="section-heading">Code highlighting</h2>
+          <p class="demo-hint">
+            Syntax highlighting via
+            <a href="https://prismjs.com/" target="_blank" rel="noopener noreferrer">Prism</a>.
+            Set <code>data-code-mode</code> to <code>view</code>, <code>select</code>, or
+            <code>edit</code>. Hover blocks to copy or maximise.
+          </p>
+          <div class="demo-code-modes">
+            <div class="field">
+              <span class="field-label">View only</span>
+              <div class="code-block" data-code-mode="view" data-code-copy="true">
+                <div class="code-block-toolbar" role="group" aria-label="Code block options">
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="line-numbers"
+                    aria-pressed="true">
+                    Line numbers
+                  </button>
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="highlight"
+                    aria-pressed="true">
+                    Highlight
+                  </button>
+                </div>
+                <div class="code-block-body">
+                  <button type="button" class="code-block-copy btn" aria-label="Copy code">
+                    Copy
+                  </button>
+                  <pre class="line-numbers language-python"><code class="language-python"># Display only — text cannot be selected
+print("Hello, world!")
+</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">Select only</span>
+              <div class="code-block" id="demo-code-block" data-code-mode="select" data-code-copy="true"
+                data-expandable-surface data-expandable-surface-label="Code sample">
+                <div class="code-block-toolbar" role="group" aria-label="Code block options">
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="line-numbers"
+                    aria-pressed="true">
+                    Line numbers
+                  </button>
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="highlight"
+                    aria-pressed="true">
+                    Highlight
+                  </button>
+                </div>
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <button type="button" class="code-block-copy btn" aria-label="Copy code">
+                    Copy
+                  </button>
+                  <pre class="line-numbers language-python"><code class="language-python">def greet(name: str) -> str:
+    """Return a greeting."""
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    print(greet("world"))
+</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <span class="field-label">Editable</span>
+              <div class="code-block" data-code-mode="edit" data-code-copy="true" data-expandable-surface
+                data-expandable-surface-label="Editable code">
+                <div class="code-block-toolbar" role="group" aria-label="Code block options">
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="line-numbers"
+                    aria-pressed="true">
+                    Line numbers
+                  </button>
+                  <button type="button" class="btn code-block-toggle" data-code-toggle="highlight"
+                    aria-pressed="true">
+                    Highlight
+                  </button>
+                </div>
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <button type="button" class="code-block-copy btn" aria-label="Copy code">
+                    Copy
+                  </button>
+                  <pre class="line-numbers language-python"><code class="language-python"># Edit this code
+total = sum(range(5))
+print(total)
+</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-rich-text-editor">
+          <h2 id="demo-rich-text-editor" class="section-heading">Rich text editor</h2>
+          <p class="demo-hint">
+            Markdown and WYSIWYG via
+            <a href="https://github.com/nhn/tui.editor" target="_blank" rel="noopener noreferrer">Toast UI Editor</a>.
+            Switch modes with the editor toolbar. Pasted images are stored as base64 data URLs.
+          </p>
+          <div class="field rich-text-editor rich-text-editor--wide" id="demo-rich-text-editor-block"
+            data-rich-text-editor-height="320px"
+            data-rich-text-editor-preview="vertical"
+            data-rich-text-editor-placeholder="Write something…"
+            data-rich-text-editor-value="## Hello&#10;&#10;Edit in **Markdown** or switch to WYSIWYG. Tables support merged cells.">
+            <span class="field-label">Body</span>
+            <div class="rich-text-editor-mount" aria-label="Rich text editor"></div>
+          </div>
+          <div class="demo-row">
+            <button type="button" class="btn" id="demo-rich-text-get-markdown">Get Markdown</button>
+            <button type="button" class="btn" id="demo-rich-text-get-html">Get HTML</button>
+          </div>
+          <p id="demo-rich-text-result" class="demo-hint" aria-live="polite">Use the buttons to read the current content.</p>
+        </section>
+
+        <section class="demo-section" aria-labelledby="demo-theme">
+          <h2 id="demo-theme" class="section-heading">Theme</h2>
+          <p class="demo-hint">
+            Use the light / dark / system toggle in the footer. Preference is saved in
+            <code>localStorage</code> and applied before first paint to avoid flash.
+          </p>
+          <p class="demo-hint">
+            Jump buttons (bottom right) are always visible; hover the right edge of the screen to open the section menu.
+          </p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="info-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="info-dialog-title" hidden>
+    <div class="modal-backdrop" data-dialog-close></div>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="info-dialog-title">About this dialog</h2>
+        <button type="button" class="modal-close" aria-label="Close" data-dialog-close>
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Dialogs use focus trap, Escape to close, and backdrop click. Markup lives
+          in HTML; behaviour comes from <code>app/dialog.js</code>.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-actions">
+          <button type="button" class="btn btn-primary" data-dialog-close>
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title"
+    hidden>
+    <div class="modal-backdrop" data-dialog-close></div>
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="confirm-dialog-title">Confirm action</h2>
+        <button type="button" class="modal-close" aria-label="Close" data-dialog-close>
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure? This demo does not change anything — it only closes the dialog.</p>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-actions">
+          <button type="button" class="btn" data-dialog-close>Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirm-dialog-ok">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="app/vendor/prism/prism.min.js"></script>
+  <script defer src="app/vendor/prism/prism-python.min.js"></script>
+  <script defer src="app/vendor/prism/prism-line-numbers.min.js"></script>
+  <script defer src="app/vendor/toastui-editor/toastui-editor-all.min.js"></script>
+  <script defer src="app/vendor/toastui-editor-plugin-table-merged-cell/toastui-editor-plugin-table-merged-cell.min.js"></script>
+  <script type="module" src="app/demo.js"></script>
+</body>
+
+</html>

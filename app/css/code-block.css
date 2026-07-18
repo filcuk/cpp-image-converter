@@ -1,0 +1,294 @@
+.code-block {
+  max-width: 40rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--code-bg);
+}
+
+.code-block-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.code-block-body {
+  position: relative;
+}
+
+.code-block-body pre {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  tab-size: 2;
+  color: var(--text);
+  background: transparent;
+}
+
+.code-block-body pre > code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+}
+
+.code-block-body pre[class*="language-"] {
+  border-radius: 0;
+}
+
+.code-block--view pre,
+.code-block--view pre > code {
+  user-select: none;
+}
+
+.code-block-editor-stack {
+  position: relative;
+}
+
+.code-block-editor {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+  -webkit-text-fill-color: transparent;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  tab-size: 2;
+  resize: none;
+  overflow: auto;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.code-block-editor:focus {
+  outline: none;
+}
+
+.code-block-editor::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.code-block--edit .code-block-editor {
+  display: block;
+}
+
+.code-block--edit .code-block-editor-stack pre {
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.code-block--edit .code-block-editor-stack pre.line-numbers + .code-block-editor {
+  padding-left: 3.8em;
+}
+
+.code-block-copy {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+.surface-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-direction: row-reverse;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.code-block-body:hover .surface-actions,
+.surface-actions:focus-within,
+.expandable-surface.is-expanded .surface-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.surface-actions:not(:has(.code-block-copy:not([hidden]))) {
+  gap: 0;
+}
+
+.surface-actions:has(> .code-block-copy[hidden]):not(:has(.expandable-surface__expand)) {
+  display: none;
+}
+
+.expandable-surface-trigger {
+  position: relative;
+}
+
+.expandable-surface__expand {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.surface-actions .expandable-surface__expand {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.expandable-surface-trigger:hover > .expandable-surface__expand,
+.expandable-surface__expand:focus-visible,
+.expandable-surface.is-expanded > .expandable-surface__expand {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.code-block-copy[hidden] {
+  display: none;
+}
+
+@media (hover: none) {
+  .surface-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .expandable-surface__expand {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.code-block-toggle:disabled,
+.code-block-toggle[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.demo-code-modes {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 52rem) {
+  .demo-code-modes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .demo-code-modes .field:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.demo-code-modes .field {
+  gap: 0.5rem;
+}
+
+/* Expandable surface (code blocks, textareas, …) */
+
+body.expandable-surface-open {
+  overflow: hidden;
+}
+
+.expandable-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: var(--page-padding-y) var(--page-padding-x);
+}
+
+.expandable-overlay.hidden {
+  display: none;
+}
+
+.expandable-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(27, 31, 35, 0.45);
+}
+
+:root[data-theme="dark"] .expandable-overlay__backdrop {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.expandable-overlay__stage {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-width);
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+}
+
+.expandable-surface.is-expanded {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandable-surface.is-expanded.code-block .code-block-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandable-surface.is-expanded.code-block .code-block-body pre {
+  flex: 1;
+  min-height: 0;
+}
+
+.expandable-surface.is-expanded.code-block .code-block-editor-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandable-surface.is-expanded.code-block .code-block-editor-stack pre {
+  flex: 1;
+  min-height: 0;
+}
+
+.expandable-surface.is-expanded.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.expandable-surface.is-expanded.field [data-expandable-surface-trigger] {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.expandable-surface.is-expanded textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+}

@@ -1,0 +1,244 @@
+/* Rich text editor — field layout and Toast UI token overrides */
+
+.rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 40rem;
+  min-width: 0;
+}
+
+.rich-text-editor--wide {
+  max-width: none;
+}
+
+.rich-text-editor-mount {
+  min-height: 0;
+}
+
+/* Shell */
+
+.rich-text-editor .toastui-editor-defaultUI,
+.rich-text-editor .toastui-editor-dark.toastui-editor-defaultUI {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.rich-text-editor .toastui-editor-defaultUI-toolbar {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.rich-text-editor .toastui-editor-md-container,
+.rich-text-editor .toastui-editor-ww-container {
+  background: var(--surface);
+}
+
+.rich-text-editor .toastui-editor-md-splitter {
+  background: var(--border);
+}
+
+.rich-text-editor .toastui-editor-toolbar-divider {
+  background-color: var(--border);
+}
+
+/* Toolbar buttons — icons use a background sprite; never set `background` shorthand */
+
+.rich-text-editor .toastui-editor-defaultUI-toolbar button {
+  border: none;
+  border-radius: 4px;
+}
+
+.rich-text-editor .toastui-editor-defaultUI-toolbar button:not(:disabled):hover {
+  background-color: var(--code-bg);
+  border: none;
+}
+
+.rich-text-editor .toastui-editor-defaultUI-toolbar button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.rich-text-editor .toastui-editor-toolbar-icons {
+  border-color: transparent;
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-toolbar-icons {
+  border-color: transparent;
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-toolbar-icons:not(:disabled):hover {
+  background-color: var(--code-bg);
+  border-color: transparent;
+}
+
+/* Editing and preview text */
+
+.rich-text-editor .toastui-editor-md-container .toastui-editor,
+.rich-text-editor .toastui-editor-contents,
+.rich-text-editor .ProseMirror,
+.rich-text-editor .toastui-editor-md-preview,
+.rich-text-editor .toastui-editor-md-preview .toastui-editor-contents {
+  color: var(--text);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-container .toastui-editor,
+.rich-text-editor .toastui-editor-dark .ProseMirror,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents div,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents p,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h1,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h2,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h3,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h4,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h5,
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents h6,
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-table .toastui-editor-md-table-cell {
+  color: var(--text);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-container,
+.rich-text-editor .toastui-editor-dark .toastui-editor-ww-container,
+.rich-text-editor .toastui-editor-dark .toastui-editor-defaultUI-toolbar,
+.rich-text-editor .toastui-editor-dark .toastui-editor-mode-switch {
+  background-color: var(--surface);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-defaultUI-toolbar {
+  border-bottom-color: var(--border);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-main .toastui-editor-md-splitter {
+  background-color: var(--border);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents a {
+  color: var(--accent);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-contents a:hover {
+  color: var(--accent-hover);
+}
+
+/* Mode switch — segmented-control style */
+
+.rich-text-editor .toastui-editor-mode-switch {
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 2px;
+  height: auto;
+  min-height: 0;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  text-align: unset;
+}
+
+.rich-text-editor .toastui-editor-mode-switch .tab-item {
+  flex: 0 1 auto;
+  margin: 0;
+  padding: 0.35rem 0.875rem;
+  height: auto;
+  min-height: 0;
+  line-height: 1.25;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.rich-text-editor .toastui-editor-mode-switch .tab-item:first-of-type {
+  margin-left: auto;
+}
+
+.rich-text-editor .toastui-editor-mode-switch .tab-item:hover {
+  color: var(--text);
+}
+
+.rich-text-editor .toastui-editor-mode-switch .tab-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.rich-text-editor .toastui-editor-mode-switch .tab-item.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.12);
+  border: none;
+}
+
+:root[data-theme="dark"] .rich-text-editor .toastui-editor-mode-switch .tab-item.active {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-mode-switch {
+  border-top-color: var(--border);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-mode-switch .tab-item {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-mode-switch .tab-item.active {
+  background: var(--surface);
+  border: none;
+  color: var(--text);
+}
+
+/* Markdown Write / Preview tabs (tab preview style) */
+
+.rich-text-editor .toastui-editor-md-tab-container {
+  border-bottom: 1px solid var(--border);
+  background: var(--code-bg);
+}
+
+.rich-text-editor .toastui-editor-md-tab-container .tab-item {
+  margin: 0;
+  padding: 0.35rem 0.875rem;
+  height: auto;
+  line-height: 1.25;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.rich-text-editor .toastui-editor-md-tab-container .tab-item.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-tab-container {
+  background: var(--code-bg);
+  border-bottom-color: var(--border);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-tab-container .tab-item {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+}
+
+.rich-text-editor .toastui-editor-dark .toastui-editor-md-tab-container .tab-item.active {
+  background: var(--surface);
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}

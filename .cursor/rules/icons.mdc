@@ -1,0 +1,32 @@
+---
+description: Never invent SVG icons — use icons.js only; ask the user to add missing icons
+alwaysApply: true
+---
+
+# Icons — do not invent or generate
+
+All inline UI icons live in [`app/icons.js`](app/icons.js). See the **Available** list in that file’s header comment.
+
+## Never
+
+- Invent, guess, or generate SVG path data (`d="…"`, `<path>`, `<svg>`, etc.)
+- Paste icon markup from memory, the web, or image generation into HTML, CSS, or JS
+- Duplicate SVG paths outside `app/icons.js`
+- Add a fully drawn icon to `ICONS` without the user providing the vector artwork
+
+## When an icon is missing
+
+1. **Stop** — do not substitute a made-up icon.
+2. **Reuse** an existing icon if one is close enough (`data-icon`, `createIcon()`, or `{ ref: "other-icon" }`).
+3. **Ask the user** to add the icon to `app/icons.js` (source from [Icônes — Material Icons Round](https://icones.js.org/collection/ic?s=info&variant=Round) or their own asset).
+4. You may add a **blank placeholder entry** in `ICONS` using the template in `app/icons.js` (empty `markup`, correct `viewBox`) so wiring (`data-icon`, imports) can land in the same change — then tell the user to fill in the paths.
+
+## Allowed without user-provided paths
+
+- `data-icon="existing-id"` / `createIcon("existing-id")` for ids already in `ICONS`
+- `{ ref: "existing-id" }` aliases
+- Blank template stub with `markup: \`\`` only when the user has agreed to add the icon
+
+## Logo / raster assets
+
+Brand images stay in `app/res/` — same rule: do not invent; use existing files or ask the user to supply them.
