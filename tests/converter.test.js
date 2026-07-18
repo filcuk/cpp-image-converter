@@ -81,10 +81,12 @@ test("resolveFormat prefers manual selection over auto", () => {
   });
 });
 
-test("decodeArgb32 respects alpha", () => {
+test("decodeArgb32 respects alpha (Piskel ABGR)", () => {
   assert.equal(decodeArgb32(0x00000000), null);
   assert.deepEqual(decodeArgb32(0xffffffff), { r: 255, g: 255, b: 255, a: 255 });
-  assert.deepEqual(decodeArgb32(0x80ff0000), { r: 255, g: 0, b: 0, a: 128 });
+  // Opaque red is 0xff0000ff in Piskel C exports (not classic 0xffff0000)
+  assert.deepEqual(decodeArgb32(0xff0000ff), { r: 255, g: 0, b: 0, a: 255 });
+  assert.deepEqual(decodeArgb32(0x800000ff), { r: 255, g: 0, b: 0, a: 128 });
 });
 
 test("decodeRgb565 expands channels", () => {

@@ -81,14 +81,20 @@ function syncFillEnabled(enabled) {
 }
 
 /**
+ * Sync width/height/frame from source defines. When width or height is defined
+ * in the source, lock that stepper so the UI matches the file.
  * @param {string} source
  */
 function applySourceMetadata(source) {
   const parsed = parseCArray(source);
   applyingMetadata = true;
   try {
-    if (parsed.width) widthStepper?.setValue(parsed.width);
-    if (parsed.height) heightStepper?.setValue(parsed.height);
+    const hasWidth = Boolean(parsed.width);
+    const hasHeight = Boolean(parsed.height);
+    if (hasWidth) widthStepper?.setValue(parsed.width);
+    if (hasHeight) heightStepper?.setValue(parsed.height);
+    widthStepper?.setDisabled(hasWidth);
+    heightStepper?.setDisabled(hasHeight);
     updateFrameStepper(parsed.frameCount);
   } finally {
     applyingMetadata = false;
@@ -237,6 +243,14 @@ function runConvert({ showSuccess = true } = {}) {
     hideBanner(errorBanner);
     hideBanner(successBanner);
     hideBanner(warningBanner);
+    applyingMetadata = true;
+    try {
+      widthStepper?.setDisabled(false);
+      heightStepper?.setDisabled(false);
+      updateFrameStepper(1);
+    } finally {
+      applyingMetadata = false;
+    }
     return;
   }
 
