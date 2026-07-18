@@ -51,6 +51,12 @@ let frameStepper = null;
 let overrideToggle = null;
 /** @type {ReturnType<typeof initColorPicker>} */
 let fillPicker = null;
+/** @type {ReturnType<typeof initFileDropzone>} */
+let sourceDropzone = null;
+/** True while textarea content came from a loaded file */
+let sourceFromFile = false;
+/** Skip clearing the textarea when we clear the dropzone ourselves */
+let ignoringDropzoneClear = false;
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
@@ -186,6 +192,7 @@ async function loadSourceFile(file) {
       showError("Source text area is missing.");
       return;
     }
+    sourceFromFile = true;
     sourceTextarea.value = text;
     downloadFilename = file.name.replace(/\.(c|h|txt)$/i, "") + ".svg";
     runConvert({ showSuccess: true });
@@ -193,11 +200,25 @@ async function loadSourceFile(file) {
       showWarnings(["File was empty."]);
     }
   } catch (err) {
+    sourceFromFile = false;
     showError(
       err instanceof Error
         ? `Could not read “${file.name}”: ${err.message}`
         : `Could not read “${file.name}”.`
     );
+  }
+}
+
+/** Clear the loaded file when the user edits or pastes into the textarea. */
+function clearFileIfEditingSource() {
+  if (!sourceFromFile) return;
+  sourceFromFile = false;
+  downloadFilename = "converted.svg";
+  ignoringDropzoneClear = true;
+  try {
+    sourceDropzone?.clear();
+  } finally {
+    ignoringDropzoneClear = false;
   }
 }
 
@@ -207,8 +228,11 @@ async function loadSourceFile(file) {
 function runConvert({ showSuccess = true } = {}) {
   const source = sourceTextarea?.value ?? "";
   if (!source.trim()) {
-    showError("Paste or upload a C/C++ array first.");
+    // Auto-convert: empty input is a normal idle state, not an error
     clearPreview();
+    hideBanner(errorBanner);
+    hideBanner(successBanner);
+    hideBanner(warningBanner);
     return;
   }
 
@@ -315,7 +339,7 @@ try {
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
 
-  const sourceDropzone = initFileDropzone(document.getElementById("source-dropzone"), {
+  const dropzone = initFileDropzone(document.getElementById("source-dropzone"), {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
@@ -327,8 +351,20 @@ try {
 
       void loadSourceFile(file);
     },
+    onClear: () => {
+      if (ignoringDropzoneClear) return;
+      // User removed the file from the dropzone — clear paste/source too
+      sourceFromFile = false;
+      downloadFilename = "converted.svg";
+      if (sourceTextarea) sourceTextarea.value = "";
+      clearPreview();
+      hideBanner(errorBanner);
+      hideBanner(successBanner);
+      hideBanner(warningBanner);
+    },
     onError: ({ message }) => showError(message || "File upload failed."),
   });
+  sourceDropzone = dropzone;
 
   if (!sourceDropzone) {
     showError("File upload control failed to initialize.");
@@ -343,6 +379,9 @@ try {
   sourceTextarea?.addEventListener("input", () => {
     const fromPaste = sourceChangeFromPaste;
     sourceChangeFromPaste = false;
+
+    // Editing or pasting replaces a loaded file as the active input
+    clearFileIfEditingSource();
 
     window.clearTimeout(convertTimer);
 
