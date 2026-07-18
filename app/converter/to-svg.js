@@ -8,9 +8,10 @@
  * @param {number} options.height
  * @param {import("./merge-rects.js").MergedRect[]} options.rects
  * @param {number} [options.displayScale] Display width/height multiplier (attributes only)
+ * @param {boolean} [options.minify] Compact single-line output without indentation
  * @returns {string}
  */
-export function toSvg({ width, height, rects, displayScale = 10 }) {
+export function toSvg({ width, height, rects, displayScale = 10, minify = false }) {
   const displayW = width * displayScale;
   const displayH = height * displayScale;
 
@@ -20,6 +21,23 @@ export function toSvg({ width, height, rects, displayScale = 10 }) {
     const list = byColor.get(rect.color);
     if (list) list.push(rect);
     else byColor.set(rect.color, [rect]);
+  }
+
+  if (minify) {
+    const parts = [
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${displayW}" height="${displayH}" shape-rendering="crispEdges">`,
+    ];
+    for (const [color, group] of byColor) {
+      parts.push(`<g fill="${color}">`);
+      for (const r of group) {
+        parts.push(
+          `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}"/>`
+        );
+      }
+      parts.push(`</g>`);
+    }
+    parts.push(`</svg>`);
+    return parts.join("");
   }
 
   const lines = [

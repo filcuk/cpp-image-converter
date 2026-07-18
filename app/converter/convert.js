@@ -18,6 +18,7 @@ import { toSvg } from "./to-svg.js";
  * @property {boolean} [overrideFill]
  * @property {string | null} [fillColor] `#RRGGBB`
  * @property {number} [displayScale]
+ * @property {boolean} [minify]
  */
 
 /**
@@ -48,6 +49,7 @@ export function convertCToSvg({
   overrideFill = false,
   fillColor = "#000000",
   displayScale = 10,
+  minify = false,
 }) {
   const parsed = parseCArray(source);
   const { format, detected } = resolveFormat(formatSelection, parsed.elementType);
@@ -133,7 +135,7 @@ export function convertCToSvg({
   const colorGrid = decoded.pixels.map((p) => pixelColorKey(p, fill));
   const rects = mergeRects(colorGrid, width, height);
   result.rectCount = rects.length;
-  result.svg = toSvg({ width, height, rects, displayScale });
+  result.svg = toSvg({ width, height, rects, displayScale, minify });
 
   return result;
 }

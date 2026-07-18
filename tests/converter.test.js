@@ -155,6 +155,19 @@ test("toSvg groups rects by fill colour", () => {
   assert.match(svg, /shape-rendering="crispEdges"/);
 });
 
+test("toSvg minify omits whitespace and xml declaration", () => {
+  const svg = toSvg({
+    width: 2,
+    height: 1,
+    rects: [{ x: 0, y: 0, width: 2, height: 1, color: "#FFFFFF" }],
+    minify: true,
+  });
+  assert.equal(svg.includes("\n"), false);
+  assert.equal(svg.includes("<?xml"), false);
+  assert.match(svg, /^<svg /);
+  assert.match(svg, /<\/svg>$/);
+});
+
 test("convertCToSvg end-to-end on wind-like fixture", () => {
   const result = convertCToSvg({ source: WIND_LIKE, format: "auto" });
   assert.equal(result.error, null);

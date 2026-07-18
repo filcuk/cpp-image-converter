@@ -49,6 +49,8 @@ let heightStepper = null;
 let frameStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
 let overrideToggle = null;
+/** @type {ReturnType<typeof initToggle>} */
+let minifyToggle = null;
 /** @type {ReturnType<typeof initColorPicker>} */
 let fillPicker = null;
 /** @type {ReturnType<typeof initFileDropzone>} */
@@ -256,6 +258,7 @@ function runConvert({ showSuccess = true } = {}) {
       overrideFill: overrideToggle?.getChecked() ?? false,
       fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       displayScale: 10,
+      minify: minifyToggle?.getChecked() ?? false,
     });
   } catch (err) {
     showError(
@@ -303,7 +306,7 @@ function runConvert({ showSuccess = true } = {}) {
 
   if (showSuccess) {
     showSuccessBanner(
-      `SVG ready — ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}.`
+      `Output ready - ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}.`
     );
   }
 }
@@ -335,6 +338,10 @@ try {
       syncFillEnabled(checked);
       onOptionChange();
     },
+  });
+
+  minifyToggle = initToggle(document.getElementById("minify-toggle"), {
+    onChange: onOptionChange,
   });
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
