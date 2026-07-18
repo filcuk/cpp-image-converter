@@ -35,6 +35,14 @@ export const PAGE_NAV_MARKUP = `<nav id="page-nav" class="page-nav" aria-label="
 /**
  * Inject shared page chrome: footer (links + theme toggle) and page navigation.
  * Skips if `#app-page-footer` already exists.
+ *
+ * @param {object} [options]
+ * @param {string} [options.repoUrl]
+ * @param {string} [options.brandUrl]
+ * @param {string} [options.brandName]
+ * @param {string} [options.appVersion]
+ * @param {string} [options.templateVersion]
+ * @param {boolean} [options.pageNav=true] When `false`, omit `#page-nav` markup
  */
 export function renderPageShell(options = {}) {
   if (!document.getElementById("skip-to-main")) {
@@ -46,11 +54,12 @@ export function renderPageShell(options = {}) {
 
   if (document.getElementById("app-page-footer")) return;
 
-  const { repoUrl, brandUrl, brandName, appVersion, templateVersion } = {
+  const { repoUrl, brandUrl, brandName, appVersion, templateVersion, pageNav = true } = {
     ...DEFAULTS,
     ...options,
   };
   const issuesUrl = `${repoUrl}/issues`;
+  const navMarkup = pageNav === false ? "" : PAGE_NAV_MARKUP;
 
   document.body.insertAdjacentHTML(
     "beforeend",
@@ -75,6 +84,6 @@ export function renderPageShell(options = {}) {
         <button type="button" class="theme-toggle-btn" data-theme-mode="auto" data-icon="auto-mode" data-icon-class="theme-icon" aria-label="System theme" aria-pressed="false" title="System"></button>
       </div>
     </footer>
-    ${PAGE_NAV_MARKUP}`
+    ${navMarkup}`
   );
 }

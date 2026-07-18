@@ -1,6 +1,8 @@
 # C++ Image Converter
 
-Browser-based image conversion and processing, built on a vanilla HTML/CSS/JS microapp shell with GitHub Pages deployment.
+Browser microapp that converts C/C++ image arrays to editable SVG. Supports **ARGB32** (e.g. Piskel exports), **RGB565**, and packed **1-bit** sources. Neighbouring same-colour pixels are merged into larger rectangles for easier editing.
+
+Runs entirely client-side — suitable for GitHub Pages.
 
 ## Quick start
 
@@ -12,6 +14,13 @@ npx serve .
 ```
 
 Then open `http://localhost:3000`.
+
+## Usage
+
+1. Paste array source or upload a `.c` / `.h` file
+2. Confirm pixel format (Auto detects from `uint32_t` / `uint16_t` / `uint8_t`) and size
+3. Optionally override fill colour for the whole SVG
+4. Convert, preview, and download the `.svg`
 
 ## Documentation
 

@@ -342,7 +342,9 @@ main {
   align-items: flex-end;
   justify-content: flex-end;
   padding: 1.5rem;
-  pointer-events: auto;
+  /* Do not capture events across the full right strip — that blocks drag/drop
+     and clicks on page content underneath. Only the stack is interactive. */
+  pointer-events: none;
 }
 
 .page-nav-stack {
@@ -351,6 +353,7 @@ main {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.5rem;
+  pointer-events: auto;
 }
 
 .page-nav-panel {
@@ -365,7 +368,7 @@ main {
   transition: opacity 0.15s, visibility 0.15s;
 }
 
-.page-nav-trigger:hover .page-nav-panel,
+.page-nav-stack:hover .page-nav-panel,
 .page-nav-panel:focus-within {
   opacity: 1;
   visibility: visible;

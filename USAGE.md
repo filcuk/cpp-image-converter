@@ -42,6 +42,9 @@ initShell({
   brandName: "Your name",
   pageNav: { headingSelector: "main h2[id]" },
 });
+
+// Omit the floating page nav entirely:
+initShell({ pageNav: false });
 ```
 
 ### App and template versions
@@ -477,15 +480,17 @@ The day view includes quick actions below the calendar: **Today** (date-only pic
 Drag-and-drop or click-to-browse file picker. Selected files appear in a list with remove buttons.
 
 ```html
-<div class="file-dropzone" id="my-dropzone" data-file-accept="image/*" data-file-multiple data-file-max="5">
-  <input type="file" class="file-dropzone-input" hidden />
-  <button type="button" class="file-dropzone-prompt">
-    <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-    <span class="file-dropzone-text">
-      <span class="file-dropzone-primary">Drop files here</span>
-      <span class="file-dropzone-secondary">or browse</span>
-    </span>
-  </button>
+<div class="file-dropzone" id="my-dropzone" data-file-multiple data-file-max="5">
+  <div class="file-dropzone-target">
+    <input type="file" class="file-dropzone-input" aria-label="Upload files" />
+    <div class="file-dropzone-prompt" aria-hidden="true">
+      <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+      <span class="file-dropzone-text">
+        <span class="file-dropzone-primary">Drop files here</span>
+        <span class="file-dropzone-secondary">or browse</span>
+      </span>
+    </div>
+  </div>
   <ul class="file-dropzone-list hidden" hidden></ul>
 </div>
 ```
@@ -506,7 +511,9 @@ dropzone?.clear();
 initFileDropzones(document); // wire every `.file-dropzone`
 ```
 
-`data-file-accept` maps to the hidden input's `accept`. `data-file-multiple` enables multi-select. `data-file-max` caps how many files can be added (extra files are trimmed; `onError` is called).
+`data-file-multiple` enables multi-select. `data-file-max` caps how many files can be added (extra files are trimmed; `onError` is called).
+
+The file input is a full-size transparent overlay on `.file-dropzone-target`, so browse and drop use the native control. Do **not** set a restrictive `accept` attribute — browsers (especially on Windows) often reject drops for `.c` / `.h` when MIME types are missing. Filter by filename in `onFiles` instead.
 
 ### File download
 
@@ -1317,6 +1324,9 @@ initShell({
     headingRoot: document.getElementById("docs"),
   },
 });
+
+// Disable page nav (no floating jump control):
+initShell({ pageNav: false });
 ```
 
 Standalone use without the full shell — insert markup from `PAGE_NAV_MARKUP` in `render-shell.js`, then:
