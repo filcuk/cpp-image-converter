@@ -4,14 +4,16 @@
 
 import { parseCArray, sliceFrameValues } from "./parse-c-array.js";
 import { resolveFormat } from "./detect-format.js";
-import { decodePixels, pixelColorKey, oneBitStride } from "./decode-pixels.js";
+import { frameValueCount, formatLabel } from "./formats.js";
+import { decodePixels, pixelColorKey } from "./decode-pixels.js";
 import { mergeRects } from "./merge-rects.js";
 import { toSvg } from "./to-svg.js";
 
 /**
  * @typedef {object} ConvertOptions
  * @property {string} source
- * @property {"auto" | "argb32" | "rgb565" | "1bit"} [format]
+ * @property {string} [format]
+ * @property {"msb" | "lsb"} [bitOrder]
  * @property {number | null} [width]
  * @property {number | null} [height]
  * @property {number} [frameIndex]
@@ -26,8 +28,8 @@ import { toSvg } from "./to-svg.js";
  * @property {string | null} svg
  * @property {number} width
  * @property {number} height
- * @property {"argb32" | "rgb565" | "1bit"} format
- * @property {"argb32" | "rgb565" | "1bit" | null} detectedFormat
+ * @property {string} format
+ * @property {string | null} detectedFormat
  * @property {number} frameCount
  * @property {number} frameIndex
  * @property {number} rectCount
@@ -43,6 +45,7 @@ import { toSvg } from "./to-svg.js";
 export function convertCToSvg({
   source,
   format: formatSelection = "auto",
+  bitOrder = "msb",
   width: widthOverride = null,
   height: heightOverride = null,
   frameIndex = 0,
@@ -81,30 +84,25 @@ export function convertCToSvg({
   result.width = width;
   result.height = height;
 
+  const frameSize = frameValueCount(format, width, height);
   let values = parsed.values;
-  const pixelCount = width * height;
+  const expected = parsed.frameCount * frameSize;
 
-  if (format === "argb32" || format === "rgb565") {
-    const frameSize = pixelCount;
-    const expected = parsed.frameCount * frameSize;
-    if (values.length < frameSize) {
-      result.warnings.push(
-        `Expected at least ${frameSize} values for one frame; found ${values.length}.`
-      );
-    } else if (parsed.frameCount === 1 && values.length > frameSize) {
-      result.warnings.push(
-        `Found ${values.length} values but frame size is ${frameSize}; using the first ${frameSize}.`
-      );
-    } else if (values.length < expected && parsed.frameCount > 1) {
-      result.warnings.push(
-        `Expected about ${expected} values for ${parsed.frameCount} frames; found ${values.length}.`
-      );
-    }
-    values = sliceFrameValues(values, frameIndex, frameSize);
-  } else {
-    const frameBytes = oneBitStride(width) * height;
-    values = sliceFrameValues(values, frameIndex, frameBytes);
+  if (values.length < frameSize) {
+    result.warnings.push(
+      `Expected at least ${frameSize} values for one frame; found ${values.length}.`
+    );
+  } else if (parsed.frameCount === 1 && values.length > frameSize) {
+    result.warnings.push(
+      `Found ${values.length} values but frame size is ${frameSize}; using the first ${frameSize}.`
+    );
+  } else if (values.length < expected && parsed.frameCount > 1) {
+    result.warnings.push(
+      `Expected about ${expected} values for ${parsed.frameCount} frames; found ${values.length}.`
+    );
   }
+
+  values = sliceFrameValues(values, frameIndex, frameSize);
 
   const fill =
     overrideFill && fillColor
@@ -122,6 +120,8 @@ export function convertCToSvg({
       }
     : { r: 0, g: 0, b: 0, a: 255 };
 
+  const resolvedBitOrder = bitOrder === "lsb" ? "lsb" : "msb";
+
   const decoded = decodePixels({
     format,
     values,
@@ -129,6 +129,8 @@ export function convertCToSvg({
     height,
     frameIndex: 0,
     oneBitForeground,
+    bitOrder: resolvedBitOrder,
+    palette: parsed.palette,
   });
   result.warnings.push(...decoded.warnings);
 
@@ -147,4 +149,6 @@ export {
   mergeRects,
   toSvg,
   pixelColorKey,
+  formatLabel,
+  frameValueCount,
 };

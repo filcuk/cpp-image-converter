@@ -4,12 +4,15 @@ import { parseCArray, parseNumericLiterals, sliceFrameValues } from "../app/conv
 import { detectFormatFromType, resolveFormat } from "../app/converter/detect-format.js";
 import {
   decodeArgb32,
+  decodeArgb32Classic,
   decodeRgb565,
+  decodeRgb565Swap,
   decode1Bit,
   decodePixels,
   oneBitStride,
   pixelColorKey,
 } from "../app/converter/decode-pixels.js";
+import { frameValueCount, formatNeedsBitOrder } from "../app/converter/formats.js";
 import { mergeRects } from "../app/converter/merge-rects.js";
 import { toSvg } from "../app/converter/to-svg.js";
 import { convertCToSvg } from "../app/converter/convert.js";
@@ -51,6 +54,21 @@ test("parseCArray reads ARGB32 wind.c-style fixture", () => {
   assert.equal(opaque.length, 35);
 });
 
+test("parseCArray extracts palette array", () => {
+  const source = `
+#define IMG_COLOR_COUNT 2
+#define IMG_FRAME_WIDTH 2
+#define IMG_FRAME_HEIGHT 1
+static const uint32_t img_color[2] = { 0xff0000ff, 0xffffffff };
+static const uint8_t img_data[1][1] = { { 0x80 } };
+`;
+  const parsed = parseCArray(source);
+  assert.equal(parsed.colorCount, 2);
+  assert.deepEqual(parsed.palette, [0xff0000ff, 0xffffffff]);
+  assert.equal(parsed.elementType, "uint8_t");
+  assert.deepEqual(parsed.values, [0x80]);
+});
+
 test("parseNumericLiterals reads hex and binary", () => {
   assert.deepEqual(parseNumericLiterals("0xff, 0b1010, 3"), [255, 10, 3]);
 });
@@ -79,14 +97,31 @@ test("resolveFormat prefers manual selection over auto", () => {
     format: "argb32",
     detected: null,
   });
+  assert.deepEqual(resolveFormat("argb32-classic", "uint32_t"), {
+    format: "argb32-classic",
+    detected: "argb32",
+  });
+});
+
+test("frameValueCount covers packed formats", () => {
+  assert.equal(frameValueCount("argb32", 2, 2), 4);
+  assert.equal(frameValueCount("rgb888", 2, 2), 12);
+  assert.equal(frameValueCount("1bit", 10, 1), 2);
+  assert.equal(frameValueCount("i4", 4, 2), 4);
+  assert.equal(formatNeedsBitOrder("1bit"), true);
+  assert.equal(formatNeedsBitOrder("rgb565"), false);
 });
 
 test("decodeArgb32 respects alpha (little-endian RGBA)", () => {
   assert.equal(decodeArgb32(0x00000000), null);
   assert.deepEqual(decodeArgb32(0xffffffff), { r: 255, g: 255, b: 255, a: 255 });
-  // Opaque red is 0xff0000ff in little-endian RGBA (not classic 0xffff0000)
   assert.deepEqual(decodeArgb32(0xff0000ff), { r: 255, g: 0, b: 0, a: 255 });
   assert.deepEqual(decodeArgb32(0x800000ff), { r: 255, g: 0, b: 0, a: 128 });
+});
+
+test("decodeArgb32Classic uses AARRGGBB", () => {
+  assert.deepEqual(decodeArgb32Classic(0xffff0000), { r: 255, g: 0, b: 0, a: 255 });
+  assert.deepEqual(decodeArgb32Classic(0xff0000ff), { r: 0, g: 0, b: 255, a: 255 });
 });
 
 test("decodeRgb565 expands channels", () => {
@@ -96,10 +131,20 @@ test("decodeRgb565 expands channels", () => {
   assert.deepEqual(decodeRgb565(0x001f), { r: 0, g: 0, b: 255, a: 255 });
 });
 
+test("decodeRgb565Swap reverses bytes", () => {
+  assert.deepEqual(decodeRgb565Swap(0x00f8), { r: 255, g: 0, b: 0, a: 255 });
+});
+
 test("decode1Bit unpacks MSB-first with byte padding", () => {
   assert.equal(oneBitStride(10), 2);
-  // width 8: one byte 0b10000001 → pixels at x=0 and x=7
   const pixels = decode1Bit([0b10000001], 8, 1);
+  assert.ok(pixels[0]);
+  assert.equal(pixels[1], null);
+  assert.ok(pixels[7]);
+});
+
+test("decode1Bit LSB-first", () => {
+  const pixels = decode1Bit([0b10000001], 8, 1, { r: 0, g: 0, b: 0, a: 255 }, "lsb");
   assert.ok(pixels[0]);
   assert.equal(pixels[1], null);
   assert.ok(pixels[7]);
@@ -117,6 +162,31 @@ test("decodePixels ARGB32 frame", () => {
   assert.deepEqual(pixels[2], { r: 0, g: 255, b: 0, a: 255 });
 });
 
+test("decodePixels RGB888", () => {
+  const { pixels } = decodePixels({
+    format: "rgb888",
+    values: [255, 0, 0, 0, 255, 0],
+    width: 2,
+    height: 1,
+  });
+  assert.deepEqual(pixels[0], { r: 255, g: 0, b: 0, a: 255 });
+  assert.deepEqual(pixels[1], { r: 0, g: 255, b: 0, a: 255 });
+});
+
+test("decodePixels indexed I1 with palette", () => {
+  const { pixels, warnings } = decodePixels({
+    format: "i1",
+    values: [0b10000000],
+    width: 8,
+    height: 1,
+    palette: [0xff0000ff, 0xffffffff],
+  });
+  assert.equal(warnings.length, 0);
+  // MSB: bit7=1 → index 1 (white), bit6=0 → index 0 (red)
+  assert.deepEqual(pixels[0], { r: 255, g: 255, b: 255, a: 255 });
+  assert.deepEqual(pixels[1], { r: 255, g: 0, b: 0, a: 255 });
+});
+
 test("pixelColorKey supports override fill", () => {
   const pixel = { r: 1, g: 2, b: 3, a: 255 };
   assert.equal(pixelColorKey(pixel, null), "#010203");
@@ -132,8 +202,6 @@ test("mergeRects collapses a solid 2x2 into one rect", () => {
 });
 
 test("mergeRects keeps an L-shape as multiple rects", () => {
-  // ##
-  // #
   const grid = ["#000000", "#000000", "#000000", null];
   const rects = mergeRects(grid, 2, 2);
   assert.ok(rects.length >= 2);
@@ -191,4 +259,16 @@ test("convertCToSvg override fill", () => {
   assert.equal(result.error, null);
   assert.match(result.svg, /fill="#00AAFF"/);
   assert.doesNotMatch(result.svg, /fill="#FFFFFF"/);
+});
+
+test("convertCToSvg classic ARGB32 red", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1] = { 0xffff0000 };
+`;
+  const classic = convertCToSvg({ source, format: "argb32-classic" });
+  assert.match(classic.svg, /fill="#FF0000"/);
+  const piskel = convertCToSvg({ source, format: "argb32" });
+  assert.match(piskel.svg, /fill="#0000FF"/);
 });

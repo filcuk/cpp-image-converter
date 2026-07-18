@@ -66,6 +66,19 @@
   flex: 1 1 100%;
 }
 
+.converter-format .dropdown {
+  max-width: 22rem;
+}
+
+.converter-format-menu {
+  max-height: min(24rem, 70vh);
+  overflow-y: auto;
+}
+
+.converter-bit-order {
+  max-width: 22rem;
+}
+
 .converter-actions {
   display: flex;
   flex-wrap: wrap;
@@ -95,7 +108,7 @@
   box-sizing: border-box;
 }
 
-#load-example-btn {
+.converter-source-actions {
   align-self: flex-start;
 }
 

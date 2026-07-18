@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Convert C/C++ image arrays (ARGB32, RGB565, 1-bit) to editable SVG in the browser."
+      content="Convert C/C++ image arrays (ARGB32, RGB565, indexed, grayscale, and more) to editable SVG in the browser."
     />
     <title>C++ Image Converter</title>
     <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
@@ -100,9 +100,14 @@
             ></textarea>
           </label>
 
-          <button type="button" class="btn" id="load-example-btn">
-            Load Example
-          </button>
+          <div class="toolbar converter-source-actions">
+            <button type="button" class="btn hidden" id="clear-source-btn" hidden>
+              Clear
+            </button>
+            <button type="button" class="btn" id="load-example-btn">
+              Load Example
+            </button>
+          </div>
         </div>
       </section>
 
@@ -112,54 +117,252 @@
           <div class="converter-options">
             <div class="converter-format">
               <span class="field-label" id="format-label">Pixel format</span>
+              <div class="dropdown" id="format-dropdown">
+                <button
+                  type="button"
+                  class="btn dropdown-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="format-dropdown-menu"
+                  aria-labelledby="format-label"
+                >
+                  <span class="dropdown-trigger-label" id="format-dropdown-label"
+                    >Auto</span
+                  >
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul
+                  id="format-dropdown-menu"
+                  class="dropdown-menu converter-format-menu hidden"
+                  role="menu"
+                  hidden
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item is-selected"
+                      role="menuitem"
+                      data-value="auto"
+                    >
+                      Auto
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb32"
+                    >
+                      ARGB32 (Piskel)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb32-classic"
+                    >
+                      ARGB32 (classic)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="xrgb8888"
+                    >
+                      XRGB8888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb888"
+                    >
+                      RGB888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="bgr888"
+                    >
+                      BGR888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565"
+                    >
+                      RGB565
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565-swap"
+                    >
+                      RGB565 (byte-swap)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565a8"
+                    >
+                      RGB565A8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb8565"
+                    >
+                      ARGB8565
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i1"
+                    >
+                      Indexed I1
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i2"
+                    >
+                      Indexed I2
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i4"
+                    >
+                      Indexed I4
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i8"
+                    >
+                      Indexed I8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="l8"
+                    >
+                      Grayscale L8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="al88"
+                    >
+                      Grayscale AL88
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="p2"
+                    >
+                      Packed 2-bit
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="p4"
+                    >
+                      Packed 4-bit
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="1bit"
+                    >
+                      1-bit
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
+              <span class="field-label" id="bit-order-label">Bit order</span>
               <div
                 class="segmented-control"
-                id="format-control"
-                data-segmented-control-default="auto"
+                id="bit-order-control"
+                data-segmented-control-default="msb"
               >
                 <div
                   class="segmented-control-list"
                   role="radiogroup"
-                  aria-labelledby="format-label"
+                  aria-labelledby="bit-order-label"
                 >
                   <button
                     type="button"
                     class="segmented-control-item"
                     role="radio"
                     aria-checked="true"
-                    data-segmented-control-value="auto"
+                    data-segmented-control-value="msb"
                   >
-                    Auto
+                    MSB first
                   </button>
                   <button
                     type="button"
                     class="segmented-control-item"
                     role="radio"
                     aria-checked="false"
-                    data-segmented-control-value="argb32"
+                    data-segmented-control-value="lsb"
                   >
-                    ARGB32
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="rgb565"
-                  >
-                    RGB565
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="1bit"
-                  >
-                    1-bit
+                    LSB first
                   </button>
                 </div>
-                <input type="hidden" class="segmented-control-value" value="auto" />
+                <input type="hidden" class="segmented-control-value" value="msb" />
               </div>
             </div>
 

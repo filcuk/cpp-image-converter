@@ -3,17 +3,23 @@ import { setHidden } from "./utils/dom.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
+import { initDropdown } from "./components/dropdown.js";
 import { initStepper } from "./components/stepper.js";
 import { initToggle } from "./components/toggle.js";
 import { initColorPicker } from "./components/color-picker.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { parseCArray } from "./converter/parse-c-array.js";
+import {
+  formatLabel as formatIdLabel,
+  formatNeedsBitOrder,
+} from "./converter/formats.js";
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
 
 initShell({ pageNav: false });
 
 const sourceTextarea = document.getElementById("source-textarea");
+const clearSourceBtn = document.getElementById("clear-source-btn");
 const loadExampleBtn = document.getElementById("load-example-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const previewEl = document.getElementById("svg-preview");
@@ -21,6 +27,8 @@ const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
 const frameStepperEl = document.getElementById("frame-stepper");
 const fillWrapEl = document.getElementById("fill-color-picker");
+const bitOrderWrapEl = document.getElementById("bit-order-wrap");
+const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -41,8 +49,10 @@ let convertTimer = 0;
 /** Paste fires before the textarea value updates; `input` always sees the new text. */
 let sourceChangeFromPaste = false;
 
+/** @type {string} */
+let selectedFormat = "auto";
 /** @type {ReturnType<typeof initSegmentedControl>} */
-let formatControl = null;
+let bitOrderControl = null;
 /** @type {ReturnType<typeof initStepper>} */
 let widthStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -80,6 +90,34 @@ function onOptionChange() {
 function syncFillEnabled(enabled) {
   fillWrapEl?.classList.toggle("is-disabled", !enabled);
   fillPicker?.setDisabled(!enabled);
+}
+
+/**
+ * @param {string} formatId
+ */
+function syncBitOrderVisibility(formatId) {
+  const effective =
+    formatId === "auto" ? "1bit" : formatId;
+  // Show when the resolved manual format needs bit order, or Auto (uint8 often 1-bit)
+  const show =
+    formatId === "auto" || formatNeedsBitOrder(effective);
+  setHidden(bitOrderWrapEl, !show);
+}
+
+/**
+ * @param {string} value
+ * @param {string} label
+ */
+function setFormatSelection(value, label) {
+  selectedFormat = value || "auto";
+  if (formatDropdownLabelEl) {
+    formatDropdownLabelEl.textContent = label || formatIdLabel(selectedFormat);
+  }
+  const menu = document.getElementById("format-dropdown-menu");
+  menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
+    item.classList.toggle("is-selected", item.dataset.value === selectedFormat);
+  });
+  syncBitOrderVisibility(selectedFormat);
 }
 
 /**
@@ -194,9 +232,27 @@ function readFileText(file) {
   });
 }
 
-function syncLoadExampleVisibility() {
+function syncSourceActionVisibility() {
   const hasSource = Boolean(sourceTextarea?.value);
+  setHidden(clearSourceBtn, !hasSource);
   setHidden(loadExampleBtn, hasSource);
+}
+
+function clearSourceInputs() {
+  sourceFromFile = false;
+  downloadFilename = "converted.svg";
+  if (sourceTextarea) sourceTextarea.value = "";
+  ignoringDropzoneClear = true;
+  try {
+    sourceDropzone?.clear();
+  } finally {
+    ignoringDropzoneClear = false;
+  }
+  syncSourceActionVisibility();
+  clearPreview();
+  hideBanner(errorBanner);
+  hideBanner(successBanner);
+  hideBanner(warningBanner);
 }
 
 /**
@@ -211,7 +267,7 @@ async function loadSourceFile(file) {
     }
     sourceFromFile = true;
     sourceTextarea.value = text;
-    syncLoadExampleVisibility();
+    syncSourceActionVisibility();
     downloadFilename = file.name.replace(/\.(c|h|txt)$/i, "") + ".svg";
     runConvert({ showSuccess: true });
     if (!text.trim()) {
@@ -234,7 +290,7 @@ function loadExampleSource() {
   }
   clearFileIfEditingSource();
   sourceTextarea.value = EXAMPLE_SOURCE;
-  syncLoadExampleVisibility();
+  syncSourceActionVisibility();
   downloadFilename = "example.svg";
   runConvert({ showSuccess: true });
 }
@@ -289,8 +345,9 @@ function runConvert({ showSuccess = true } = {}) {
   try {
     result = convertCToSvg({
       source,
-      format: /** @type {"auto" | "argb32" | "rgb565" | "1bit"} */ (
-        formatControl?.getValue() ?? "auto"
+      format: selectedFormat,
+      bitOrder: /** @type {"msb" | "lsb"} */ (
+        bitOrderControl?.getValue() ?? "msb"
       ),
       width: widthFromUi > 0 ? widthFromUi : parsedHint.width,
       height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
@@ -330,10 +387,10 @@ function runConvert({ showSuccess = true } = {}) {
     previewEl?.append(document.importNode(svgNode, true));
   }
 
-  const formatLabel = result.format.toUpperCase();
+  const formatLabel = formatIdLabel(result.format);
   const detected =
     result.detectedFormat && result.detectedFormat !== result.format
-      ? ` (detected ${result.detectedFormat.toUpperCase()})`
+      ? ` (detected ${formatIdLabel(result.detectedFormat)})`
       : result.detectedFormat
         ? ` (from ${result.elementType || "type"})`
         : "";
@@ -354,7 +411,15 @@ function runConvert({ showSuccess = true } = {}) {
 }
 
 try {
-  formatControl = initSegmentedControl(document.getElementById("format-control"), {
+  initDropdown(document.getElementById("format-dropdown"), {
+    onSelect: ({ value, label }) => {
+      setFormatSelection(value || "auto", label);
+      onOptionChange();
+    },
+  });
+  setFormatSelection("auto", "Auto");
+
+  bitOrderControl = initSegmentedControl(document.getElementById("bit-order-control"), {
     onChange: onOptionChange,
   });
 
@@ -410,7 +475,7 @@ try {
       sourceFromFile = false;
       downloadFilename = "converted.svg";
       if (sourceTextarea) sourceTextarea.value = "";
-      syncLoadExampleVisibility();
+      syncSourceActionVisibility();
       clearPreview();
       hideBanner(errorBanner);
       hideBanner(successBanner);
@@ -425,12 +490,13 @@ try {
   }
 
   downloadSvgBtn?.addEventListener("click", triggerSvgDownload);
+  clearSourceBtn?.addEventListener("click", clearSourceInputs);
   loadExampleBtn?.addEventListener("click", loadExampleSource);
 
   // Sync now and after form restore (refresh / bfcache can fill the textarea late)
-  syncLoadExampleVisibility();
-  window.addEventListener("pageshow", syncLoadExampleVisibility);
-  window.setTimeout(syncLoadExampleVisibility, 0);
+  syncSourceActionVisibility();
+  window.addEventListener("pageshow", syncSourceActionVisibility);
+  window.setTimeout(syncSourceActionVisibility, 0);
 
   sourceTextarea?.addEventListener("paste", () => {
     sourceChangeFromPaste = true;
@@ -442,7 +508,7 @@ try {
 
     // Editing or pasting replaces a loaded file as the active input
     clearFileIfEditingSource();
-    syncLoadExampleVisibility();
+    syncSourceActionVisibility();
 
     window.clearTimeout(convertTimer);
 
