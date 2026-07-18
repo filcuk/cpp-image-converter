@@ -23,8 +23,8 @@ function expand6to8(v6) {
 }
 
 /**
- * Decode a Piskel-style 32-bit pixel.
- * Hex literals are little-endian RGBA (`0xAABBGGRR`), so opaque red is
+ * Decode a 32-bit little-endian RGBA pixel (`0xAABBGGRR`).
+ * Hex literals store channels in that order, so opaque red is
  * `0xff0000ff` — not classic AARRGGBB `0xffff0000`.
  * @param {number} value
  * @returns {Rgba | null} null = transparent / empty

@@ -9,10 +9,12 @@ import { initColorPicker } from "./components/color-picker.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { parseCArray } from "./converter/parse-c-array.js";
+import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
 
 initShell({ pageNav: false });
 
 const sourceTextarea = document.getElementById("source-textarea");
+const loadExampleBtn = document.getElementById("load-example-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const previewEl = document.getElementById("svg-preview");
 const previewEmptyEl = document.getElementById("svg-preview-empty");
@@ -192,6 +194,11 @@ function readFileText(file) {
   });
 }
 
+function syncLoadExampleVisibility() {
+  const hasSource = Boolean(sourceTextarea?.value);
+  setHidden(loadExampleBtn, hasSource);
+}
+
 /**
  * @param {File} file
  */
@@ -204,6 +211,7 @@ async function loadSourceFile(file) {
     }
     sourceFromFile = true;
     sourceTextarea.value = text;
+    syncLoadExampleVisibility();
     downloadFilename = file.name.replace(/\.(c|h|txt)$/i, "") + ".svg";
     runConvert({ showSuccess: true });
     if (!text.trim()) {
@@ -217,6 +225,18 @@ async function loadSourceFile(file) {
         : `Could not read “${file.name}”.`
     );
   }
+}
+
+function loadExampleSource() {
+  if (!sourceTextarea) {
+    showError("Source text area is missing.");
+    return;
+  }
+  clearFileIfEditingSource();
+  sourceTextarea.value = EXAMPLE_SOURCE;
+  syncLoadExampleVisibility();
+  downloadFilename = "example.svg";
+  runConvert({ showSuccess: true });
 }
 
 /** Clear the loaded file when the user edits or pastes into the textarea. */
@@ -390,6 +410,7 @@ try {
       sourceFromFile = false;
       downloadFilename = "converted.svg";
       if (sourceTextarea) sourceTextarea.value = "";
+      syncLoadExampleVisibility();
       clearPreview();
       hideBanner(errorBanner);
       hideBanner(successBanner);
@@ -404,6 +425,12 @@ try {
   }
 
   downloadSvgBtn?.addEventListener("click", triggerSvgDownload);
+  loadExampleBtn?.addEventListener("click", loadExampleSource);
+
+  // Sync now and after form restore (refresh / bfcache can fill the textarea late)
+  syncLoadExampleVisibility();
+  window.addEventListener("pageshow", syncLoadExampleVisibility);
+  window.setTimeout(syncLoadExampleVisibility, 0);
 
   sourceTextarea?.addEventListener("paste", () => {
     sourceChangeFromPaste = true;
@@ -415,6 +442,7 @@ try {
 
     // Editing or pasting replaces a loaded file as the active input
     clearFileIfEditingSource();
+    syncLoadExampleVisibility();
 
     window.clearTimeout(convertTimer);
 

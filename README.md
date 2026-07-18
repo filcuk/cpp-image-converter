@@ -1,6 +1,6 @@
 # C++ Image Converter
 
-Browser microapp that converts C/C++ image arrays to editable SVG. Supports **ARGB32** (Piskel C exports — little-endian RGBA / `0xAABBGGRR`), **RGB565**, and packed **1-bit** sources. Neighbouring same-colour pixels are merged into larger rectangles for easier editing.
+Browser microapp that converts C/C++ image arrays to editable SVG. Supports **ARGB32** (little-endian RGBA / `0xAABBGGRR`), **RGB565**, and packed **1-bit** sources. Neighbouring same-colour pixels are merged into larger rectangles for easier editing.
 
 Runs entirely client-side — suitable for GitHub Pages.
 

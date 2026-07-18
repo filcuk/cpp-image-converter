@@ -167,7 +167,7 @@ export function parseCArray(source) {
   if (body) {
     const hexOrBin = [...body.matchAll(/0x[0-9a-fA-F]+|0b[01]+/gi)];
     if (hexOrBin.length > 0) {
-      // Piskel / typical image dumps use hex (or binary); skip bare decimals in the body
+      // Typical image dumps use hex (or binary); skip bare decimals in the body
       result.values = hexOrBin.map((m) => {
         const token = m[0];
         if (token.toLowerCase().startsWith("0b")) {

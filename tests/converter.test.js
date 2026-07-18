@@ -16,11 +16,11 @@ import { convertCToSvg } from "../app/converter/convert.js";
 
 const WIND_LIKE = `#include <stdint.h>
 
-#define NEW_PISKEL_FRAME_COUNT 1
-#define NEW_PISKEL_FRAME_WIDTH 14
-#define NEW_PISKEL_FRAME_HEIGHT 14
+#define IMG_FRAME_COUNT 1
+#define IMG_FRAME_WIDTH 14
+#define IMG_FRAME_HEIGHT 14
 
-static const uint32_t new_piskel_data[1][196] = {
+static const uint32_t example_data[1][196] = {
 {
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xffffffff, 0xffffffff, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
@@ -40,7 +40,7 @@ static const uint32_t new_piskel_data[1][196] = {
 };
 `;
 
-test("parseCArray reads Piskel-style wind.c fixture", () => {
+test("parseCArray reads ARGB32 wind.c-style fixture", () => {
   const parsed = parseCArray(WIND_LIKE);
   assert.equal(parsed.width, 14);
   assert.equal(parsed.height, 14);
@@ -81,10 +81,10 @@ test("resolveFormat prefers manual selection over auto", () => {
   });
 });
 
-test("decodeArgb32 respects alpha (Piskel ABGR)", () => {
+test("decodeArgb32 respects alpha (little-endian RGBA)", () => {
   assert.equal(decodeArgb32(0x00000000), null);
   assert.deepEqual(decodeArgb32(0xffffffff), { r: 255, g: 255, b: 255, a: 255 });
-  // Opaque red is 0xff0000ff in Piskel C exports (not classic 0xffff0000)
+  // Opaque red is 0xff0000ff in little-endian RGBA (not classic 0xffff0000)
   assert.deepEqual(decodeArgb32(0xff0000ff), { r: 255, g: 0, b: 0, a: 255 });
   assert.deepEqual(decodeArgb32(0x800000ff), { r: 255, g: 0, b: 0, a: 128 });
 });

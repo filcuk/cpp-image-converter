@@ -95,6 +95,10 @@
   box-sizing: border-box;
 }
 
+#load-example-btn {
+  align-self: flex-start;
+}
+
 .converter-fill-wrap.is-disabled {
   opacity: 0.5;
   pointer-events: none;
