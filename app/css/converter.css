@@ -119,6 +119,12 @@
   max-width: none;
 }
 
+#c-output-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .converter-source-field {
   max-width: none;
   width: 100%;

@@ -31,6 +31,8 @@ const previewEl = document.getElementById("svg-preview");
 const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
 const cOutputTextarea = document.getElementById("c-output-textarea");
+const cPreviewEl = document.getElementById("c-preview");
+const cPreviewEmptyEl = document.getElementById("c-preview-empty");
 const cMetaEl = document.getElementById("c-converter-meta");
 const cInputPanel = document.getElementById("c-input-panel");
 const svgInputPanel = document.getElementById("svg-input-panel");
@@ -308,9 +310,15 @@ function clearPreview() {
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
 }
 
+function clearCPreview() {
+  cPreviewEl?.querySelector("svg")?.remove();
+  setHidden(cPreviewEmptyEl, false);
+}
+
 function clearCOutput() {
   latestC = null;
   if (cOutputTextarea) cOutputTextarea.value = "";
+  clearCPreview();
   setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
 }
@@ -635,6 +643,16 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   latestC = result.source;
   if (cOutputTextarea) cOutputTextarea.value = result.source;
   showWarnings(result.warnings);
+
+  setHidden(cPreviewEmptyEl, true);
+  cPreviewEl?.querySelector("svg")?.remove();
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(source, "image/svg+xml");
+  const svgNode = doc.documentElement;
+  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
+    cPreviewEl?.append(document.importNode(svgNode, true));
+  }
 
   if (cMetaEl) {
     cMetaEl.textContent = `${result.width}×${result.height} · ${formatIdLabel(result.format)} · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"} · ${result.elementType}`;
