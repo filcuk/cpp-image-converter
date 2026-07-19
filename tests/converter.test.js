@@ -392,7 +392,8 @@ test("elementTypeForFormat and formatLabelWithType", async () => {
   assert.equal(elementTypeForFormat("argb32"), "uint32_t");
   assert.equal(elementTypeForFormat("rgb565"), "uint16_t");
   assert.equal(elementTypeForFormat("i1"), "uint8_t");
-  assert.equal(formatLabelWithType("rgb565"), "RGB565 · uint16_t");
+  assert.equal(formatLabelWithType("rgb565"), "RGB565 (TFT) · uint16_t");
+  assert.equal(formatLabelWithType("1bit"), "1-bit (B/W) · uint8_t");
   assert.equal(formatLabelWithType("auto"), "Auto");
 });
 

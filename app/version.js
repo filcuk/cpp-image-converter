@@ -9,4 +9,4 @@
 export const TEMPLATE_VERSION = "0.6.0";
 
 /** @type {`${number}.${number}.${number}`} */
-export const APP_VERSION = "0.3.0";
+export const APP_VERSION = "0.4.0";

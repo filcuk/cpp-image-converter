@@ -5,9 +5,26 @@
 /** @typedef {"msb" | "lsb"} BitOrder */
 
 /**
+ * @typedef {"true-colour" | "colour-16" | "bw" | "grayscale" | "indexed"} FormatGroupId
+ */
+
+/**
+ * Display labels for format groups in dropdown menus.
+ * @type {Record<FormatGroupId, string>}
+ */
+export const FORMAT_GROUP_LABELS = {
+  "true-colour": "True colour",
+  "colour-16": "16-bit colour (TFT / LCD)",
+  bw: "Black & white / e-ink",
+  grayscale: "Grayscale",
+  indexed: "Indexed / palette",
+};
+
+/**
  * @typedef {object} FormatInfo
  * @property {string} id
  * @property {string} label
+ * @property {FormatGroupId} [group]
  * @property {boolean} [needsBitOrder]
  * @property {boolean} [indexed]
  */
@@ -15,24 +32,24 @@
 /** @type {FormatInfo[]} */
 export const FORMAT_CATALOGUE = [
   { id: "auto", label: "Auto" },
-  { id: "argb32", label: "ARGB32 (LE RGBA)" },
-  { id: "argb32-classic", label: "ARGB32 (classic)" },
-  { id: "xrgb8888", label: "XRGB8888" },
-  { id: "rgb888", label: "RGB888" },
-  { id: "bgr888", label: "BGR888" },
-  { id: "rgb565", label: "RGB565" },
-  { id: "rgb565-swap", label: "RGB565 (byte-swap)" },
-  { id: "rgb565a8", label: "RGB565A8" },
-  { id: "argb8565", label: "ARGB8565" },
-  { id: "i1", label: "Indexed I1", needsBitOrder: true, indexed: true },
-  { id: "i2", label: "Indexed I2", needsBitOrder: true, indexed: true },
-  { id: "i4", label: "Indexed I4", needsBitOrder: true, indexed: true },
-  { id: "i8", label: "Indexed I8", indexed: true },
-  { id: "l8", label: "Grayscale L8" },
-  { id: "al88", label: "Grayscale AL88" },
-  { id: "p2", label: "Packed 2-bit", needsBitOrder: true },
-  { id: "p4", label: "Packed 4-bit", needsBitOrder: true },
-  { id: "1bit", label: "1-bit", needsBitOrder: true },
+  { id: "argb32", label: "ARGB32 (LE RGBA)", group: "true-colour" },
+  { id: "argb32-classic", label: "ARGB32 (classic)", group: "true-colour" },
+  { id: "xrgb8888", label: "XRGB8888", group: "true-colour" },
+  { id: "rgb888", label: "RGB888", group: "true-colour" },
+  { id: "bgr888", label: "BGR888", group: "true-colour" },
+  { id: "rgb565", label: "RGB565 (TFT)", group: "colour-16" },
+  { id: "rgb565-swap", label: "RGB565 (TFT, byte-swap)", group: "colour-16" },
+  { id: "rgb565a8", label: "RGB565A8", group: "colour-16" },
+  { id: "argb8565", label: "ARGB8565", group: "colour-16" },
+  { id: "1bit", label: "1-bit (B/W)", group: "bw", needsBitOrder: true },
+  { id: "l8", label: "Grayscale L8", group: "grayscale" },
+  { id: "al88", label: "Grayscale AL88", group: "grayscale" },
+  { id: "p2", label: "Packed 2-bit", group: "grayscale", needsBitOrder: true },
+  { id: "p4", label: "Packed 4-bit", group: "grayscale", needsBitOrder: true },
+  { id: "i1", label: "Indexed I1", group: "indexed", needsBitOrder: true, indexed: true },
+  { id: "i2", label: "Indexed I2", group: "indexed", needsBitOrder: true, indexed: true },
+  { id: "i4", label: "Indexed I4", group: "indexed", needsBitOrder: true, indexed: true },
+  { id: "i8", label: "Indexed I8", group: "indexed", indexed: true },
 ];
 
 /** Manual format ids (excludes auto). */

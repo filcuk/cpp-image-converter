@@ -15,6 +15,7 @@ import { convertCToC } from "./converter/convert-c-to-c.js";
 import { parseCArray } from "./converter/parse-c-array.js";
 import {
   FORMAT_CATALOGUE,
+  FORMAT_GROUP_LABELS,
   formatLabel as formatIdLabel,
   formatLabelWithType,
   formatNeedsBitOrder,
@@ -219,8 +220,22 @@ function setOutputFormatSelection(value, label) {
 function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
   if (!menu) return;
   menu.replaceChildren();
+  /** @type {string | null} */
+  let lastGroup = null;
   for (const format of FORMAT_CATALOGUE) {
     if (!includeAuto && format.id === "auto") continue;
+
+    if (format.group && format.group !== lastGroup) {
+      lastGroup = format.group;
+      const groupLi = document.createElement("li");
+      groupLi.setAttribute("role", "presentation");
+      const groupLabel = document.createElement("div");
+      groupLabel.className = "dropdown-menu-group";
+      groupLabel.textContent = FORMAT_GROUP_LABELS[format.group] ?? format.group;
+      groupLi.append(groupLabel);
+      menu.append(groupLi);
+    }
+
     const li = document.createElement("li");
     li.setAttribute("role", "none");
     const btn = document.createElement("button");

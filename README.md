@@ -7,12 +7,12 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
 - **C → SVG** — paste or upload `.c` / `.h` / `.txt`, preview, download `.svg`
 - **SVG → C** — paste or upload `.svg` (including path-based artwork); download a Piskel-like `.c` array (including indexed I1–I8 with palette)
 - **C → C** — convert between C array types (e.g. `uint32_t` ARGB32 → `uint16_t` RGB565 or indexed `uint8_t`) and/or resize, without going through SVG
-- **Pixel formats** — Auto-detect from element type, or pick manually:
-  - ARGB32 (LE RGBA / `0xAABBGGRR`) and classic AARRGGBB
-  - XRGB8888, RGB888 / BGR888
-  - RGB565 / byte-swapped RGB565, RGB565A8, ARGB8565
-  - Indexed I1–I8 (palette from `*_color` / `*_palette` when present)
-  - Grayscale L8 / AL88, packed 2/4-bit, 1-bit (MSB or LSB)
+- **Pixel formats** — Auto-detect from element type, or pick manually (grouped in the UI by use):
+  - True colour — ARGB32 (LE RGBA / `0xAABBGGRR`), classic AARRGGBB, XRGB8888, RGB888 / BGR888
+  - 16-bit colour (TFT / LCD) — RGB565 (TFT), byte-swapped RGB565, RGB565A8, ARGB8565
+  - Black & white / e-ink — 1-bit (B/W)
+  - Grayscale — L8 / AL88, packed 2/4-bit
+  - Indexed / palette — I1–I8 (palette from `*_color` / `*_palette` when present)
 - **Multi-frame** — frame picker, or **Animate frames** for SMIL-animated SVG
 - **Options** — input width/height (when not in source defines), output scale, override fill, minimised SVG, array name
 

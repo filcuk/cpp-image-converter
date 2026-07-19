@@ -87,11 +87,12 @@
 }
 
 .converter-format .dropdown {
-  max-width: 22rem;
+  max-width: 24rem;
 }
 
 .converter-format-menu {
-  max-height: min(24rem, 70vh);
+  max-height: min(28rem, 70vh);
+  max-width: min(100vw - 3rem, 24rem);
   overflow-y: auto;
 }
 
