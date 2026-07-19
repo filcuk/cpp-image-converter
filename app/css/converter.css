@@ -20,6 +20,16 @@
   max-width: 28rem;
 }
 
+#direction .segmented-control-item[aria-checked="true"] {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] #direction .segmented-control-item[aria-checked="true"] {
+  color: #0d1117;
+}
+
 .converter-preview {
   display: flex;
   align-items: center;
