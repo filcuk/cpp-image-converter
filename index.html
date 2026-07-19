@@ -433,6 +433,33 @@
                   <input type="hidden" class="stepper-value" />
                 </div>
               </div>
+            </div>
+
+            <div
+              class="converter-options__row converter-animate-row hidden"
+              id="animate-options-wrap"
+              hidden
+            >
+              <div class="toggle" id="animate-frames-toggle" data-toggle-default="false">
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  role="switch"
+                  aria-checked="false"
+                >
+                  <span class="toggle-track" aria-hidden="true">
+                    <span class="toggle-thumb">
+                      <span
+                        data-icon="check"
+                        data-icon-class="toggle-thumb-icon"
+                        aria-hidden="true"
+                      ></span>
+                    </span>
+                  </span>
+                  <span class="toggle-label">Animate frames</span>
+                </button>
+                <input type="hidden" class="toggle-value" />
+              </div>
 
               <div
                 class="stepper hidden"
@@ -471,67 +498,40 @@
                   <input type="hidden" class="stepper-value" />
                 </div>
               </div>
-            </div>
-
-            <div
-              class="converter-options__row converter-animate-row converter-c-to-svg-only hidden"
-              id="animate-options-wrap"
-              hidden
-            >
-              <div class="toggle" id="animate-frames-toggle" data-toggle-default="false">
-                <button
-                  type="button"
-                  class="toggle-btn"
-                  role="switch"
-                  aria-checked="false"
-                >
-                  <span class="toggle-track" aria-hidden="true">
-                    <span class="toggle-thumb">
-                      <span
-                        data-icon="check"
-                        data-icon-class="toggle-thumb-icon"
-                        aria-hidden="true"
-                      ></span>
-                    </span>
-                  </span>
-                  <span class="toggle-label">Animate frames</span>
-                </button>
-                <input type="hidden" class="toggle-value" />
-              </div>
 
               <div
                 class="stepper"
-                id="frame-duration-stepper"
-                data-stepper-min="16"
-                data-stepper-max="5000"
-                data-stepper-step="10"
-                data-stepper-default="100"
+                id="frame-fps-stepper"
+                data-stepper-min="1"
+                data-stepper-max="60"
+                data-stepper-step="1"
+                data-stepper-default="10"
                 data-stepper-format="integer"
               >
-                <label class="field-label" for="frame-duration-stepper-input"
-                  >Frame duration (ms)</label
+                <label class="field-label" for="frame-fps-stepper-input"
+                  >FPS</label
                 >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease frame duration"
+                    aria-label="Decrease FPS"
                   >
                     −
                   </button>
                   <input
                     type="text"
-                    id="frame-duration-stepper-input"
+                    id="frame-fps-stepper-input"
                     class="input stepper-input"
                     inputmode="numeric"
-                    aria-label="Frame duration in milliseconds"
+                    aria-label="Frames per second"
                   />
                   <button
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase frame duration"
+                    aria-label="Increase FPS"
                   >
                     +
                   </button>

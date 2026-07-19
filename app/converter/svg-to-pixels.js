@@ -228,6 +228,26 @@ export function prepareFrameGroupMarkup(markup) {
 }
 
 /**
+ * Count `<g id="frame-N">` groups in SVG markup (no rasterisation).
+ * @param {string} source
+ * @returns {number}
+ */
+export function countSvgFrames(source) {
+  if (typeof source !== "string" || !source.trim()) return 1;
+  const cleaned = source
+    .replace(/<\?xml[\s\S]*?\?>/i, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  const openMatch = cleaned.match(/<svg\b[^>]*>/i);
+  const closeIdx = cleaned.toLowerCase().lastIndexOf("</svg>");
+  const body =
+    openMatch && closeIdx !== -1
+      ? cleaned.slice((openMatch.index ?? 0) + openMatch[0].length, closeIdx)
+      : cleaned;
+  const frames = extractFrameGroups(body);
+  return Math.max(1, frames.length || 1);
+}
+
+/**
  * Split top-level frame groups from SVG body markup.
  * @param {string} body
  * @returns {{ id: string, markup: string }[]}
