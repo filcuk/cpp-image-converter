@@ -14,6 +14,10 @@ import { buildPalette, encodePixels } from "./encode-pixels.js";
 import { resizePixels } from "./resize-pixels.js";
 import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { toCArray } from "./to-c-array.js";
+import {
+  prepareFramesForOpaqueFormat,
+  warningsForCollapsedFrames,
+} from "./matte-pixels.js";
 
 /**
  * @param {number} size
@@ -37,6 +41,7 @@ function scaledSize(size, scale) {
  * @property {number} [frameIndex] Used when animateFrames is false
  * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
  * @property {number} [frameDurationMs] Preview animation frame duration
+ * @property {string} [backgroundColor] Matte for transparent pixels when output format has no alpha
  */
 
 /**
@@ -52,6 +57,8 @@ function scaledSize(size, scale) {
  * @property {number} sourceFrameCount Frame count in the input array
  * @property {number} frameIndex
  * @property {boolean} animated
+ * @property {boolean} hadTransparency Source frames included transparent pixels
+ * @property {boolean} flattenedTransparency Transparency was composited onto backgroundColor
  * @property {string} inputFormat
  * @property {string | null} detectedFormat
  * @property {string} outputFormat
@@ -76,6 +83,7 @@ export function convertCToC({
   frameIndex = 0,
   animateFrames = true,
   frameDurationMs = 100,
+  backgroundColor = "#000000",
 }) {
   const parsed = parseCArray(source);
   const decodeWidth = parsed.width ?? widthOverride;
@@ -114,6 +122,8 @@ export function convertCToC({
     sourceFrameCount: parsed.frameCount,
     frameIndex: 0,
     animated: false,
+    hadTransparency: false,
+    flattenedTransparency: false,
     inputFormat,
     detectedFormat: detected,
     outputFormat,
@@ -204,11 +214,22 @@ export function convertCToC({
     return result;
   }
 
+  const prepared = prepareFramesForOpaqueFormat({
+    frames,
+    format: outputFormat,
+    backgroundColor,
+    animated: result.animated,
+  });
+  result.hadTransparency = prepared.hadTransparency;
+  result.flattenedTransparency = prepared.flattenedTransparency;
+  result.warnings.push(...prepared.warnings);
+  const encodeFrames = prepared.frames;
+
   /** @type {import("./encode-pixels.js").BuiltPalette | null} */
   let sharedPalette = null;
   const indexedBpp = indexedBitsPerPixel(outputFormat);
   if (indexedBpp !== null) {
-    sharedPalette = buildPalette(frames.flat(), 1 << indexedBpp);
+    sharedPalette = buildPalette(encodeFrames.flat(), 1 << indexedBpp);
     result.warnings.push(...sharedPalette.warnings);
   }
 
@@ -218,7 +239,7 @@ export function convertCToC({
   let palette = null;
   let elementType = "uint32_t";
 
-  for (const pixels of frames) {
+  for (const pixels of encodeFrames) {
     const encoded = encodePixels({
       format: outputFormat,
       pixels,
@@ -231,6 +252,12 @@ export function convertCToC({
     encodedFrames.push(encoded.values);
     elementType = encoded.elementType;
     if (encoded.palette) palette = encoded.palette;
+  }
+
+  if (result.flattenedTransparency) {
+    result.warnings.push(
+      ...warningsForCollapsedFrames(encodedFrames, result.animated)
+    );
   }
 
   result.elementType = elementType;

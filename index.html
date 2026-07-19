@@ -633,6 +633,29 @@
                   aria-label="C array name prefix"
                 />
               </label>
+
+              <div
+                class="color-picker hidden"
+                id="background-color-picker"
+                data-color-picker-default="#000000"
+                hidden
+              >
+                <label class="field-label" for="background-color-input"
+                  >Background</label
+                >
+                <div class="color-picker-control">
+                  <input
+                    type="text"
+                    id="background-color-input"
+                    class="input color-picker-input"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-label="Background colour for transparent pixels"
+                  />
+                  <span class="color-picker-swatch" aria-hidden="true"></span>
+                  <input type="hidden" class="color-picker-value" />
+                </div>
+              </div>
             </div>
           </div>
 

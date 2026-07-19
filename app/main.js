@@ -20,6 +20,7 @@ import {
   formatLabel as formatIdLabel,
   formatLabelWithType,
   formatNeedsBitOrder,
+  formatPreservesAlpha,
 } from "./converter/formats.js";
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
 import { EXAMPLE_SVG } from "./examples/example-svg.js";
@@ -74,6 +75,7 @@ const frameStepperEl = document.getElementById("frame-stepper");
 const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const fillWrapEl = document.getElementById("fill-color-picker");
+const backgroundColorPickerEl = document.getElementById("background-color-picker");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
 const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
 const formatLabelEl = document.getElementById("format-label");
@@ -97,7 +99,9 @@ const successBody = document.getElementById("converter-success-body");
 function isOptionsWarning(message) {
   return (
     message.includes("Indexed format keeps") ||
-    message.includes("will be remapped to palette index")
+    message.includes("will be remapped to palette index") ||
+    message.includes("has no alpha") ||
+    message.includes("frames unique after flatten")
   );
 }
 
@@ -151,6 +155,10 @@ let overrideToggle = null;
 let minifyToggle = null;
 /** @type {ReturnType<typeof initColorPicker>} */
 let fillPicker = null;
+/** @type {ReturnType<typeof initColorPicker>} */
+let backgroundPicker = null;
+/** Last conversion reported transparent pixels in the source frames */
+let lastSourceHasTransparency = false;
 /** @type {ReturnType<typeof initFileDropzone>} */
 let sourceDropzone = null;
 /** @type {ReturnType<typeof initFileDropzone>} */
@@ -203,6 +211,30 @@ function syncFillEnabled(enabled) {
 }
 
 /**
+ * Output format used when writing C arrays.
+ * @returns {string}
+ */
+function effectiveOutputFormat() {
+  if (isCToC()) return selectedOutputFormat;
+  if (isSvgToC()) {
+    return selectedFormat === "auto" ? "argb32" : selectedFormat;
+  }
+  return selectedFormat;
+}
+
+/**
+ * Show the background matte picker when the source has transparency and the
+ * selected output format cannot store alpha.
+ */
+function syncBackgroundMatteVisibility() {
+  const show =
+    writesC() &&
+    lastSourceHasTransparency &&
+    !formatPreservesAlpha(effectiveOutputFormat());
+  setHidden(backgroundColorPickerEl, !show);
+}
+
+/**
  * @param {string} formatId
  * @param {string} [outputFormatId]
  */
@@ -242,6 +274,7 @@ function setFormatSelection(value, label) {
     item.classList.toggle("is-selected", item.dataset.value === selectedFormat);
   });
   syncBitOrderVisibility(selectedFormat);
+  syncBackgroundMatteVisibility();
 }
 
 /**
@@ -262,6 +295,7 @@ function setOutputFormatSelection(value, label) {
     );
   });
   syncBitOrderVisibility(selectedFormat, selectedOutputFormat);
+  syncBackgroundMatteVisibility();
 }
 
 /**
@@ -369,6 +403,8 @@ function setDirection(next) {
   }
 
   syncBitOrderVisibility(selectedFormat);
+  lastSourceHasTransparency = false;
+  syncBackgroundMatteVisibility();
   hideBanner(errorBanner);
   hideBanner(successBanner);
   hideWarningBanners();
@@ -557,6 +593,21 @@ function clearCOutput() {
   setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
   syncCopyEnabled();
+}
+
+/**
+ * @returns {string}
+ */
+function getBackgroundColor() {
+  return backgroundPicker?.getValue() ?? "#000000";
+}
+
+/**
+ * @param {{ hadTransparency?: boolean } | null | undefined} result
+ */
+function updateTransparencyState(result) {
+  lastSourceHasTransparency = Boolean(result?.hadTransparency);
+  syncBackgroundMatteVisibility();
 }
 
 function triggerSvgDownload() {
@@ -907,6 +958,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
     hideBanner(successBanner);
     hideWarningBanners();
     updateFrameStepper(1);
+    updateTransparencyState(null);
     return;
   }
 
@@ -929,6 +981,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
+      backgroundColor: getBackgroundColor(),
     });
   } catch (err) {
     showError(
@@ -939,6 +992,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   }
 
   updateFrameStepper(result.sourceFrameCount || result.frameCount);
+  updateTransparencyState(result);
 
   if (result.error || !result.source) {
     showError(result.error || "Conversion failed.");
@@ -984,6 +1038,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
     hideWarningBanners();
     clearSizeSteppers();
     updateFrameStepper(1);
+    updateTransparencyState(null);
     return;
   }
 
@@ -1015,6 +1070,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
+      backgroundColor: getBackgroundColor(),
     });
   } catch (err) {
     showError(
@@ -1025,6 +1081,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
   }
 
   updateFrameStepper(result.sourceFrameCount || result.frameCount);
+  updateTransparencyState(result);
 
   if (result.error || !result.source) {
     showError(result.error || "Conversion failed.");
@@ -1132,6 +1189,10 @@ try {
   });
 
   fillPicker = initColorPicker(document.getElementById("fill-color-picker"), {
+    onChange: onOptionChange,
+  });
+
+  backgroundPicker = initColorPicker(backgroundColorPickerEl, {
     onChange: onOptionChange,
   });
 
