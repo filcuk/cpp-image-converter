@@ -216,7 +216,7 @@
         <div class="section-panel">
           <div class="converter-options">
             <div class="converter-format">
-              <span class="field-label" id="format-label">Pixel format</span>
+              <span class="field-label" id="format-label">Input type</span>
               <div class="dropdown" id="format-dropdown">
                 <button
                   type="button"
@@ -256,7 +256,7 @@
               id="output-format-wrap"
               hidden
             >
-              <span class="field-label" id="output-format-label">Output C type</span>
+              <span class="field-label" id="output-format-label">Output type</span>
               <div class="dropdown" id="output-format-dropdown">
                 <button
                   type="button"
@@ -662,7 +662,6 @@
         </div>
         <div class="hidden" id="c-output-panel" hidden>
           <label class="field converter-source-field" for="c-output-textarea">
-            <span class="field-label">Generated C source</span>
             <textarea
               id="c-output-textarea"
               class="textarea converter-source-textarea"
@@ -671,14 +670,15 @@
               wrap="off"
               readonly
               placeholder="C array output"
+              aria-label="Generated C source"
             ></textarea>
           </label>
           <div class="field converter-source-field">
-            <span class="field-label">Preview</span>
             <div
               class="converter-preview"
               id="c-preview"
               aria-live="polite"
+              aria-label="Preview"
             >
               <p class="converter-preview__empty" id="c-preview-empty">
                 Convert SVG to see a preview

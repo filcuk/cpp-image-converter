@@ -323,11 +323,7 @@ function setDirection(next) {
   });
 
   if (formatLabelEl) {
-    formatLabelEl.textContent = svgMode
-      ? "Output format"
-      : cToC
-        ? "Input C type"
-        : "Pixel format";
+    formatLabelEl.textContent = svgMode ? "Output type" : "Input type";
   }
 
   // Auto is for reading C; SVG→C output format stays manual
