@@ -391,6 +391,7 @@ function applySourceMetadata(source) {
  * @param {number} frameCount
  */
 function updateFrameStepper(frameCount) {
+  const wasMulti = lastFrameCount > 1;
   lastFrameCount = Math.max(1, frameCount || 1);
   if (isSvgToC() || isCToC()) {
     setHidden(animateOptionsWrapEl, true);
@@ -401,25 +402,29 @@ function updateFrameStepper(frameCount) {
   const multi = lastFrameCount > 1;
   setHidden(animateOptionsWrapEl, !multi);
 
-  const animate = Boolean(animateFramesToggle?.getChecked());
-  setHidden(frameStepperEl, !multi || animate);
-
   if (!multi) {
+    frameStepper?.setBounds({ min: 0, max: 0, emit: false });
     frameStepper?.setValue(0);
     if (animateFramesToggle?.getChecked()) {
-      applyingMetadata = true;
-      try {
-        animateFramesToggle.setChecked(false);
-      } finally {
-        applyingMetadata = false;
-      }
+      animateFramesToggle.setChecked(false, { emit: false });
     }
+    setHidden(frameStepperEl, true);
     return;
   }
 
-  if (animate) return;
+  // Newly multi-frame source → animate by default
+  if (!wasMulti && animateFramesToggle && !animateFramesToggle.getChecked()) {
+    animateFramesToggle.setChecked(true, { emit: false });
+  }
+
+  const animate = Boolean(animateFramesToggle?.getChecked());
+  setHidden(frameStepperEl, animate);
 
   const maxIndex = lastFrameCount - 1;
+  frameStepper?.setBounds({ min: 0, max: maxIndex, emit: false });
+
+  if (animate) return;
+
   let current = Math.round(frameStepper?.getValue() ?? 0);
   if (current > maxIndex) current = 0;
   frameStepper?.setValue(current);
