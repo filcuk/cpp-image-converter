@@ -3,12 +3,21 @@
  */
 
 /**
+ * @typedef {object} ParsedArray
+ * @property {string} elementType
+ * @property {string} arrayName
+ * @property {number[]} values
+ */
+
+/**
  * @typedef {object} ParseCArrayResult
  * @property {number | null} width
  * @property {number | null} height
  * @property {number} frameCount
+ * @property {number | null} colorCount
  * @property {string | null} elementType
- * @property {number[]} values All numeric literals from the first data array body
+ * @property {number[]} values All numeric literals from the data array body
+ * @property {number[] | null} palette Palette entries when present
  * @property {string | null} arrayName
  * @property {string[]} warnings
  */
@@ -19,9 +28,11 @@ const DEFINE_HEIGHT_RE =
   /#\s*define\s+\w*(?:FRAME_)?HEIGHT\w*\s+(\d+)/i;
 const DEFINE_FRAME_COUNT_RE =
   /#\s*define\s+\w*FRAME_COUNT\w*\s+(\d+)/i;
+const DEFINE_COLOR_COUNT_RE =
+  /#\s*define\s+\w*COLOR_COUNT\w*\s+(\d+)/i;
 
 const ARRAY_DECL_RE =
-  /(?:static\s+)?(?:const\s+)?((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*(?:\[[^\]]*\])+\s*=/i;
+  /(?:static\s+)?(?:const\s+)?((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*(?:\[[^\]]*\])+\s*=/gi;
 
 /**
  * Find the matching closing brace for an opening `{` at `openIndex`.
@@ -61,7 +72,6 @@ export function parseNumericLiterals(body) {
   const values = [];
   const cleaned = body.replace(/\s+/g, " ");
 
-  // Walk left-to-right preferring hex/bin over overlapping decimal digits
   let i = 0;
   while (i < cleaned.length) {
     const slice = cleaned.slice(i);
@@ -79,7 +89,6 @@ export function parseNumericLiterals(body) {
     }
     const dec = slice.match(/^\d+/);
     if (dec) {
-      // Skip lone digits that are part of identifiers already handled; here body is numbers/commas
       values.push(Number.parseInt(dec[0], 10));
       i += dec[0].length;
       continue;
@@ -91,10 +100,64 @@ export function parseNumericLiterals(body) {
 }
 
 /**
+ * @param {string} body
+ * @returns {number[]}
+ */
+function extractArrayValues(body) {
+  const hexOrBin = [...body.matchAll(/0x[0-9a-fA-F]+|0b[01]+/gi)];
+  if (hexOrBin.length > 0) {
+    return hexOrBin.map((m) => {
+      const token = m[0];
+      if (token.toLowerCase().startsWith("0b")) {
+        return Number.parseInt(token.slice(2), 2);
+      }
+      return Number.parseInt(token, 16);
+    });
+  }
+  return parseNumericLiterals(body);
+}
+
+/**
+ * @param {string} name
+ */
+function isPaletteArrayName(name) {
+  return /color|palette/i.test(name);
+}
+
+/**
+ * @param {string} text
+ * @returns {ParsedArray[]}
+ */
+function findTypedArrays(text) {
+  /** @type {ParsedArray[]} */
+  const arrays = [];
+  ARRAY_DECL_RE.lastIndex = 0;
+  let match;
+  while ((match = ARRAY_DECL_RE.exec(text)) !== null) {
+    const elementType = match[1].replace(/\s+/g, " ").trim();
+    const arrayName = match[2];
+    const afterDecl = text.slice(match.index + match[0].length);
+    const openIdx = afterDecl.indexOf("{");
+    if (openIdx === -1) continue;
+    const absoluteOpen = match.index + match[0].length + openIdx;
+    const closeIdx = findMatchingBrace(text, absoluteOpen);
+    if (closeIdx === -1) continue;
+    const body = text.slice(absoluteOpen + 1, closeIdx);
+    arrays.push({
+      elementType,
+      arrayName,
+      values: extractArrayValues(body),
+    });
+    ARRAY_DECL_RE.lastIndex = closeIdx + 1;
+  }
+  return arrays;
+}
+
+/**
  * Extract values for a single frame from a flat value list.
  * @param {number[]} values
  * @param {number} frameIndex
- * @param {number} frameSize width * height (ARGB/RGB565) or bytes per frame (1-bit handled later)
+ * @param {number} frameSize
  * @returns {number[]}
  */
 export function sliceFrameValues(values, frameIndex, frameSize) {
@@ -113,8 +176,10 @@ export function parseCArray(source) {
     width: null,
     height: null,
     frameCount: 1,
+    colorCount: null,
     elementType: null,
     values: [],
+    palette: null,
     arrayName: null,
     warnings: [],
   };
@@ -129,54 +194,49 @@ export function parseCArray(source) {
   const widthMatch = text.match(DEFINE_WIDTH_RE);
   const heightMatch = text.match(DEFINE_HEIGHT_RE);
   const frameCountMatch = text.match(DEFINE_FRAME_COUNT_RE);
+  const colorCountMatch = text.match(DEFINE_COLOR_COUNT_RE);
 
   if (widthMatch) result.width = Number.parseInt(widthMatch[1], 10);
   if (heightMatch) result.height = Number.parseInt(heightMatch[1], 10);
   if (frameCountMatch) {
     result.frameCount = Math.max(1, Number.parseInt(frameCountMatch[1], 10));
   }
+  if (colorCountMatch) {
+    result.colorCount = Math.max(0, Number.parseInt(colorCountMatch[1], 10));
+  }
 
-  const declMatch = text.match(ARRAY_DECL_RE);
-  let body = "";
+  const arrays = findTypedArrays(text);
 
-  if (declMatch) {
-    result.elementType = declMatch[1].replace(/\s+/g, " ").trim();
-    result.arrayName = declMatch[2];
-    const afterDecl = text.slice(declMatch.index + declMatch[0].length);
-    const openIdx = afterDecl.indexOf("{");
-    if (openIdx !== -1) {
-      const absoluteOpen = (declMatch.index ?? 0) + declMatch[0].length + openIdx;
-      const closeIdx = findMatchingBrace(text, absoluteOpen);
-      if (closeIdx !== -1) {
-        body = text.slice(absoluteOpen + 1, closeIdx);
-      } else {
-        result.warnings.push("Could not find matching closing brace for the data array.");
-        body = afterDecl.slice(openIdx + 1);
-      }
-    } else {
-      result.warnings.push("Array declaration found but no initializer `{`.");
-    }
-  } else {
-    // Fallback: treat entire text as an array body of hex literals
+  if (arrays.length === 0) {
     result.warnings.push(
       "No typed array declaration found; extracting hex/binary literals from the whole text."
     );
-    body = text;
-  }
+    result.values = extractArrayValues(text);
+  } else {
+    const paletteNamed = arrays.filter((a) => isPaletteArrayName(a.arrayName));
+    const dataNamed = arrays.filter((a) => !isPaletteArrayName(a.arrayName));
 
-  if (body) {
-    const hexOrBin = [...body.matchAll(/0x[0-9a-fA-F]+|0b[01]+/gi)];
-    if (hexOrBin.length > 0) {
-      // Typical image dumps use hex (or binary); skip bare decimals in the body
-      result.values = hexOrBin.map((m) => {
-        const token = m[0];
-        if (token.toLowerCase().startsWith("0b")) {
-          return Number.parseInt(token.slice(2), 2);
-        }
-        return Number.parseInt(token, 16);
-      });
-    } else {
-      result.values = parseNumericLiterals(body);
+    let data = dataNamed[0] ?? arrays[0];
+    let paletteArr = paletteNamed[0] ?? null;
+
+    if (!paletteArr && arrays.length >= 2 && result.colorCount !== null) {
+      paletteArr = arrays.find((a) => a !== data) ?? arrays[1];
+      if (paletteArr === data && arrays.length > 1) {
+        paletteArr = arrays[1];
+        data = arrays[0];
+      }
+    }
+
+    result.elementType = data.elementType;
+    result.arrayName = data.arrayName;
+    result.values = data.values;
+
+    if (paletteArr && paletteArr.values.length > 0) {
+      let paletteValues = paletteArr.values;
+      if (result.colorCount !== null && result.colorCount > 0) {
+        paletteValues = paletteValues.slice(0, result.colorCount);
+      }
+      result.palette = paletteValues;
     }
   }
 

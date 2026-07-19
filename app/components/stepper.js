@@ -17,7 +17,7 @@
  *
  * data-stepper-min / data-stepper-max — numeric bounds
  * data-stepper-step — increment (default: 1, or 0.1 for decimal)
- * data-stepper-default — initial value
+ * data-stepper-default — initial value (omit for an empty start)
  * data-stepper-format — "integer" (default) or "decimal"
  * data-stepper-disabled — disable control
  */
@@ -28,6 +28,16 @@ function parseConfigNumber(value, fallback) {
   if (value === undefined || value === null || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {number | null}
+ */
+function parseOptionalNumber(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function decimalPlacesFromStep(step) {
@@ -46,7 +56,7 @@ function snapToStep(value, min, max, step) {
 }
 
 function formatDisplayValue(value, { format, step }) {
-  if (!Number.isFinite(value)) return "";
+  if (value === null || !Number.isFinite(value)) return "";
   if (format === "integer") {
     return String(Math.round(value));
   }
@@ -101,17 +111,29 @@ export function initStepper(
     format: resolvedFormat,
   };
 
-  const initialRaw =
-    defaultValue ??
-    stepperEl.dataset.stepperDefault ??
-    valueInput.value ??
-    hiddenInput?.value;
-  let parsedInitial = parseConfigNumber(initialRaw, config.min);
-  if (!Number.isFinite(parsedInitial)) {
-    parsedInitial = config.min;
+  const hasExplicitDefault =
+    defaultValue !== undefined ||
+    Object.prototype.hasOwnProperty.call(stepperEl.dataset, "stepperDefault") ||
+    Boolean(String(valueInput.value ?? "").trim()) ||
+    Boolean(String(hiddenInput?.value ?? "").trim());
+
+  const initialRaw = hasExplicitDefault
+    ? (defaultValue ??
+      stepperEl.dataset.stepperDefault ??
+      valueInput.value ??
+      hiddenInput?.value)
+    : null;
+
+  /** @type {number | null} */
+  let currentValue = null;
+  if (hasExplicitDefault) {
+    const parsedInitial = parseOptionalNumber(initialRaw);
+    currentValue =
+      parsedInitial === null
+        ? null
+        : snapToStep(parsedInitial, config.min, config.max, config.step);
   }
 
-  let currentValue = snapToStep(parsedInitial, config.min, config.max, config.step);
   let isEditing = false;
   let isDisabled = resolveDisabled(stepperEl, disabled);
   const controls = [decrementBtn, incrementBtn, valueInput];
@@ -139,6 +161,11 @@ export function initStepper(
 
   function syncButtonStates() {
     if (isDisabled) return;
+    if (currentValue === null) {
+      decrementBtn.disabled = false;
+      incrementBtn.disabled = false;
+      return;
+    }
     decrementBtn.disabled = currentValue <= config.min;
     incrementBtn.disabled = currentValue >= config.max;
   }
@@ -148,7 +175,7 @@ export function initStepper(
       valueInput.value = formatDisplayValue(currentValue, config);
     }
     if (hiddenInput) {
-      hiddenInput.value = String(currentValue);
+      hiddenInput.value = currentValue === null ? "" : String(currentValue);
     }
     syncButtonStates();
 
@@ -157,28 +184,40 @@ export function initStepper(
     }
   }
 
+  /**
+   * @param {number | string | null | undefined} nextValue
+   */
   function setValue(nextValue, { emit = true, source = "api" } = {}) {
-    const parsed = typeof nextValue === "number" ? nextValue : Number(nextValue);
-    currentValue = snapToStep(
-      Number.isFinite(parsed) ? parsed : config.min,
-      config.min,
-      config.max,
-      config.step
-    );
+    if (nextValue === null || nextValue === undefined || nextValue === "") {
+      currentValue = null;
+    } else {
+      const parsed =
+        typeof nextValue === "number" ? nextValue : Number(nextValue);
+      currentValue = snapToStep(
+        Number.isFinite(parsed) ? parsed : config.min,
+        config.min,
+        config.max,
+        config.step
+      );
+    }
     isEditing = false;
     syncDom({ emit, source });
   }
 
   function nudge(delta, { emit = true, source = "button" } = {}) {
     if (isDisabled) return;
-    const nextValue = snapToStep(
-      currentValue + delta,
-      config.min,
-      config.max,
-      config.step
-    );
-    if (nextValue === currentValue) return;
-    currentValue = nextValue;
+    // From empty, −/+ both land on min first
+    const resolved =
+      currentValue === null
+        ? config.min
+        : snapToStep(
+            currentValue + delta,
+            config.min,
+            config.max,
+            config.step
+          );
+    if (resolved === currentValue) return;
+    currentValue = resolved;
     isEditing = false;
     valueInput.value = formatDisplayValue(currentValue, config);
     if (hiddenInput) hiddenInput.value = String(currentValue);
@@ -190,7 +229,16 @@ export function initStepper(
   }
 
   function commitTypedValue({ emit = true } = {}) {
-    const parsed = Number(String(valueInput.value).trim());
+    const raw = String(valueInput.value).trim();
+    if (raw === "") {
+      currentValue = null;
+      isEditing = false;
+      valueInput.removeAttribute("aria-invalid");
+      syncDom({ emit, source: "input" });
+      return true;
+    }
+
+    const parsed = Number(raw);
     if (!Number.isFinite(parsed)) {
       valueInput.value = formatDisplayValue(currentValue, config);
       valueInput.removeAttribute("aria-invalid");
@@ -219,7 +267,17 @@ export function initStepper(
 
   valueInput.addEventListener("input", () => {
     isEditing = true;
-    const parsed = Number(String(valueInput.value).trim());
+    const raw = String(valueInput.value).trim();
+    if (raw === "") {
+      valueInput.removeAttribute("aria-invalid");
+      onInput?.({
+        ...buildPayload("input"),
+        value: null,
+        display: valueInput.value,
+      });
+      return;
+    }
+    const parsed = Number(raw);
     if (!Number.isFinite(parsed)) {
       valueInput.setAttribute("aria-invalid", "true");
       return;
@@ -272,14 +330,20 @@ export function initStepper(
     getValue() {
       return currentValue;
     },
+    /**
+     * @param {number | string | null | undefined} nextValue Pass `null` / `""` to clear.
+     */
     setValue(nextValue) {
       setValue(nextValue);
+    },
+    clear({ emit = true } = {}) {
+      setValue(null, { emit, source: "api" });
     },
     increment() {
       nudge(config.step, { source: "api" });
     },
     decrement() {
-      nudge(-config.step, { source: "api" });
+      nudge(config.step * -1, { source: "api" });
     },
     getConfig() {
       return { ...config };

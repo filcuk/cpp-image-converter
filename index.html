@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Convert C/C++ image arrays (ARGB32, RGB565, 1-bit) to editable SVG in the browser."
+      content="Convert between C/C++ image arrays and SVG locally in the browser."
     />
     <title>C++ Image Converter</title>
     <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
@@ -35,42 +35,89 @@
         />
         <h1>C++ Image Converter</h1>
       </div>
-      <p class="tagline">Convert C/C++ image arrays to SVG in the browser.</p>
+      <p class="tagline">Convert between C/C++ image arrays and SVG locally in the browser.</p>
     </header>
 
     <main id="main">
-      <div
-        id="converter-error"
-        class="banner banner-error hidden"
-        role="alert"
-        hidden
-      >
-        <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-error-body">Conversion failed.</span>
-      </div>
-      <div
-        id="converter-warning"
-        class="banner banner-warning hidden"
-        role="status"
-        hidden
-      >
-        <span class="banner-icon" data-icon="warning" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-warning-body"></span>
-      </div>
-      <div
-        id="converter-success"
-        class="banner banner-success hidden"
-        role="status"
-        hidden
-        data-banner-expire="2500"
-      >
-        <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-success-body">SVG ready.</span>
-      </div>
+      <section id="direction" aria-labelledby="direction-heading">
+        <h2 id="direction-heading" class="visually-hidden">Direction</h2>
+        <div
+          class="segmented-control"
+          id="direction-control"
+          data-segmented-control-default="c-to-svg"
+        >
+          <div
+            class="segmented-control-list"
+            role="radiogroup"
+            aria-label="Conversion direction"
+          >
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="true"
+              data-segmented-control-value="c-to-svg"
+            >
+              C → SVG
+            </button>
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="false"
+              data-segmented-control-value="svg-to-c"
+            >
+              SVG → C
+            </button>
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="false"
+              data-segmented-control-value="c-to-c"
+            >
+              C → C
+            </button>
+          </div>
+          <input type="hidden" class="segmented-control-value" value="c-to-svg" />
+        </div>
+      </section>
 
       <section id="input" aria-labelledby="input-heading">
         <h2 id="input-heading">Input</h2>
-        <div class="converter-input">
+
+        <div class="converter-input-banners" id="converter-banners">
+          <div
+            id="converter-error"
+            class="banner banner-error hidden"
+            role="alert"
+            hidden
+          >
+            <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-error-body">Conversion failed.</span>
+          </div>
+          <div
+            id="converter-warning"
+            class="banner banner-warning hidden"
+            role="status"
+            hidden
+          >
+            <span class="banner-icon" data-icon="warning" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-warning-body"></span>
+          </div>
+          <div
+            id="converter-success"
+            class="banner banner-success hidden"
+            role="status"
+            hidden
+            data-banner-expire="2500"
+          >
+            <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-success-body">SVG ready.</span>
+          </div>
+        </div>
+
+        <div class="converter-input" id="c-input-panel">
           <div class="file-dropzone" id="source-dropzone">
             <div class="file-dropzone-target">
               <input
@@ -90,19 +137,64 @@
           </div>
 
           <label class="field converter-source-field" for="source-textarea">
-            <span class="field-label">Or paste C/C++ array source</span>
             <textarea
               id="source-textarea"
               class="textarea converter-source-textarea"
               rows="16"
               spellcheck="false"
-              placeholder="Paste a .c / .h array"
+              wrap="off"
+              placeholder="Enter a .c / .h array"
             ></textarea>
           </label>
 
-          <button type="button" class="btn" id="load-example-btn">
-            Load Example
-          </button>
+          <div class="toolbar converter-source-actions">
+            <button type="button" class="btn" id="clear-source-btn" disabled>
+              Clear
+            </button>
+            <button type="button" class="btn" id="load-example-btn">
+              Load Example
+            </button>
+          </div>
+        </div>
+
+        <div class="converter-input hidden" id="svg-input-panel" hidden>
+          <div class="file-dropzone" id="svg-dropzone">
+            <div class="file-dropzone-target">
+              <input
+                type="file"
+                class="file-dropzone-input"
+                aria-label="Upload an SVG file"
+              />
+              <div class="file-dropzone-prompt" aria-hidden="true">
+                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+                <span class="file-dropzone-text">
+                  <span class="file-dropzone-primary">Drop an .svg file here</span>
+                  <span class="file-dropzone-secondary">or click to browse</span>
+                </span>
+              </div>
+            </div>
+            <ul class="file-dropzone-list hidden" hidden></ul>
+          </div>
+
+          <label class="field converter-source-field" for="svg-textarea">
+            <textarea
+              id="svg-textarea"
+              class="textarea converter-source-textarea"
+              rows="16"
+              spellcheck="false"
+              wrap="off"
+              placeholder="Enter SVG markup"
+            ></textarea>
+          </label>
+
+          <div class="toolbar converter-source-actions">
+            <button type="button" class="btn" id="clear-svg-btn" disabled>
+              Clear
+            </button>
+            <button type="button" class="btn" id="load-example-svg-btn">
+              Load Example
+            </button>
+          </div>
         </div>
       </section>
 
@@ -112,73 +204,303 @@
           <div class="converter-options">
             <div class="converter-format">
               <span class="field-label" id="format-label">Pixel format</span>
+              <div class="dropdown" id="format-dropdown">
+                <button
+                  type="button"
+                  class="btn dropdown-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="format-dropdown-menu"
+                  aria-labelledby="format-label"
+                >
+                  <span class="dropdown-trigger-label" id="format-dropdown-label"
+                    >Auto</span
+                  >
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul
+                  id="format-dropdown-menu"
+                  class="dropdown-menu converter-format-menu hidden"
+                  role="menu"
+                  hidden
+                >
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item is-selected"
+                      role="menuitem"
+                      data-value="auto"
+                    >
+                      Auto
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb32"
+                    >
+                      ARGB32 (Piskel)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb32-classic"
+                    >
+                      ARGB32 (classic)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="xrgb8888"
+                    >
+                      XRGB8888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb888"
+                    >
+                      RGB888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="bgr888"
+                    >
+                      BGR888
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565"
+                    >
+                      RGB565
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565-swap"
+                    >
+                      RGB565 (byte-swap)
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="rgb565a8"
+                    >
+                      RGB565A8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="argb8565"
+                    >
+                      ARGB8565
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i1"
+                    >
+                      Indexed I1
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i2"
+                    >
+                      Indexed I2
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i4"
+                    >
+                      Indexed I4
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="i8"
+                    >
+                      Indexed I8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="l8"
+                    >
+                      Grayscale L8
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="al88"
+                    >
+                      Grayscale AL88
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="p2"
+                    >
+                      Packed 2-bit
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="p4"
+                    >
+                      Packed 4-bit
+                    </button>
+                  </li>
+                  <li role="none">
+                    <button
+                      type="button"
+                      class="dropdown-menu-item"
+                      role="menuitem"
+                      data-value="1bit"
+                    >
+                      1-bit
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div
+              class="converter-format converter-c-to-c-only hidden"
+              id="output-format-wrap"
+              hidden
+            >
+              <span class="field-label" id="output-format-label">Output C type</span>
+              <div class="dropdown" id="output-format-dropdown">
+                <button
+                  type="button"
+                  class="btn dropdown-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="output-format-dropdown-menu"
+                  aria-labelledby="output-format-label"
+                >
+                  <span
+                    class="dropdown-trigger-label"
+                    id="output-format-dropdown-label"
+                    >ARGB32 (Piskel) · uint32_t</span
+                  >
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul
+                  id="output-format-dropdown-menu"
+                  class="dropdown-menu converter-format-menu hidden"
+                  role="menu"
+                  hidden
+                ></ul>
+              </div>
+            </div>
+
+            <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
+              <span class="field-label" id="bit-order-label">Bit order</span>
               <div
                 class="segmented-control"
-                id="format-control"
-                data-segmented-control-default="auto"
+                id="bit-order-control"
+                data-segmented-control-default="msb"
               >
                 <div
                   class="segmented-control-list"
                   role="radiogroup"
-                  aria-labelledby="format-label"
+                  aria-labelledby="bit-order-label"
                 >
                   <button
                     type="button"
                     class="segmented-control-item"
                     role="radio"
                     aria-checked="true"
-                    data-segmented-control-value="auto"
+                    data-segmented-control-value="msb"
                   >
-                    Auto
+                    MSB first
                   </button>
                   <button
                     type="button"
                     class="segmented-control-item"
                     role="radio"
                     aria-checked="false"
-                    data-segmented-control-value="argb32"
+                    data-segmented-control-value="lsb"
                   >
-                    ARGB32
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="rgb565"
-                  >
-                    RGB565
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="1bit"
-                  >
-                    1-bit
+                    LSB first
                   </button>
                 </div>
-                <input type="hidden" class="segmented-control-value" value="auto" />
+                <input type="hidden" class="segmented-control-value" value="msb" />
               </div>
             </div>
 
-            <div class="converter-options__row">
+            <div class="converter-options__row" id="size-options-row">
               <div
-                class="stepper"
+                class="stepper converter-needs-input-size"
                 id="width-stepper"
                 data-stepper-min="1"
                 data-stepper-max="4096"
-                data-stepper-default="14"
                 data-stepper-format="integer"
               >
-                <label class="field-label" for="width-stepper-input">Width</label>
+                <label class="field-label" for="width-stepper-input" id="width-stepper-label"
+                  >Input width</label
+                >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease width"
+                    aria-label="Decrease input width"
                   >
                     −
                   </button>
@@ -187,13 +509,13 @@
                     id="width-stepper-input"
                     class="input stepper-input"
                     inputmode="numeric"
-                    aria-label="Width"
+                    aria-label="Input width"
                   />
                   <button
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase width"
+                    aria-label="Increase input width"
                   >
                     +
                   </button>
@@ -202,20 +524,21 @@
               </div>
 
               <div
-                class="stepper"
+                class="stepper converter-needs-input-size"
                 id="height-stepper"
                 data-stepper-min="1"
                 data-stepper-max="4096"
-                data-stepper-default="14"
                 data-stepper-format="integer"
               >
-                <label class="field-label" for="height-stepper-input">Height</label>
+                <label class="field-label" for="height-stepper-input" id="height-stepper-label"
+                  >Input height</label
+                >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease height"
+                    aria-label="Decrease input height"
                   >
                     −
                   </button>
@@ -224,13 +547,13 @@
                     id="height-stepper-input"
                     class="input stepper-input"
                     inputmode="numeric"
-                    aria-label="Height"
+                    aria-label="Input height"
                   />
                   <button
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase height"
+                    aria-label="Increase input height"
                   >
                     +
                   </button>
@@ -247,13 +570,15 @@
                 data-stepper-default="1"
                 data-stepper-format="decimal"
               >
-                <label class="field-label" for="scale-stepper-input">Scale</label>
+                <label class="field-label" for="scale-stepper-input" id="scale-stepper-label"
+                  >Output scale</label
+                >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease scale"
+                    aria-label="Decrease output scale"
                   >
                     −
                   </button>
@@ -268,7 +593,7 @@
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase scale"
+                    aria-label="Increase output scale"
                   >
                     +
                   </button>
@@ -315,7 +640,74 @@
               </div>
             </div>
 
-            <div class="converter-options__row">
+            <div
+              class="converter-options__row converter-animate-row converter-c-to-svg-only hidden"
+              id="animate-options-wrap"
+              hidden
+            >
+              <div class="toggle" id="animate-frames-toggle" data-toggle-default="false">
+                <button
+                  type="button"
+                  class="toggle-btn"
+                  role="switch"
+                  aria-checked="false"
+                >
+                  <span class="toggle-track" aria-hidden="true">
+                    <span class="toggle-thumb">
+                      <span
+                        data-icon="check"
+                        data-icon-class="toggle-thumb-icon"
+                        aria-hidden="true"
+                      ></span>
+                    </span>
+                  </span>
+                  <span class="toggle-label">Animate frames</span>
+                </button>
+                <input type="hidden" class="toggle-value" />
+              </div>
+
+              <div
+                class="stepper"
+                id="frame-duration-stepper"
+                data-stepper-min="16"
+                data-stepper-max="5000"
+                data-stepper-step="10"
+                data-stepper-default="100"
+                data-stepper-format="integer"
+              >
+                <label class="field-label" for="frame-duration-stepper-input"
+                  >Frame duration (ms)</label
+                >
+                <div class="stepper-control">
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-decrement"
+                    data-stepper-decrement
+                    aria-label="Decrease frame duration"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="text"
+                    id="frame-duration-stepper-input"
+                    class="input stepper-input"
+                    inputmode="numeric"
+                    aria-label="Frame duration in milliseconds"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-increment"
+                    data-stepper-increment
+                    aria-label="Increase frame duration"
+                  >
+                    +
+                  </button>
+                  <input type="hidden" class="stepper-value" />
+                </div>
+              </div>
+            </div>
+
+            <div class="converter-options__row converter-c-to-svg-only" id="fill-options-row">
               <div class="toggle" id="override-fill-toggle" data-toggle-default="false">
                 <button
                   type="button"
@@ -378,13 +770,44 @@
                 <input type="hidden" class="toggle-value" />
               </div>
             </div>
+
+            <div
+              class="converter-options__row converter-writes-c-only hidden"
+              id="svg-to-c-options-row"
+              hidden
+            >
+              <label class="field" for="array-name-input">
+                <span class="field-label">Array name</span>
+                <input
+                  type="text"
+                  id="array-name-input"
+                  class="input"
+                  value="image"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="C array name prefix"
+                />
+              </label>
+            </div>
           </div>
 
           <hr class="section-panel__divider" />
 
           <div class="converter-actions">
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
-              Download SVG
+              Download
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary hidden"
+              id="download-c-btn"
+              disabled
+              hidden
+            >
+              Download
+            </button>
+            <button type="button" class="btn" id="copy-output-btn" disabled>
+              Copy
             </button>
           </div>
         </div>
@@ -392,16 +815,45 @@
 
       <section id="output" aria-labelledby="output-heading">
         <h2 id="output-heading">Output</h2>
-        <div
-          class="converter-preview"
-          id="svg-preview"
-          aria-live="polite"
-        >
-          <p class="converter-preview__empty" id="svg-preview-empty">
-            Load array to see a preview
-          </p>
+        <div id="svg-output-panel">
+          <div
+            class="converter-preview"
+            id="svg-preview"
+            aria-live="polite"
+          >
+            <p class="converter-preview__empty" id="svg-preview-empty">
+              Load array to see a preview
+            </p>
+          </div>
+          <p class="converter-meta" id="converter-meta" hidden></p>
         </div>
-        <p class="converter-meta" id="converter-meta" hidden></p>
+        <div class="hidden" id="c-output-panel" hidden>
+          <label class="field converter-source-field" for="c-output-textarea">
+            <span class="field-label">Generated C source</span>
+            <textarea
+              id="c-output-textarea"
+              class="textarea converter-source-textarea"
+              rows="18"
+              spellcheck="false"
+              wrap="off"
+              readonly
+              placeholder="C array output"
+            ></textarea>
+          </label>
+          <div class="field converter-source-field">
+            <span class="field-label">Preview</span>
+            <div
+              class="converter-preview"
+              id="c-preview"
+              aria-live="polite"
+            >
+              <p class="converter-preview__empty" id="c-preview-empty">
+                Convert SVG to see a preview
+              </p>
+            </div>
+          </div>
+          <p class="converter-meta" id="c-converter-meta" hidden></p>
+        </div>
       </section>
     </main>
 

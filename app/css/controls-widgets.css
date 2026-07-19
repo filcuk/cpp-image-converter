@@ -8,7 +8,9 @@
 
 .toggle {
   display: flex;
+  align-items: center;
   min-width: 0;
+  min-height: var(--control-height);
 }
 
 .toggle-btn {

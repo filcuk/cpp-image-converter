@@ -1,8 +1,12 @@
 /**
  * Hint pixel format from a C/C++ array element type name.
- *
+ */
+
+import { isManualFormat } from "./formats.js";
+
+/**
  * @param {string | null | undefined} elementType
- * @returns {"argb32" | "rgb565" | "1bit" | null}
+ * @returns {string | null}
  */
 export function detectFormatFromType(elementType) {
   if (!elementType) return null;
@@ -46,13 +50,13 @@ export function detectFormatFromType(elementType) {
 /**
  * Resolve effective format: manual selection wins over auto-detect.
  *
- * @param {"auto" | "argb32" | "rgb565" | "1bit"} selected
+ * @param {string} selected
  * @param {string | null | undefined} elementType
- * @returns {{ format: "argb32" | "rgb565" | "1bit", detected: "argb32" | "rgb565" | "1bit" | null }}
+ * @returns {{ format: string, detected: string | null }}
  */
 export function resolveFormat(selected, elementType) {
   const detected = detectFormatFromType(elementType);
-  if (selected && selected !== "auto") {
+  if (selected && selected !== "auto" && isManualFormat(selected)) {
     return { format: selected, detected };
   }
   return { format: detected ?? "argb32", detected };

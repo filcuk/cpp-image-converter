@@ -1,26 +1,60 @@
 import { initShell } from "./shell/shell.js";
 import { setHidden } from "./utils/dom.js";
+import { copyTextToClipboard } from "./utils/clipboard.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
+import { initDropdown } from "./components/dropdown.js";
 import { initStepper } from "./components/stepper.js";
 import { initToggle } from "./components/toggle.js";
 import { initColorPicker } from "./components/color-picker.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
+import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
+import { convertCToC } from "./converter/convert-c-to-c.js";
 import { parseCArray } from "./converter/parse-c-array.js";
+import {
+  FORMAT_CATALOGUE,
+  formatLabel as formatIdLabel,
+  formatLabelWithType,
+  formatNeedsBitOrder,
+} from "./converter/formats.js";
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
+import { EXAMPLE_SVG } from "./examples/example-svg.js";
 
 initShell({ pageNav: false });
 
 const sourceTextarea = document.getElementById("source-textarea");
+const svgTextarea = document.getElementById("svg-textarea");
+const arrayNameInput = document.getElementById("array-name-input");
+const clearSourceBtn = document.getElementById("clear-source-btn");
+const clearSvgBtn = document.getElementById("clear-svg-btn");
 const loadExampleBtn = document.getElementById("load-example-btn");
+const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
+const downloadCBtn = document.getElementById("download-c-btn");
+const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
 const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
+const cOutputTextarea = document.getElementById("c-output-textarea");
+const cPreviewEl = document.getElementById("c-preview");
+const cPreviewEmptyEl = document.getElementById("c-preview-empty");
+const cMetaEl = document.getElementById("c-converter-meta");
+const cInputPanel = document.getElementById("c-input-panel");
+const svgInputPanel = document.getElementById("svg-input-panel");
+const svgOutputPanel = document.getElementById("svg-output-panel");
+const cOutputPanel = document.getElementById("c-output-panel");
 const frameStepperEl = document.getElementById("frame-stepper");
+const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const fillWrapEl = document.getElementById("fill-color-picker");
+const bitOrderWrapEl = document.getElementById("bit-order-wrap");
+const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
+const formatLabelEl = document.getElementById("format-label");
+const outputFormatWrapEl = document.getElementById("output-format-wrap");
+const outputFormatDropdownLabelEl = document.getElementById(
+  "output-format-dropdown-label"
+);
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -31,18 +65,31 @@ const successBody = document.getElementById("converter-success-body");
 
 /** @type {string | null} */
 let latestSvg = null;
+/** @type {string | null} */
+let latestC = null;
 /** @type {string} */
 let downloadFilename = "converted.svg";
+/** @type {string} */
+let downloadCFilename = "converted.c";
 /** @type {number} */
 let lastFrameCount = 1;
+/** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */
+let direction = "c-to-svg";
 /** Skip stepper-driven reconvert while syncing size from source defines */
 let applyingMetadata = false;
 let convertTimer = 0;
 /** Paste fires before the textarea value updates; `input` always sees the new text. */
 let sourceChangeFromPaste = false;
+let svgChangeFromPaste = false;
 
+/** @type {string} */
+let selectedFormat = "auto";
+/** @type {string} */
+let selectedOutputFormat = "argb32";
 /** @type {ReturnType<typeof initSegmentedControl>} */
-let formatControl = null;
+let directionControl = null;
+/** @type {ReturnType<typeof initSegmentedControl>} */
+let bitOrderControl = null;
 /** @type {ReturnType<typeof initStepper>} */
 let widthStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -52,6 +99,10 @@ let scaleStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
 let frameStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
+let animateFramesToggle = null;
+/** @type {ReturnType<typeof initStepper>} */
+let frameDurationStepper = null;
+/** @type {ReturnType<typeof initToggle>} */
 let overrideToggle = null;
 /** @type {ReturnType<typeof initToggle>} */
 let minifyToggle = null;
@@ -59,14 +110,31 @@ let minifyToggle = null;
 let fillPicker = null;
 /** @type {ReturnType<typeof initFileDropzone>} */
 let sourceDropzone = null;
+/** @type {ReturnType<typeof initFileDropzone>} */
+let svgDropzone = null;
 /** True while textarea content came from a loaded file */
 let sourceFromFile = false;
+let svgFromFile = false;
 /** Skip clearing the textarea when we clear the dropzone ourselves */
 let ignoringDropzoneClear = false;
+let ignoringSvgDropzoneClear = false;
+
+function isSvgToC() {
+  return direction === "svg-to-c";
+}
+
+function isCToC() {
+  return direction === "c-to-c";
+}
+
+function writesC() {
+  return isSvgToC() || isCToC();
+}
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
-  if (!sourceTextarea?.value.trim()) return;
+  const source = isSvgToC() ? svgTextarea?.value : sourceTextarea?.value;
+  if (!source?.trim()) return;
   convertTimer = window.setTimeout(() => {
     runConvert({ showSuccess: false });
   }, 200);
@@ -83,16 +151,215 @@ function syncFillEnabled(enabled) {
 }
 
 /**
- * Sync width/height/frame from source defines. When width or height is defined
- * in the source, lock that stepper so the UI matches the file.
+ * @param {string} formatId
+ * @param {string} [outputFormatId]
+ */
+function syncBitOrderVisibility(formatId, outputFormatId = selectedOutputFormat) {
+  if (isCToC()) {
+    const show =
+      formatNeedsBitOrder(formatId === "auto" ? "1bit" : formatId) ||
+      formatNeedsBitOrder(outputFormatId);
+    setHidden(bitOrderWrapEl, !show);
+    return;
+  }
+  if (isSvgToC()) {
+    const show = formatNeedsBitOrder(formatId === "auto" ? "argb32" : formatId);
+    setHidden(bitOrderWrapEl, !show);
+    return;
+  }
+  const effective = formatId === "auto" ? "1bit" : formatId;
+  const show = formatId === "auto" || formatNeedsBitOrder(effective);
+  setHidden(bitOrderWrapEl, !show);
+}
+
+/**
+ * @param {string} value
+ * @param {string} [label]
+ */
+function setFormatSelection(value, label) {
+  selectedFormat = value || "auto";
+  if (formatDropdownLabelEl) {
+    formatDropdownLabelEl.textContent =
+      label ||
+      (selectedFormat === "auto"
+        ? "Auto"
+        : formatLabelWithType(selectedFormat));
+  }
+  const menu = document.getElementById("format-dropdown-menu");
+  menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
+    item.classList.toggle("is-selected", item.dataset.value === selectedFormat);
+  });
+  syncBitOrderVisibility(selectedFormat);
+}
+
+/**
+ * @param {string} value
+ * @param {string} [label]
+ */
+function setOutputFormatSelection(value, label) {
+  selectedOutputFormat = value || "argb32";
+  if (outputFormatDropdownLabelEl) {
+    outputFormatDropdownLabelEl.textContent =
+      label || formatLabelWithType(selectedOutputFormat);
+  }
+  const menu = document.getElementById("output-format-dropdown-menu");
+  menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
+    item.classList.toggle(
+      "is-selected",
+      item.dataset.value === selectedOutputFormat
+    );
+  });
+  syncBitOrderVisibility(selectedFormat, selectedOutputFormat);
+}
+
+/**
+ * @param {HTMLElement | null} menu
+ * @param {{ includeAuto?: boolean, selectedId: string }} options
+ */
+function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
+  if (!menu) return;
+  menu.replaceChildren();
+  for (const format of FORMAT_CATALOGUE) {
+    if (!includeAuto && format.id === "auto") continue;
+    const li = document.createElement("li");
+    li.setAttribute("role", "none");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dropdown-menu-item";
+    btn.setAttribute("role", "menuitem");
+    btn.dataset.value = format.id;
+    btn.textContent =
+      format.id === "auto" ? format.label : formatLabelWithType(format.id);
+    if (format.id === selectedId) {
+      btn.classList.add("is-selected");
+    }
+    li.append(btn);
+    menu.append(li);
+  }
+}
+
+/**
+ * Populate format menus from the catalogue (labels include C element types).
+ */
+function populateFormatMenus() {
+  fillFormatMenu(document.getElementById("format-dropdown-menu"), {
+    includeAuto: true,
+    selectedId: selectedFormat,
+  });
+  fillFormatMenu(document.getElementById("output-format-dropdown-menu"), {
+    includeAuto: false,
+    selectedId: selectedOutputFormat,
+  });
+}
+
+/**
+ * @param {"c-to-svg" | "svg-to-c" | "c-to-c"} next
+ */
+function setDirection(next) {
+  direction =
+    next === "svg-to-c" ? "svg-to-c" : next === "c-to-c" ? "c-to-c" : "c-to-svg";
+  const svgMode = isSvgToC();
+  const cToC = isCToC();
+
+  setHidden(cInputPanel, svgMode);
+  setHidden(svgInputPanel, !svgMode);
+  setHidden(svgOutputPanel, writesC());
+  setHidden(cOutputPanel, !writesC());
+  setHidden(downloadSvgBtn, writesC());
+  setHidden(downloadCBtn, !writesC());
+  setHidden(outputFormatWrapEl, !cToC);
+  syncCopyEnabled();
+
+  // Input width/height only for C sources; output scale is available in every mode
+  document.querySelectorAll(".converter-needs-input-size").forEach((el) => {
+    setHidden(el, svgMode);
+  });
+
+  document.querySelectorAll(".converter-c-to-svg-only").forEach((el) => {
+    if (el.id === "animate-options-wrap") {
+      if (svgMode || cToC) setHidden(el, true);
+      else updateFrameStepper(lastFrameCount);
+      return;
+    }
+    setHidden(el, svgMode || cToC);
+  });
+  document.querySelectorAll(".converter-c-to-c-only").forEach((el) => {
+    setHidden(el, !cToC);
+  });
+  document.querySelectorAll(".converter-writes-c-only").forEach((el) => {
+    setHidden(el, !writesC());
+  });
+
+  if (formatLabelEl) {
+    formatLabelEl.textContent = svgMode
+      ? "Output format"
+      : cToC
+        ? "Input C type"
+        : "Pixel format";
+  }
+
+  // Auto is for reading C; SVG→C / C→C output defaults stay manual
+  const autoItem = document.querySelector(
+    '#format-dropdown-menu [data-value="auto"]'
+  );
+  setHidden(autoItem?.closest("li") ?? autoItem, svgMode);
+  if (svgMode && selectedFormat === "auto") {
+    setFormatSelection("argb32", "ARGB32 (Piskel)");
+  }
+
+  syncBitOrderVisibility(selectedFormat);
+  hideBanner(errorBanner);
+  hideBanner(successBanner);
+  hideBanner(warningBanner);
+
+  // Fresh inputs/outputs whenever the direction changes
+  clearSourceInputs();
+  clearSvgInputs();
+  applyingMetadata = true;
+  try {
+    scaleStepper?.setValue(1);
+  } finally {
+    applyingMetadata = false;
+  }
+  if (cPreviewEmptyEl) {
+    cPreviewEmptyEl.textContent = cToC
+      ? "Converted preview will appear here."
+      : "SVG preview will appear here.";
+  }
+}
+
+/**
+ * Reset width/height to blank when there is no source size to show.
+ */
+function clearSizeSteppers() {
+  applyingMetadata = true;
+  try {
+    widthStepper?.clear({ emit: false });
+    heightStepper?.clear({ emit: false });
+    widthStepper?.setDisabled(false);
+    heightStepper?.setDisabled(false);
+  } finally {
+    applyingMetadata = false;
+  }
+}
+
+/**
  * @param {string} source
  */
 function applySourceMetadata(source) {
+  if (!source?.trim()) {
+    clearSizeSteppers();
+    updateFrameStepper(1);
+    return;
+  }
+
   const parsed = parseCArray(source);
   applyingMetadata = true;
   try {
     const hasWidth = Boolean(parsed.width);
     const hasHeight = Boolean(parsed.height);
+
+    // Width/height are input decode size (locked when defines are present)
     if (hasWidth) widthStepper?.setValue(parsed.width);
     if (hasHeight) heightStepper?.setValue(parsed.height);
     widthStepper?.setDisabled(hasWidth);
@@ -108,12 +375,33 @@ function applySourceMetadata(source) {
  */
 function updateFrameStepper(frameCount) {
   lastFrameCount = Math.max(1, frameCount || 1);
-  const show = lastFrameCount > 1;
-  setHidden(frameStepperEl, !show);
-  if (!show) {
-    frameStepper?.setValue(0);
+  if (isSvgToC() || isCToC()) {
+    setHidden(animateOptionsWrapEl, true);
+    setHidden(frameStepperEl, true);
     return;
   }
+
+  const multi = lastFrameCount > 1;
+  setHidden(animateOptionsWrapEl, !multi);
+
+  const animate = Boolean(animateFramesToggle?.getChecked());
+  setHidden(frameStepperEl, !multi || animate);
+
+  if (!multi) {
+    frameStepper?.setValue(0);
+    if (animateFramesToggle?.getChecked()) {
+      applyingMetadata = true;
+      try {
+        animateFramesToggle.setChecked(false);
+      } finally {
+        applyingMetadata = false;
+      }
+    }
+    return;
+  }
+
+  if (animate) return;
+
   const maxIndex = lastFrameCount - 1;
   let current = Math.round(frameStepper?.getValue() ?? 0);
   if (current > maxIndex) current = 0;
@@ -156,16 +444,32 @@ function showSuccessBanner(message) {
   showBanner(successBanner);
 }
 
+function syncCopyEnabled() {
+  const hasOutput = writesC() ? Boolean(latestC) : Boolean(latestSvg);
+  if (copyOutputBtn) copyOutputBtn.disabled = !hasOutput;
+}
+
 function clearPreview() {
   latestSvg = null;
   previewEl?.querySelector("svg")?.remove();
   setHidden(previewEmptyEl, false);
   setHidden(metaEl, true);
-  setDownloadEnabled(false);
+  if (downloadSvgBtn) downloadSvgBtn.disabled = true;
+  syncCopyEnabled();
 }
 
-function setDownloadEnabled(enabled) {
-  if (downloadSvgBtn) downloadSvgBtn.disabled = !enabled;
+function clearCPreview() {
+  cPreviewEl?.querySelector("svg")?.remove();
+  setHidden(cPreviewEmptyEl, false);
+}
+
+function clearCOutput() {
+  latestC = null;
+  if (cOutputTextarea) cOutputTextarea.value = "";
+  clearCPreview();
+  setHidden(cMetaEl, true);
+  if (downloadCBtn) downloadCBtn.disabled = true;
+  syncCopyEnabled();
 }
 
 function triggerSvgDownload() {
@@ -175,6 +479,34 @@ function triggerSvgDownload() {
     content: latestSvg,
     mimeType: "image/svg+xml;charset=utf-8",
   });
+}
+
+function triggerCDownload() {
+  if (!latestC) return;
+  void downloadFile({
+    filename: downloadCFilename,
+    content: latestC,
+    mimeType: "text/x-c;charset=utf-8",
+  });
+}
+
+async function triggerCopyOutput() {
+  if (!copyOutputBtn || copyOutputBtn.disabled) return;
+  const text = writesC() ? latestC : latestSvg;
+  if (!text) return;
+
+  const restoreLabel = () => {
+    copyOutputBtn.textContent = "Copy";
+  };
+
+  try {
+    await copyTextToClipboard(text);
+    copyOutputBtn.textContent = "Copied";
+    window.setTimeout(restoreLabel, 2000);
+  } catch {
+    copyOutputBtn.textContent = "Failed";
+    window.setTimeout(restoreLabel, 2000);
+  }
 }
 
 /**
@@ -194,9 +526,53 @@ function readFileText(file) {
   });
 }
 
-function syncLoadExampleVisibility() {
+function syncSourceActionVisibility() {
   const hasSource = Boolean(sourceTextarea?.value);
+  if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
   setHidden(loadExampleBtn, hasSource);
+}
+
+function syncSvgActionVisibility() {
+  const hasSvg = Boolean(svgTextarea?.value);
+  if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
+  setHidden(loadExampleSvgBtn, hasSvg);
+}
+
+function clearSourceInputs() {
+  sourceFromFile = false;
+  downloadFilename = "converted.svg";
+  if (isCToC()) downloadCFilename = "converted.c";
+  if (sourceTextarea) sourceTextarea.value = "";
+  ignoringDropzoneClear = true;
+  try {
+    sourceDropzone?.clear();
+  } finally {
+    ignoringDropzoneClear = false;
+  }
+  syncSourceActionVisibility();
+  clearSizeSteppers();
+  clearPreview();
+  if (writesC()) clearCOutput();
+  hideBanner(errorBanner);
+  hideBanner(successBanner);
+  hideBanner(warningBanner);
+}
+
+function clearSvgInputs() {
+  svgFromFile = false;
+  downloadCFilename = "converted.c";
+  if (svgTextarea) svgTextarea.value = "";
+  ignoringSvgDropzoneClear = true;
+  try {
+    svgDropzone?.clear();
+  } finally {
+    ignoringSvgDropzoneClear = false;
+  }
+  syncSvgActionVisibility();
+  clearCOutput();
+  hideBanner(errorBanner);
+  hideBanner(successBanner);
+  hideBanner(warningBanner);
 }
 
 /**
@@ -211,14 +587,47 @@ async function loadSourceFile(file) {
     }
     sourceFromFile = true;
     sourceTextarea.value = text;
-    syncLoadExampleVisibility();
-    downloadFilename = file.name.replace(/\.(c|h|txt)$/i, "") + ".svg";
+    syncSourceActionVisibility();
+    const base = file.name.replace(/\.(c|h|txt)$/i, "");
+    if (isCToC()) {
+      downloadCFilename = `${base}-packed.c`;
+    } else {
+      downloadFilename = `${base}.svg`;
+    }
     runConvert({ showSuccess: true });
     if (!text.trim()) {
       showWarnings(["File was empty."]);
     }
   } catch (err) {
     sourceFromFile = false;
+    showError(
+      err instanceof Error
+        ? `Could not read “${file.name}”: ${err.message}`
+        : `Could not read “${file.name}”.`
+    );
+  }
+}
+
+/**
+ * @param {File} file
+ */
+async function loadSvgFile(file) {
+  try {
+    const text = await readFileText(file);
+    if (!svgTextarea) {
+      showError("SVG text area is missing.");
+      return;
+    }
+    svgFromFile = true;
+    svgTextarea.value = text;
+    syncSvgActionVisibility();
+    downloadCFilename = file.name.replace(/\.svg$/i, "") + ".c";
+    runConvert({ showSuccess: true });
+    if (!text.trim()) {
+      showWarnings(["File was empty."]);
+    }
+  } catch (err) {
+    svgFromFile = false;
     showError(
       err instanceof Error
         ? `Could not read “${file.name}”: ${err.message}`
@@ -234,16 +643,32 @@ function loadExampleSource() {
   }
   clearFileIfEditingSource();
   sourceTextarea.value = EXAMPLE_SOURCE;
-  syncLoadExampleVisibility();
-  downloadFilename = "example.svg";
+  syncSourceActionVisibility();
+  if (isCToC()) {
+    downloadCFilename = "example-packed.c";
+  } else {
+    downloadFilename = "example.svg";
+  }
   runConvert({ showSuccess: true });
 }
 
-/** Clear the loaded file when the user edits or pastes into the textarea. */
+function loadExampleSvg() {
+  if (!svgTextarea) {
+    showError("SVG text area is missing.");
+    return;
+  }
+  clearFileIfEditingSvg();
+  svgTextarea.value = EXAMPLE_SVG;
+  syncSvgActionVisibility();
+  downloadCFilename = "example.c";
+  runConvert({ showSuccess: true });
+}
+
 function clearFileIfEditingSource() {
   if (!sourceFromFile) return;
   sourceFromFile = false;
   downloadFilename = "converted.svg";
+  if (isCToC()) downloadCFilename = "converted.c";
   ignoringDropzoneClear = true;
   try {
     sourceDropzone?.clear();
@@ -252,25 +677,30 @@ function clearFileIfEditingSource() {
   }
 }
 
+function clearFileIfEditingSvg() {
+  if (!svgFromFile) return;
+  svgFromFile = false;
+  downloadCFilename = "converted.c";
+  ignoringSvgDropzoneClear = true;
+  try {
+    svgDropzone?.clear();
+  } finally {
+    ignoringSvgDropzoneClear = false;
+  }
+}
+
 /**
  * @param {{ showSuccess?: boolean }} [options]
  */
-function runConvert({ showSuccess = true } = {}) {
+function runConvertCToSvg({ showSuccess = true } = {}) {
   const source = sourceTextarea?.value ?? "";
   if (!source.trim()) {
-    // Auto-convert: empty input is a normal idle state, not an error
     clearPreview();
     hideBanner(errorBanner);
     hideBanner(successBanner);
     hideBanner(warningBanner);
-    applyingMetadata = true;
-    try {
-      widthStepper?.setDisabled(false);
-      heightStepper?.setDisabled(false);
-      updateFrameStepper(1);
-    } finally {
-      applyingMetadata = false;
-    }
+    clearSizeSteppers();
+    updateFrameStepper(1);
     return;
   }
 
@@ -278,9 +708,10 @@ function runConvert({ showSuccess = true } = {}) {
   hideBanner(errorBanner);
 
   const parsedHint = parseCArray(source);
-  const widthFromUi = Math.round(widthStepper?.getValue() ?? 0);
-  const heightFromUi = Math.round(heightStepper?.getValue() ?? 0);
-
+  const widthRaw = widthStepper?.getValue();
+  const heightRaw = heightStepper?.getValue();
+  const widthFromUi = Number.isFinite(widthRaw) ? Math.round(widthRaw) : 0;
+  const heightFromUi = Number.isFinite(heightRaw) ? Math.round(heightRaw) : 0;
   const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
   const displayScale =
     Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
@@ -289,8 +720,9 @@ function runConvert({ showSuccess = true } = {}) {
   try {
     result = convertCToSvg({
       source,
-      format: /** @type {"auto" | "argb32" | "rgb565" | "1bit"} */ (
-        formatControl?.getValue() ?? "auto"
+      format: selectedFormat,
+      bitOrder: /** @type {"msb" | "lsb"} */ (
+        bitOrderControl?.getValue() ?? "msb"
       ),
       width: widthFromUi > 0 ? widthFromUi : parsedHint.width,
       height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
@@ -299,6 +731,8 @@ function runConvert({ showSuccess = true } = {}) {
       fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       displayScale,
       minify: minifyToggle?.getChecked() ?? false,
+      animateFrames: animateFramesToggle?.getChecked() ?? false,
+      frameDurationMs: Math.round(frameDurationStepper?.getValue() ?? 100),
     });
   } catch (err) {
     showError(
@@ -330,10 +764,10 @@ function runConvert({ showSuccess = true } = {}) {
     previewEl?.append(document.importNode(svgNode, true));
   }
 
-  const formatLabel = result.format.toUpperCase();
+  const formatLabel = formatIdLabel(result.format);
   const detected =
     result.detectedFormat && result.detectedFormat !== result.format
-      ? ` (detected ${result.detectedFormat.toUpperCase()})`
+      ? ` (detected ${formatIdLabel(result.detectedFormat)})`
       : result.detectedFormat
         ? ` (from ${result.elementType || "type"})`
         : "";
@@ -341,10 +775,15 @@ function runConvert({ showSuccess = true } = {}) {
   if (metaEl) {
     const outW = Number((result.width * displayScale).toFixed(4));
     const outH = Number((result.height * displayScale).toFixed(4));
-    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
+    const anim =
+      result.animated && result.frameCount > 1
+        ? ` · ${result.frameCount} frames animated`
+        : "";
+    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected}${anim} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
   }
   setHidden(metaEl, false);
-  setDownloadEnabled(true);
+  if (downloadSvgBtn) downloadSvgBtn.disabled = false;
+  syncCopyEnabled();
 
   if (showSuccess) {
     showSuccessBanner(
@@ -353,8 +792,207 @@ function runConvert({ showSuccess = true } = {}) {
   }
 }
 
+/**
+ * @param {string | null | undefined} svgMarkup
+ */
+function showCPreviewSvg(svgMarkup) {
+  clearCPreview();
+  if (!svgMarkup) return;
+  setHidden(cPreviewEmptyEl, true);
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgMarkup, "image/svg+xml");
+  const svgNode = doc.documentElement;
+  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
+    cPreviewEl?.append(document.importNode(svgNode, true));
+  }
+}
+
+/**
+ * @param {{ showSuccess?: boolean }} [options]
+ */
+async function runConvertSvgToC({ showSuccess = true } = {}) {
+  const source = svgTextarea?.value ?? "";
+  if (!source.trim()) {
+    clearCOutput();
+    hideBanner(errorBanner);
+    hideBanner(successBanner);
+    hideBanner(warningBanner);
+    return;
+  }
+
+  hideBanner(errorBanner);
+
+  let result;
+  try {
+    result = await convertSvgToCAsync({
+      source,
+      format: selectedFormat === "auto" ? "argb32" : selectedFormat,
+      bitOrder: /** @type {"msb" | "lsb"} */ (
+        bitOrderControl?.getValue() ?? "msb"
+      ),
+      scale: (() => {
+        const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
+        return Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
+      })(),
+      arrayName: arrayNameInput?.value?.trim() || "image",
+    });
+  } catch (err) {
+    showError(
+      err instanceof Error ? `Conversion failed: ${err.message}` : "Conversion failed."
+    );
+    clearCOutput();
+    return;
+  }
+
+  if (result.error || !result.source) {
+    showError(result.error || "Conversion failed.");
+    clearCOutput();
+    showWarnings(result.warnings);
+    return;
+  }
+
+  latestC = result.source;
+  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  showWarnings(result.warnings);
+  showCPreviewSvg(source);
+
+  if (cMetaEl) {
+    const scaled =
+      result.scale !== 1
+        ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
+        : "";
+    cMetaEl.textContent = `${result.width}×${result.height}${scaled} · ${formatIdLabel(result.format)} · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"} · ${result.elementType}`;
+  }
+  setHidden(cMetaEl, false);
+  if (downloadCBtn) downloadCBtn.disabled = false;
+  syncCopyEnabled();
+
+  if (showSuccess) {
+    showSuccessBanner("C array ready.");
+  }
+}
+
+/**
+ * @param {{ showSuccess?: boolean }} [options]
+ */
+function runConvertCToC({ showSuccess = true } = {}) {
+  const source = sourceTextarea?.value ?? "";
+  if (!source.trim()) {
+    clearCOutput();
+    hideBanner(errorBanner);
+    hideBanner(successBanner);
+    hideBanner(warningBanner);
+    clearSizeSteppers();
+    updateFrameStepper(1);
+    return;
+  }
+
+  applySourceMetadata(source);
+  hideBanner(errorBanner);
+
+  const parsedHint = parseCArray(source);
+  const widthRaw = widthStepper?.getValue();
+  const heightRaw = heightStepper?.getValue();
+  const widthFromUi = Number.isFinite(widthRaw) ? Math.round(widthRaw) : 0;
+  const heightFromUi = Number.isFinite(heightRaw) ? Math.round(heightRaw) : 0;
+  const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
+  const scale =
+    Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
+
+  let result;
+  try {
+    result = convertCToC({
+      source,
+      inputFormat: selectedFormat,
+      outputFormat: selectedOutputFormat,
+      bitOrder: /** @type {"msb" | "lsb"} */ (
+        bitOrderControl?.getValue() ?? "msb"
+      ),
+      width: widthFromUi > 0 ? widthFromUi : parsedHint.width,
+      height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
+      scale,
+      arrayName: arrayNameInput?.value?.trim() || "image",
+    });
+  } catch (err) {
+    showError(
+      err instanceof Error ? `Conversion failed: ${err.message}` : "Conversion failed."
+    );
+    clearCOutput();
+    return;
+  }
+
+  updateFrameStepper(result.frameCount);
+
+  if (result.error || !result.source) {
+    showError(result.error || "Conversion failed.");
+    clearCOutput();
+    showWarnings(result.warnings);
+    return;
+  }
+
+  latestC = result.source;
+  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  showWarnings(result.warnings);
+  showCPreviewSvg(result.previewSvg);
+
+  const resized =
+    result.scale !== 1
+      ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
+      : "";
+  const detected =
+    result.detectedFormat && result.detectedFormat !== result.inputFormat
+      ? ` (in ${formatIdLabel(result.detectedFormat)})`
+      : "";
+
+  if (cMetaEl) {
+    cMetaEl.textContent = `${result.width}×${result.height}${resized} · ${formatLabelWithType(result.inputFormat)}${detected} → ${formatLabelWithType(result.outputFormat)} · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"}`;
+  }
+  setHidden(cMetaEl, false);
+  if (downloadCBtn) downloadCBtn.disabled = false;
+  syncCopyEnabled();
+
+  if (showSuccess) {
+    showSuccessBanner("C array ready.");
+  }
+}
+
+/**
+ * @param {{ showSuccess?: boolean }} [options]
+ */
+function runConvert(options = {}) {
+  if (isSvgToC()) void runConvertSvgToC(options);
+  else if (isCToC()) runConvertCToC(options);
+  else runConvertCToSvg(options);
+}
+
 try {
-  formatControl = initSegmentedControl(document.getElementById("format-control"), {
+  directionControl = initSegmentedControl(document.getElementById("direction-control"), {
+    onChange: ({ value }) => {
+      setDirection(
+        /** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */ (value || "c-to-svg")
+      );
+    },
+  });
+
+  initDropdown(document.getElementById("format-dropdown"), {
+    onSelect: ({ value, label }) => {
+      setFormatSelection(value || "auto", label);
+      onOptionChange();
+    },
+  });
+
+  initDropdown(document.getElementById("output-format-dropdown"), {
+    onSelect: ({ value, label }) => {
+      setOutputFormatSelection(value || "argb32", label);
+      onOptionChange();
+    },
+  });
+
+  populateFormatMenus();
+  setFormatSelection("auto", "Auto");
+  setOutputFormatSelection("argb32");
+
+  bitOrderControl = initSegmentedControl(document.getElementById("bit-order-control"), {
     onChange: onOptionChange,
   });
 
@@ -374,7 +1012,17 @@ try {
     onChange: onOptionChange,
   });
 
-  // Color picker before toggle — toggle onChange calls syncFillEnabled(fillPicker)
+  animateFramesToggle = initToggle(document.getElementById("animate-frames-toggle"), {
+    onChange: () => {
+      updateFrameStepper(lastFrameCount);
+      onOptionChange();
+    },
+  });
+
+  frameDurationStepper = initStepper(document.getElementById("frame-duration-stepper"), {
+    onChange: onOptionChange,
+  });
+
   fillPicker = initColorPicker(document.getElementById("fill-color-picker"), {
     onChange: onOptionChange,
   });
@@ -392,45 +1040,82 @@ try {
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
 
-  const dropzone = initFileDropzone(document.getElementById("source-dropzone"), {
+  sourceDropzone = initFileDropzone(document.getElementById("source-dropzone"), {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
-
       if (!/\.(c|h|txt)$/i.test(file.name)) {
         showError(`Expected a .c, .h, or .txt file (got “${file.name}”).`);
         return;
       }
-
       void loadSourceFile(file);
     },
     onClear: () => {
       if (ignoringDropzoneClear) return;
-      // User removed the file from the dropzone — clear paste/source too
       sourceFromFile = false;
       downloadFilename = "converted.svg";
+      if (isCToC()) downloadCFilename = "converted.c";
       if (sourceTextarea) sourceTextarea.value = "";
-      syncLoadExampleVisibility();
+      syncSourceActionVisibility();
+      clearSizeSteppers();
       clearPreview();
+      if (writesC()) clearCOutput();
       hideBanner(errorBanner);
       hideBanner(successBanner);
       hideBanner(warningBanner);
     },
     onError: ({ message }) => showError(message || "File upload failed."),
   });
-  sourceDropzone = dropzone;
+
+  svgDropzone = initFileDropzone(document.getElementById("svg-dropzone"), {
+    onFiles: ({ files }) => {
+      const file = files[0];
+      if (!file) return;
+      if (!/\.svg$/i.test(file.name)) {
+        showError(`Expected an .svg file (got “${file.name}”).`);
+        return;
+      }
+      void loadSvgFile(file);
+    },
+    onClear: () => {
+      if (ignoringSvgDropzoneClear) return;
+      svgFromFile = false;
+      downloadCFilename = "converted.c";
+      if (svgTextarea) svgTextarea.value = "";
+      syncSvgActionVisibility();
+      clearCOutput();
+      hideBanner(errorBanner);
+      hideBanner(successBanner);
+      hideBanner(warningBanner);
+    },
+    onError: ({ message }) => showError(message || "File upload failed."),
+  });
 
   if (!sourceDropzone) {
     showError("File upload control failed to initialize.");
   }
 
   downloadSvgBtn?.addEventListener("click", triggerSvgDownload);
+  downloadCBtn?.addEventListener("click", triggerCDownload);
+  copyOutputBtn?.addEventListener("click", () => {
+    void triggerCopyOutput();
+  });
+  clearSourceBtn?.addEventListener("click", clearSourceInputs);
+  clearSvgBtn?.addEventListener("click", clearSvgInputs);
   loadExampleBtn?.addEventListener("click", loadExampleSource);
+  loadExampleSvgBtn?.addEventListener("click", loadExampleSvg);
+  arrayNameInput?.addEventListener("input", onOptionChange);
 
-  // Sync now and after form restore (refresh / bfcache can fill the textarea late)
-  syncLoadExampleVisibility();
-  window.addEventListener("pageshow", syncLoadExampleVisibility);
-  window.setTimeout(syncLoadExampleVisibility, 0);
+  syncSourceActionVisibility();
+  syncSvgActionVisibility();
+  setDirection(
+    /** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */ (
+      directionControl?.getValue() ?? "c-to-svg"
+    )
+  );
+
+  window.addEventListener("pageshow", syncSourceActionVisibility);
+  window.setTimeout(syncSourceActionVisibility, 0);
 
   sourceTextarea?.addEventListener("paste", () => {
     sourceChangeFromPaste = true;
@@ -439,15 +1124,14 @@ try {
   sourceTextarea?.addEventListener("input", () => {
     const fromPaste = sourceChangeFromPaste;
     sourceChangeFromPaste = false;
-
-    // Editing or pasting replaces a loaded file as the active input
     clearFileIfEditingSource();
-    syncLoadExampleVisibility();
-
+    syncSourceActionVisibility();
     window.clearTimeout(convertTimer);
 
     if (!sourceTextarea.value.trim()) {
-      clearPreview();
+      if (isCToC()) clearCOutput();
+      else clearPreview();
+      clearSizeSteppers();
       hideBanner(errorBanner);
       return;
     }
@@ -456,7 +1140,30 @@ try {
       runConvert({ showSuccess: true });
       return;
     }
+    scheduleConvert();
+  });
 
+  svgTextarea?.addEventListener("paste", () => {
+    svgChangeFromPaste = true;
+  });
+
+  svgTextarea?.addEventListener("input", () => {
+    const fromPaste = svgChangeFromPaste;
+    svgChangeFromPaste = false;
+    clearFileIfEditingSvg();
+    syncSvgActionVisibility();
+    window.clearTimeout(convertTimer);
+
+    if (!svgTextarea.value.trim()) {
+      clearCOutput();
+      hideBanner(errorBanner);
+      return;
+    }
+
+    if (fromPaste) {
+      runConvert({ showSuccess: true });
+      return;
+    }
     scheduleConvert();
   });
 } catch (err) {
