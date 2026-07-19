@@ -218,7 +218,6 @@ export function convertCToC({
     frames,
     format: outputFormat,
     backgroundColor,
-    animated: result.animated,
   });
   result.hadTransparency = prepared.hadTransparency;
   result.flattenedTransparency = prepared.flattenedTransparency;

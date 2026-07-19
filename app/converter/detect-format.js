@@ -79,7 +79,9 @@ function detectIndexedFormat(hints) {
   const frameCount = Math.max(1, hints.frameCount ?? 1);
   const paletteLen = hints.palette?.length ?? 0;
   const colorCount =
-    hints.colorCount != null && hints.colorCount > 0
+    hints.colorCount !== null &&
+    hints.colorCount !== undefined &&
+    hints.colorCount > 0
       ? hints.colorCount
       : paletteLen;
 
@@ -87,11 +89,11 @@ function detectIndexedFormat(hints) {
   const candidates = ["i8", "i4", "i2", "i1"];
 
   if (
-    width != null &&
-    height != null &&
+    width !== null &&
+    height !== null &&
     width > 0 &&
     height > 0 &&
-    valueCount != null &&
+    valueCount !== null &&
     valueCount > 0
   ) {
     const perFrame = Math.floor(valueCount / frameCount);
@@ -122,7 +124,9 @@ function detectIndexedFormat(hints) {
 export function detectFormat(hintsOrType) {
   /** @type {FormatDetectHints} */
   const hints =
-    hintsOrType == null || typeof hintsOrType === "string"
+    hintsOrType === null ||
+    hintsOrType === undefined ||
+    typeof hintsOrType === "string"
       ? { elementType: hintsOrType }
       : hintsOrType;
 

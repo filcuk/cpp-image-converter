@@ -146,7 +146,6 @@ function encodeRaster(options, raster) {
     frames: resizedFrames,
     format,
     backgroundColor: options.backgroundColor,
-    animated: result.animated,
   });
   result.hadTransparency = prepared.hadTransparency;
   result.flattenedTransparency = prepared.flattenedTransparency;

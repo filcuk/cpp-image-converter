@@ -90,7 +90,6 @@ export function countUniqueEncodedFrames(encodedFrames) {
  * @param {(Rgba | null)[][]} options.frames
  * @param {string} options.format
  * @param {string} [options.backgroundColor]
- * @param {boolean} [options.animated]
  * @returns {{
  *   frames: (Rgba | null)[][],
  *   hadTransparency: boolean,
@@ -102,7 +101,6 @@ export function prepareFramesForOpaqueFormat({
   frames,
   format,
   backgroundColor = "#000000",
-  animated = false,
 }) {
   const hadTransparency = framesHaveTransparency(frames);
   if (!hadTransparency || formatPreservesAlpha(format)) {
