@@ -906,7 +906,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   latestC = result.source;
   if (cOutputTextarea) cOutputTextarea.value = result.source;
   showWarnings(result.warnings);
-  showCPreviewSvg(source);
+  showCPreviewSvg(result.previewSvg);
 
   if (cMetaEl) {
     const scaled =

@@ -504,6 +504,41 @@ test("svg to indexed I1 emits palette and packed bytes", async () => {
   assert.match(result.source, /0xffffffff/i);
 });
 
+test("svg to indexed I1 preview reflects quantised colours only", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 3 1">
+    <rect x="0" y="0" width="1" height="1" fill="#FF0000"/>
+    <rect x="1" y="0" width="1" height="1" fill="#00FF00"/>
+    <rect x="2" y="0" width="1" height="1" fill="#0000FF"/>
+  </svg>`;
+  const result = convertSvgToC({ source: svg, format: "i1" });
+  assert.equal(result.error, null);
+  assert.ok(result.previewSvg);
+  const fills = [...result.previewSvg.matchAll(/fill="(#[0-9A-Fa-f]+)"/g)].map(
+    (m) => m[1].toUpperCase()
+  );
+  assert.deepEqual([...new Set(fills)].sort(), ["#00FF00", "#FF0000"]);
+  assert.doesNotMatch(result.previewSvg, /fill="#0000FF"/i);
+  assert.match(result.warnings.join(" "), /Indexed format keeps 2 colours/);
+});
+
+test("multi-frame svg to c preview is animated", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1">
+    <g id="frame-0" opacity="1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></g>
+    <g id="frame-1" opacity="0"><rect x="0" y="0" width="1" height="1" fill="#00FF00"/></g>
+  </svg>`;
+  const result = convertSvgToC({ source: svg, format: "argb32" });
+  assert.equal(result.error, null);
+  assert.equal(result.frameCount, 2);
+  assert.ok(result.previewSvg);
+  assert.match(result.previewSvg, /id="frame-0"/);
+  assert.match(result.previewSvg, /id="frame-1"/);
+  assert.match(result.previewSvg, /<animate\b/);
+  assert.match(result.previewSvg, /fill="#FF0000"/i);
+  assert.match(result.previewSvg, /fill="#00FF00"/i);
+});
+
 test("resizePixels nearest-neighbour doubles a row", async () => {
   const { resizePixels } = await import("../app/converter/resize-pixels.js");
   const red = { r: 255, g: 0, b: 0, a: 255 };

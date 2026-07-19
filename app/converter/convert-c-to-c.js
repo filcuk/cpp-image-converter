@@ -9,11 +9,10 @@ import {
   indexedBitsPerPixel,
   isManualFormat,
 } from "./formats.js";
-import { decodePixels, pixelColorKey } from "./decode-pixels.js";
+import { decodePixels } from "./decode-pixels.js";
 import { buildPalette, encodePixels } from "./encode-pixels.js";
 import { resizePixels } from "./resize-pixels.js";
-import { mergeRects } from "./merge-rects.js";
-import { toSvg } from "./to-svg.js";
+import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { toCArray } from "./to-c-array.js";
 
 /**
@@ -214,15 +213,18 @@ export function convertCToC({
     palette,
   });
 
-  const colorGrid = frames[0].map((p) => pixelColorKey(p, null));
-  const rects = mergeRects(colorGrid, outWidth, outHeight);
-  result.previewSvg = toSvg({
-    width: outWidth,
-    height: outHeight,
-    rects,
-    displayScale: 1,
-    minify: true,
-  });
+  if (encodedFrames.length > 0) {
+    const preview = previewSvgFromEncoded({
+      format: outputFormat,
+      frames: encodedFrames,
+      width: outWidth,
+      height: outHeight,
+      bitOrder: resolvedBitOrder,
+      palette,
+    });
+    result.previewSvg = preview.svg;
+    result.warnings.push(...preview.warnings);
+  }
 
   result.warnings = [...new Set(result.warnings)];
   return result;

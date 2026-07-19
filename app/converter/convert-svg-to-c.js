@@ -6,6 +6,7 @@ import { svgToPixels, svgToPixelsAsync } from "./svg-to-pixels.js";
 import { buildPalette, encodePixels } from "./encode-pixels.js";
 import { resizePixels } from "./resize-pixels.js";
 import { toCArray } from "./to-c-array.js";
+import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
 
 /**
@@ -29,6 +30,7 @@ function scaledSize(size, scale) {
 /**
  * @typedef {object} ConvertSvgToCResult
  * @property {string | null} source
+ * @property {string | null} previewSvg
  * @property {number} width
  * @property {number} height
  * @property {number} sourceWidth
@@ -65,6 +67,7 @@ function encodeRaster(options, raster) {
   /** @type {ConvertSvgToCResult} */
   const result = {
     source: null,
+    previewSvg: null,
     width: 0,
     height: 0,
     sourceWidth: 0,
@@ -141,6 +144,20 @@ function encodeRaster(options, raster) {
     palette,
   });
 
+  if (encodedFrames.length > 0) {
+    const preview = previewSvgFromEncoded({
+      format,
+      frames: encodedFrames,
+      width: outWidth,
+      height: outHeight,
+      bitOrder,
+      palette,
+    });
+    result.previewSvg = preview.svg;
+    result.warnings.push(...preview.warnings);
+  }
+
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }
 
