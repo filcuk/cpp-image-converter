@@ -313,13 +313,15 @@ function setDirection(next) {
         : "Pixel format";
   }
 
-  // Auto is for reading C; SVG→C / C→C output defaults stay manual
+  // Auto is for reading C; SVG→C output format stays manual
   const autoItem = document.querySelector(
     '#format-dropdown-menu [data-value="auto"]'
   );
   setHidden(autoItem?.closest("li") ?? autoItem, svgMode);
   if (svgMode && selectedFormat === "auto") {
     setFormatSelection("argb32", "ARGB32 (LE RGBA)");
+  } else if (cToC) {
+    setFormatSelection("auto", "Auto");
   }
 
   syncBitOrderVisibility(selectedFormat);
