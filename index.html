@@ -501,37 +501,37 @@
 
               <div
                 class="stepper"
-                id="frame-duration-stepper"
-                data-stepper-min="16"
-                data-stepper-max="5000"
-                data-stepper-step="10"
-                data-stepper-default="100"
+                id="frame-fps-stepper"
+                data-stepper-min="1"
+                data-stepper-max="60"
+                data-stepper-step="1"
+                data-stepper-default="10"
                 data-stepper-format="integer"
               >
-                <label class="field-label" for="frame-duration-stepper-input"
-                  >Frame duration (ms)</label
+                <label class="field-label" for="frame-fps-stepper-input"
+                  >FPS</label
                 >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease frame duration"
+                    aria-label="Decrease FPS"
                   >
                     −
                   </button>
                   <input
                     type="text"
-                    id="frame-duration-stepper-input"
+                    id="frame-fps-stepper-input"
                     class="input stepper-input"
                     inputmode="numeric"
-                    aria-label="Frame duration in milliseconds"
+                    aria-label="Frames per second"
                   />
                   <button
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase frame duration"
+                    aria-label="Increase FPS"
                   >
                     +
                   </button>

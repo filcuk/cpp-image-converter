@@ -119,7 +119,7 @@ let frameStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
 let animateFramesToggle = null;
 /** @type {ReturnType<typeof initStepper>} */
-let frameDurationStepper = null;
+let frameFpsStepper = null;
 /** @type {ReturnType<typeof initToggle>} */
 let overrideToggle = null;
 /** @type {ReturnType<typeof initToggle>} */
@@ -147,6 +147,15 @@ function isCToC() {
 
 function writesC() {
   return isSvgToC() || isCToC();
+}
+
+/**
+ * @param {number} fps
+ * @returns {number}
+ */
+function fpsToFrameDurationMs(fps) {
+  const value = Number.isFinite(fps) && fps > 0 ? fps : 10;
+  return Math.max(16, Math.round(1000 / value));
 }
 
 function scheduleConvert() {
@@ -780,7 +789,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
       displayScale,
       minify: minifyToggle?.getChecked() ?? false,
       animateFrames: animateFramesToggle?.getChecked() ?? false,
-      frameDurationMs: Math.round(frameDurationStepper?.getValue() ?? 100),
+      frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
     });
   } catch (err) {
     showError(
@@ -1067,7 +1076,7 @@ try {
     },
   });
 
-  frameDurationStepper = initStepper(document.getElementById("frame-duration-stepper"), {
+  frameFpsStepper = initStepper(document.getElementById("frame-fps-stepper"), {
     onChange: onOptionChange,
   });
 
