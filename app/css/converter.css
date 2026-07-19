@@ -157,14 +157,16 @@
   align-self: flex-start;
 }
 
-.converter-input-banners {
+.converter-input-banners,
+.converter-options-banners {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   margin: 0 0 1rem;
 }
 
-.converter-input-banners:not(:has(.banner:not(.hidden))) {
+.converter-input-banners:not(:has(.banner:not(.hidden))),
+.converter-options-banners:not(:has(.banner:not(.hidden))) {
   display: none;
   margin: 0;
 }

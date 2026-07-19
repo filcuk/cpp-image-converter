@@ -61,8 +61,25 @@ const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
 const warningBanner = document.getElementById("converter-warning");
 const warningBody = document.getElementById("converter-warning-body");
+const optionsWarningBanner = document.getElementById("converter-options-warning");
+const optionsWarningBody = document.getElementById(
+  "converter-options-warning-body"
+);
 const successBanner = document.getElementById("converter-success");
 const successBody = document.getElementById("converter-success-body");
+
+/** Warnings about output format / palette limits (shown under Options). */
+function isOptionsWarning(message) {
+  return (
+    message.includes("Indexed format keeps") ||
+    message.includes("will be remapped to palette index")
+  );
+}
+
+function hideWarningBanners() {
+  hideBanner(warningBanner);
+  hideBanner(optionsWarningBanner);
+}
 
 /** @type {string | null} */
 let latestSvg = null;
@@ -327,7 +344,7 @@ function setDirection(next) {
   syncBitOrderVisibility(selectedFormat);
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 
   // Fresh inputs/outputs whenever the direction changes
   clearSourceInputs();
@@ -440,7 +457,7 @@ function getFrameIndex() {
  * @param {string} message
  */
 function showError(message) {
-  hideBanner(warningBanner);
+  hideWarningBanners();
   hideBanner(successBanner);
   if (errorBody) errorBody.textContent = message;
   showBanner(errorBanner);
@@ -451,12 +468,24 @@ function showError(message) {
  */
 function showWarnings(warnings) {
   const unique = [...new Set(warnings)];
-  if (!unique.length) {
-    hideBanner(warningBanner);
-    return;
+  const optionsWarnings = unique.filter(isOptionsWarning);
+  const inputWarnings = unique.filter((w) => !isOptionsWarning(w));
+
+  if (optionsWarnings.length) {
+    if (optionsWarningBody) {
+      optionsWarningBody.textContent = optionsWarnings.join(" ");
+    }
+    showBanner(optionsWarningBanner);
+  } else {
+    hideBanner(optionsWarningBanner);
   }
-  if (warningBody) warningBody.textContent = unique.join(" ");
-  showBanner(warningBanner);
+
+  if (inputWarnings.length) {
+    if (warningBody) warningBody.textContent = inputWarnings.join(" ");
+    showBanner(warningBanner);
+  } else {
+    hideBanner(warningBanner);
+  }
 }
 
 /**
@@ -578,7 +607,7 @@ function clearSourceInputs() {
   if (writesC()) clearCOutput();
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 }
 
 function clearSvgInputs() {
@@ -595,7 +624,7 @@ function clearSvgInputs() {
   clearCOutput();
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 }
 
 /**
@@ -721,7 +750,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
     clearPreview();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     clearSizeSteppers();
     updateFrameStepper(1);
     return;
@@ -839,7 +868,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
     clearCOutput();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     return;
   }
 
@@ -904,7 +933,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
     clearCOutput();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     clearSizeSteppers();
     updateFrameStepper(1);
     return;
@@ -1085,7 +1114,7 @@ try {
       if (writesC()) clearCOutput();
       hideBanner(errorBanner);
       hideBanner(successBanner);
-      hideBanner(warningBanner);
+      hideWarningBanners();
     },
     onError: ({ message }) => showError(message || "File upload failed."),
   });
@@ -1109,7 +1138,7 @@ try {
       clearCOutput();
       hideBanner(errorBanner);
       hideBanner(successBanner);
-      hideBanner(warningBanner);
+      hideWarningBanners();
     },
     onError: ({ message }) => showError(message || "File upload failed."),
   });

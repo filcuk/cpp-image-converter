@@ -150,6 +150,7 @@ function colorKey(a) {
 
 /**
  * Build a palette from unique opaque colours (plus transparent as index 0 when present).
+ * Warns when unique colours exceed `maxColors` (extras remap to index 0).
  * @param {(Rgba | null)[]} pixels
  * @param {number} maxColors
  * @returns {{ palette: Rgba[], indexOf: (pixel: Rgba | null) => number, warnings: string[] }}
@@ -161,13 +162,18 @@ export function buildPalette(pixels, maxColors) {
   const map = new Map();
   /** @type {Rgba[]} */
   const palette = [];
+  let uniqueCount = 0;
 
   const add = (pixel) => {
     const p = solidOrTransparent(pixel);
     const key = colorKey(p);
     let idx = map.get(key);
     if (idx !== undefined) return idx;
-    if (palette.length >= maxColors) return -1;
+    uniqueCount += 1;
+    if (palette.length >= maxColors) {
+      map.set(key, -1);
+      return -1;
+    }
     idx = palette.length;
     map.set(key, idx);
     palette.push(p);
@@ -181,13 +187,15 @@ export function buildPalette(pixels, maxColors) {
   }
 
   for (const pixel of pixels) {
-    const idx = add(pixel);
-    if (idx < 0) {
-      warnings.push(
-        `Image has more than ${maxColors} colours; extra colours map to index 0.`
-      );
-      break;
-    }
+    add(pixel);
+  }
+
+  if (uniqueCount > maxColors) {
+    const lost = uniqueCount - maxColors;
+    warnings.push(
+      `Indexed format keeps ${maxColors} colours; image has ${uniqueCount} unique colours. ` +
+        `${lost} colour${lost === 1 ? "" : "s"} will be remapped to palette index 0.`
+    );
   }
 
   return {
@@ -195,7 +203,7 @@ export function buildPalette(pixels, maxColors) {
     indexOf: (pixel) => {
       const p = solidOrTransparent(pixel);
       const idx = map.get(colorKey(p));
-      return idx === undefined ? 0 : idx;
+      return idx === undefined || idx < 0 ? 0 : idx;
     },
     warnings,
   };

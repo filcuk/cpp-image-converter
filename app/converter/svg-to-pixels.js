@@ -210,6 +210,24 @@ function rasterizeRects(rects, width, height) {
 }
 
 /**
+ * Prepare a frame `<g id="frame-N">…</g>` for static rasterisation:
+ * drop SMIL `<animate>` and force the group visible (animated exports use opacity="0").
+ * @param {string} markup
+ * @returns {string}
+ */
+export function prepareFrameGroupMarkup(markup) {
+  let out = markup.replace(/<animate\b[^>]*\/?\s*>/gi, "");
+  out = out.replace(/<g\b([^>]*)>/i, (_full, attrs) => {
+    const cleaned = String(attrs).replace(
+      /\s*\bopacity\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>"'/]+)/gi,
+      ""
+    );
+    return `<g${cleaned} opacity="1">`;
+  });
+  return out;
+}
+
+/**
  * Split top-level frame groups from SVG body markup.
  * @param {string} body
  * @returns {{ id: string, markup: string }[]}
@@ -403,7 +421,7 @@ export function svgToPixels(source) {
       return ia - ib;
     });
     frames = frameGroups.map((g) =>
-      rasterizeRects(collectRects(g.markup), size.width, size.height)
+      rasterizeRects(collectRects(prepareFrameGroupMarkup(g.markup)), size.width, size.height)
     );
   } else {
     frames = [rasterizeRects(collectRects(body), size.width, size.height)];
@@ -500,8 +518,7 @@ export async function svgToPixelsAsync(source) {
       });
       frames = [];
       for (const g of frameGroups) {
-        // Drop SMIL so canvas shows the frame’s static artwork
-        const inner = g.markup.replace(/<animate\b[^>]*\/?>/gi, "");
+        const inner = prepareFrameGroupMarkup(g.markup);
         frames.push(
           await rasterizeSvgDocumentWithCanvas(
             wrapSvgDocument(inner, size.width, size.height),
