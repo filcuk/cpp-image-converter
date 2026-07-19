@@ -8,6 +8,10 @@ import { resizePixels } from "./resize-pixels.js";
 import { toCArray } from "./to-c-array.js";
 import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
+import {
+  prepareFramesForOpaqueFormat,
+  warningsForCollapsedFrames,
+} from "./matte-pixels.js";
 
 /**
  * @param {number} size
@@ -28,6 +32,7 @@ function scaledSize(size, scale) {
  * @property {number} [frameIndex] Used when animateFrames is false
  * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
  * @property {number} [frameDurationMs] Preview animation frame duration
+ * @property {string} [backgroundColor] Matte for transparent pixels when format has no alpha
  */
 
 /**
@@ -43,6 +48,8 @@ function scaledSize(size, scale) {
  * @property {number} sourceFrameCount Frame count detected in the SVG
  * @property {number} frameIndex
  * @property {boolean} animated
+ * @property {boolean} hadTransparency Source frames included transparent pixels
+ * @property {boolean} flattenedTransparency Transparency was composited onto backgroundColor
  * @property {string} format
  * @property {string} elementType
  * @property {string[]} warnings
@@ -86,6 +93,8 @@ function encodeRaster(options, raster) {
     sourceFrameCount: 0,
     frameIndex: 0,
     animated: false,
+    hadTransparency: false,
+    flattenedTransparency: false,
     format,
     elementType: "uint32_t",
     warnings: [...raster.warnings],
@@ -126,12 +135,22 @@ function encodeRaster(options, raster) {
   result.animated = keepAllFrames && sourceFrames.length > 1;
 
   /** @type {(import("./decode-pixels.js").Rgba | null)[][]} */
-  const frames =
+  const resizedFrames =
     outWidth === sourceWidth && outHeight === sourceHeight
       ? sourceFrames
       : sourceFrames.map((frame) =>
           resizePixels(frame, sourceWidth, sourceHeight, outWidth, outHeight)
         );
+
+  const prepared = prepareFramesForOpaqueFormat({
+    frames: resizedFrames,
+    format,
+    backgroundColor: options.backgroundColor,
+  });
+  result.hadTransparency = prepared.hadTransparency;
+  result.flattenedTransparency = prepared.flattenedTransparency;
+  result.warnings.push(...prepared.warnings);
+  const frames = prepared.frames;
 
   const bitOrder = options.bitOrder === "lsb" ? "lsb" : "msb";
   /** @type {import("./encode-pixels.js").BuiltPalette | null} */
@@ -161,6 +180,12 @@ function encodeRaster(options, raster) {
     encodedFrames.push(encoded.values);
     elementType = encoded.elementType;
     if (encoded.palette) palette = encoded.palette;
+  }
+
+  if (result.flattenedTransparency) {
+    result.warnings.push(
+      ...warningsForCollapsedFrames(encodedFrames, result.animated)
+    );
   }
 
   result.elementType = elementType;

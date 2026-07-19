@@ -123,6 +123,29 @@ export function formatNeedsBitOrder(format) {
 }
 
 /**
+ * Whether the format can represent transparency distinctly from opaque colours.
+ * Formats that collapse transparent pixels to black RGB return false.
+ * @param {string} format
+ */
+export function formatPreservesAlpha(format) {
+  switch (format) {
+    case "argb32":
+    case "argb32-classic":
+    case "rgb565a8":
+    case "argb8565":
+    case "al88":
+    case "1bit":
+    case "i1":
+    case "i2":
+    case "i4":
+    case "i8":
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
  * Values (array elements) needed for one frame at the given size.
  * For word formats each pixel is one value; for byte streams each byte is one value.
  * @param {string} format

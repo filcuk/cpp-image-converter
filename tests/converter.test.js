@@ -591,6 +591,73 @@ test("svg to c preview respects frameDurationMs", async () => {
   assert.match(result.previewSvg, /dur="0\.1s"/);
 });
 
+test("formatPreservesAlpha distinguishes opaque formats", async () => {
+  const { formatPreservesAlpha } = await import("../app/converter/formats.js");
+  assert.equal(formatPreservesAlpha("argb32"), true);
+  assert.equal(formatPreservesAlpha("xrgb8888"), false);
+  assert.equal(formatPreservesAlpha("rgb565"), false);
+  assert.equal(formatPreservesAlpha("1bit"), true);
+  assert.equal(formatPreservesAlpha("i1"), true);
+});
+
+test("xrgb8888 flattens transparency onto background and warns", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 2 1">
+    <g id="frame-0" opacity="1"><rect x="0" y="0" width="1" height="1" fill="#000000"/></g>
+    <g id="frame-1" opacity="0"><rect x="1" y="0" width="1" height="1" fill="#000000"/></g>
+  </svg>`;
+
+  const blackMatte = convertSvgToC({
+    source: svg,
+    format: "xrgb8888",
+    animateFrames: true,
+    backgroundColor: "#000000",
+  });
+  assert.equal(blackMatte.error, null);
+  assert.equal(blackMatte.hadTransparency, true);
+  assert.equal(blackMatte.flattenedTransparency, true);
+  assert.equal(blackMatte.frameCount, 2);
+  assert.match(blackMatte.warnings.join(" "), /no alpha/i);
+  assert.match(blackMatte.warnings.join(" "), /only 1 of 2 frames unique/i);
+  assert.match(blackMatte.source, /0xff000000/);
+
+  const whiteMatte = convertSvgToC({
+    source: svg,
+    format: "xrgb8888",
+    animateFrames: true,
+    backgroundColor: "#FFFFFF",
+  });
+  assert.equal(whiteMatte.error, null);
+  assert.equal(whiteMatte.flattenedTransparency, true);
+  assert.match(whiteMatte.source, /0xffffffff/i);
+  assert.match(whiteMatte.source, /0xff000000/);
+  assert.doesNotMatch(
+    whiteMatte.warnings.join(" "),
+    /frames unique after flatten/i
+  );
+  // Frame 0: black, white — frame 1: white, black
+  assert.match(
+    whiteMatte.source,
+    /0xff000000,\s*0xffffffff[\s\S]*0xffffffff,\s*0xff000000/i
+  );
+});
+
+test("argb32 keeps transparency without flattening", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 2 1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    backgroundColor: "#FFFFFF",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.hadTransparency, true);
+  assert.equal(result.flattenedTransparency, false);
+  assert.doesNotMatch(result.warnings.join(" "), /no alpha/i);
+  assert.match(result.source, /0xff0000ff/i);
+  assert.match(result.source, /0x00000000/i);
+});
+
 test("resizePixels nearest-neighbour doubles a row", async () => {
   const { resizePixels } = await import("../app/converter/resize-pixels.js");
   const red = { r: 255, g: 0, b: 0, a: 255 };
