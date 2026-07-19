@@ -26,6 +26,29 @@ import { EXAMPLE_SVG } from "./examples/example-svg.js";
 
 initShell({ pageNav: false });
 
+const DIRECTION_STORAGE_KEY = "cpp-image-converter-direction";
+/** @type {ReadonlySet<"c-to-svg" | "svg-to-c" | "c-to-c">} */
+const DIRECTIONS = new Set(["c-to-svg", "svg-to-c", "c-to-c"]);
+
+/**
+ * @returns {"c-to-svg" | "svg-to-c" | "c-to-c"}
+ */
+function loadStoredDirection() {
+  const stored = localStorage.getItem(DIRECTION_STORAGE_KEY);
+  if (stored && DIRECTIONS.has(/** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */ (stored))) {
+    return /** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */ (stored);
+  }
+  return "c-to-svg";
+}
+
+/**
+ * @param {"c-to-svg" | "svg-to-c" | "c-to-c"} value
+ */
+function persistDirection(value) {
+  localStorage.setItem(DIRECTION_STORAGE_KEY, value);
+  document.documentElement.dataset.converterDirection = value;
+}
+
 const sourceTextarea = document.getElementById("source-textarea");
 const svgTextarea = document.getElementById("svg-textarea");
 const arrayNameInput = document.getElementById("array-name-input");
@@ -301,6 +324,7 @@ function populateFormatMenus() {
 function setDirection(next) {
   direction =
     next === "svg-to-c" ? "svg-to-c" : next === "c-to-c" ? "c-to-c" : "c-to-svg";
+  persistDirection(direction);
   const svgMode = isSvgToC();
   const cToC = isCToC();
 
@@ -1050,6 +1074,7 @@ function runConvert(options = {}) {
 
 try {
   directionControl = initSegmentedControl(document.getElementById("direction-control"), {
+    defaultValue: loadStoredDirection(),
     onChange: ({ value }) => {
       setDirection(
         /** @type {"c-to-svg" | "svg-to-c" | "c-to-c"} */ (value || "c-to-svg")

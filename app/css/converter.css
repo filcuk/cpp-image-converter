@@ -32,6 +32,74 @@
   color: #0d1117;
 }
 
+/*
+ * First-paint layout from html[data-converter-direction] (set in <head> before CSS).
+ * Avoids flashing the HTML default (C → SVG) while main.js loads.
+ */
+html[data-converter-direction] #direction .segmented-control-item[aria-checked="true"] {
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+
+html[data-converter-direction="c-to-svg"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="c-to-svg"],
+html[data-converter-direction="svg-to-c"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="svg-to-c"],
+html[data-converter-direction="c-to-c"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="c-to-c"] {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+:root[data-theme="dark"][data-converter-direction="c-to-svg"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="c-to-svg"],
+:root[data-theme="dark"][data-converter-direction="svg-to-c"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="svg-to-c"],
+:root[data-theme="dark"][data-converter-direction="c-to-c"]
+  #direction
+  .segmented-control-item[data-segmented-control-value="c-to-c"] {
+  color: #0d1117;
+}
+
+html[data-converter-direction="svg-to-c"] #c-input-panel,
+html[data-converter-direction="svg-to-c"] #svg-output-panel,
+html[data-converter-direction="svg-to-c"] #download-svg-btn,
+html[data-converter-direction="svg-to-c"] .converter-needs-input-size,
+html[data-converter-direction="svg-to-c"] .converter-c-to-svg-only,
+html[data-converter-direction="c-to-c"] #svg-input-panel,
+html[data-converter-direction="c-to-c"] #svg-output-panel,
+html[data-converter-direction="c-to-c"] #download-svg-btn,
+html[data-converter-direction="c-to-c"] .converter-c-to-svg-only {
+  display: none !important;
+}
+
+html[data-converter-direction="svg-to-c"] #svg-input-panel.hidden,
+html[data-converter-direction="c-to-c"] #c-output-panel.hidden,
+html[data-converter-direction="svg-to-c"] #c-output-panel.hidden {
+  display: flex !important;
+}
+
+html[data-converter-direction="svg-to-c"] #download-c-btn.hidden,
+html[data-converter-direction="c-to-c"] #download-c-btn.hidden {
+  display: inline-flex !important;
+}
+
+html[data-converter-direction="svg-to-c"] .converter-writes-c-only.hidden,
+html[data-converter-direction="c-to-c"] .converter-writes-c-only.hidden {
+  display: flex !important;
+}
+
+html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
+  display: block !important;
+}
+
 .converter-preview {
   display: flex;
   align-items: center;

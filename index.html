@@ -11,6 +11,18 @@
     <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
     <script>
       window.__MICROAPP__ = { themeStorageKey: "cpp-image-converter-theme" };
+      (function () {
+        var key = "cpp-image-converter-direction";
+        var direction = localStorage.getItem(key);
+        if (
+          direction !== "c-to-svg" &&
+          direction !== "svg-to-c" &&
+          direction !== "c-to-c"
+        ) {
+          direction = "c-to-svg";
+        }
+        document.documentElement.dataset.converterDirection = direction;
+      })();
     </script>
     <script src="app/theme-init.js"></script>
     <link rel="stylesheet" href="app/styles.css" />
