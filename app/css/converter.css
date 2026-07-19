@@ -13,7 +13,7 @@
 }
 
 #direction {
-  margin-bottom: 1rem;
+  margin-bottom: 0rem;
 }
 
 #direction .segmented-control {
@@ -144,6 +144,18 @@
 
 .converter-source-actions {
   align-self: flex-start;
+}
+
+.converter-input-banners {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.converter-input-banners:not(:has(.banner:not(.hidden))) {
+  display: none;
+  margin: 0;
 }
 
 .converter-fill-wrap.is-disabled {

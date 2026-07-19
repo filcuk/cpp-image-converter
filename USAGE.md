@@ -837,6 +837,7 @@ const stepper = initStepper(document.getElementById("my-stepper"), {
 
 stepper?.getValue();
 stepper?.setValue(5);
+stepper?.clear(); // empty the field
 stepper?.increment();
 stepper?.decrement();
 stepper?.setDisabled(true);
@@ -845,7 +846,7 @@ stepper?.commitInput();
 initSteppers(document); // all `.stepper` blocks
 ```
 
-`data-stepper-min`, `data-stepper-max`, `data-stepper-step`, `data-stepper-default`, `data-stepper-format`, and `data-stepper-disabled` mirror the JS options. Decrement and increment buttons disable at the min and max bounds.
+`data-stepper-min`, `data-stepper-max`, `data-stepper-step`, `data-stepper-default`, `data-stepper-format`, and `data-stepper-disabled` mirror the JS options. Omit `data-stepper-default` to start blank (`getValue()` returns `null`; `setValue(null)` / `clear()` empty the field). From empty, −/+ both land on the minimum. Decrement and increment buttons disable at the min and max bounds when a value is set.
 
 ### Colour picker
 

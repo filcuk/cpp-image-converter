@@ -4,14 +4,25 @@
 
 import { svgToPixels, svgToPixelsAsync } from "./svg-to-pixels.js";
 import { buildPalette, encodePixels } from "./encode-pixels.js";
+import { resizePixels } from "./resize-pixels.js";
 import { toCArray } from "./to-c-array.js";
 import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
+
+/**
+ * @param {number} size
+ * @param {number} scale
+ */
+function scaledSize(size, scale) {
+  const s = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return Math.max(1, Math.round(size * s));
+}
 
 /**
  * @typedef {object} ConvertSvgToCOptions
  * @property {string} source
  * @property {string} [format]
  * @property {"msb" | "lsb"} [bitOrder]
+ * @property {number} [scale] Output scale factor (nearest-neighbour resize before encode)
  * @property {string} [arrayName]
  */
 
@@ -20,6 +31,9 @@ import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
  * @property {string | null} source
  * @property {number} width
  * @property {number} height
+ * @property {number} sourceWidth
+ * @property {number} sourceHeight
+ * @property {number} scale
  * @property {number} frameCount
  * @property {string} format
  * @property {string} elementType
@@ -45,12 +59,17 @@ function encodeRaster(options, raster) {
     isManualFormat(options.format)
       ? options.format
       : "argb32";
+  const resolvedScale =
+    Number.isFinite(options.scale) && options.scale > 0 ? options.scale : 1;
 
   /** @type {ConvertSvgToCResult} */
   const result = {
     source: null,
     width: 0,
     height: 0,
+    sourceWidth: 0,
+    sourceHeight: 0,
+    scale: resolvedScale,
     frameCount: 0,
     format,
     elementType: "uint32_t",
@@ -63,16 +82,31 @@ function encodeRaster(options, raster) {
     return result;
   }
 
-  result.width = raster.width;
-  result.height = raster.height;
+  const sourceWidth = raster.width;
+  const sourceHeight = raster.height;
+  const outWidth = scaledSize(sourceWidth, resolvedScale);
+  const outHeight = scaledSize(sourceHeight, resolvedScale);
+
+  result.sourceWidth = sourceWidth;
+  result.sourceHeight = sourceHeight;
+  result.width = outWidth;
+  result.height = outHeight;
   result.frameCount = raster.frames.length;
+
+  /** @type {(import("./decode-pixels.js").Rgba | null)[][]} */
+  const frames =
+    outWidth === sourceWidth && outHeight === sourceHeight
+      ? raster.frames
+      : raster.frames.map((frame) =>
+          resizePixels(frame, sourceWidth, sourceHeight, outWidth, outHeight)
+        );
 
   const bitOrder = options.bitOrder === "lsb" ? "lsb" : "msb";
   /** @type {import("./encode-pixels.js").BuiltPalette | null} */
   let sharedPalette = null;
   const indexedBpp = indexedBitsPerPixel(format);
   if (indexedBpp !== null) {
-    sharedPalette = buildPalette(raster.frames.flat(), 1 << indexedBpp);
+    sharedPalette = buildPalette(frames.flat(), 1 << indexedBpp);
     result.warnings.push(...sharedPalette.warnings);
   }
 
@@ -82,12 +116,12 @@ function encodeRaster(options, raster) {
   let palette = null;
   let elementType = "uint32_t";
 
-  for (let i = 0; i < raster.frames.length; i++) {
+  for (let i = 0; i < frames.length; i++) {
     const encoded = encodePixels({
       format,
-      pixels: raster.frames[i],
-      width: raster.width,
-      height: raster.height,
+      pixels: frames[i],
+      width: outWidth,
+      height: outHeight,
       bitOrder,
       sharedPalette,
     });
@@ -100,8 +134,8 @@ function encodeRaster(options, raster) {
   result.elementType = elementType;
   result.source = toCArray({
     arrayName: options.arrayName ?? "image",
-    width: raster.width,
-    height: raster.height,
+    width: outWidth,
+    height: outHeight,
     elementType,
     frames: encodedFrames,
     palette,

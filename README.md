@@ -14,7 +14,7 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
   - Indexed I1–I8 (palette from `*_color` / `*_palette` when present)
   - Grayscale L8 / AL88, packed 2/4-bit, 1-bit (MSB or LSB)
 - **Multi-frame** — frame picker, or **Animate frames** for SMIL-animated SVG
-- **Options** — scale, override fill, minimised SVG, array name (SVG → C / C → C)
+- **Options** — input width/height (when not in source defines), output scale, override fill, minimised SVG, array name
 
 ## Quick start
 
@@ -33,15 +33,15 @@ Then open `http://localhost:3000`.
 
 1. Choose **C → SVG**
 2. Paste array source or upload a `.c` / `.h` / `.txt` file
-3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 Piskel, `uint16_t` → RGB565, `uint8_t` → 1-bit) and size
-4. Optionally set scale, override fill, or animate multi-frame sources
+3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 Piskel, `uint16_t` → RGB565, `uint8_t` → 1-bit) and **input** size when defines are missing
+4. Optionally set **output scale**, override fill, or animate multi-frame sources
 5. Preview and download the `.svg`
 
 ### SVG → C
 
 1. Choose **SVG → C**
 2. Paste SVG or upload an `.svg` (paths and shapes are rasterised in the browser)
-3. Pick output format (including **Indexed I1–I8** for palette + packed indices) and array name
+3. Pick output format (including **Indexed I1–I8** for palette + packed indices), **output scale**, and array name
 4. Download the `.c` file
 
 ### C → C
@@ -49,7 +49,7 @@ Then open `http://localhost:3000`.
 1. Choose **C → C**
 2. Paste or upload a `.c` / `.h` / `.txt` array
 3. Confirm **input C type** (Auto or manual) and choose **output C type** — any supported format (`uint32_t` ARGB32, `uint16_t` RGB565, `uint8_t` indexed/packed, etc.)
-4. Optionally change width/height to resize (nearest-neighbour)
+4. Set **input** width/height if the source has no size defines; use **output scale** to resize (nearest-neighbour)
 5. Download the converted `.c` file
 
 ## Documentation

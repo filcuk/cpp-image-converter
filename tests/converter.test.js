@@ -440,7 +440,7 @@ static const uint32_t data[1][8] = {
   assert.match(result.source, /0x7f/i);
 });
 
-test("convertCToC resizes while packing", async () => {
+test("convertCToC scales output with nearest-neighbour", async () => {
   const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
   const source = `
 #define FRAME_WIDTH 2
@@ -451,16 +451,36 @@ static const uint32_t data[1][2] = { { 0xff0000ff, 0xffffffff } };
     source,
     inputFormat: "argb32",
     outputFormat: "argb32",
-    width: 4,
-    height: 1,
+    scale: 2,
     arrayName: "scaled",
   });
   assert.equal(result.error, null);
   assert.equal(result.sourceWidth, 2);
+  assert.equal(result.sourceHeight, 1);
   assert.equal(result.width, 4);
+  assert.equal(result.height, 2);
+  assert.equal(result.scale, 2);
   assert.match(result.source, /SCALED_FRAME_WIDTH 4/);
+  assert.match(result.source, /SCALED_FRAME_HEIGHT 2/);
   const reds = result.source.match(/0xff0000ff/gi) ?? [];
   const whites = result.source.match(/0xffffffff/gi) ?? [];
-  assert.equal(reds.length, 2);
-  assert.equal(whites.length, 2);
+  assert.equal(reds.length, 4);
+  assert.equal(whites.length, 4);
+});
+
+test("convertSvgToC applies output scale", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 2 1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/><rect x="1" y="0" width="1" height="1" fill="#FFFFFF"/></svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    scale: 2,
+    arrayName: "up",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.sourceWidth, 2);
+  assert.equal(result.width, 4);
+  assert.equal(result.height, 2);
+  assert.match(result.source, /UP_FRAME_WIDTH 4/);
+  assert.match(result.source, /UP_FRAME_HEIGHT 2/);
 });

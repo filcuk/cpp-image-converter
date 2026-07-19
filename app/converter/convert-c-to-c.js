@@ -1,5 +1,5 @@
 /**
- * High-level C array → C array conversion (repack + optional resize).
+ * High-level C array → C array conversion (repack + optional output scale).
  */
 
 import { parseCArray, sliceFrameValues } from "./parse-c-array.js";
@@ -17,13 +17,23 @@ import { toSvg } from "./to-svg.js";
 import { toCArray } from "./to-c-array.js";
 
 /**
+ * @param {number} size
+ * @param {number} scale
+ */
+function scaledSize(size, scale) {
+  const s = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return Math.max(1, Math.round(size * s));
+}
+
+/**
  * @typedef {object} ConvertCToCOptions
  * @property {string} source
  * @property {string} [inputFormat]
  * @property {string} [outputFormat]
  * @property {"msb" | "lsb"} [bitOrder]
- * @property {number | null} [width] Output width (resize target); decode size prefers source defines
- * @property {number | null} [height] Output height (resize target)
+ * @property {number | null} [width] Input width when source defines are missing
+ * @property {number | null} [height] Input height when source defines are missing
+ * @property {number} [scale] Output scale factor (nearest-neighbour resize)
  * @property {string} [arrayName]
  */
 
@@ -35,6 +45,7 @@ import { toCArray } from "./to-c-array.js";
  * @property {number} height
  * @property {number} sourceWidth
  * @property {number} sourceHeight
+ * @property {number} scale
  * @property {number} frameCount
  * @property {string} inputFormat
  * @property {string | null} detectedFormat
@@ -55,6 +66,7 @@ export function convertCToC({
   bitOrder = "msb",
   width: widthOverride = null,
   height: heightOverride = null,
+  scale = 1,
   arrayName = "image",
 }) {
   const parsed = parseCArray(source);
@@ -71,6 +83,7 @@ export function convertCToC({
 
   const decodeWidth = parsed.width ?? widthOverride;
   const decodeHeight = parsed.height ?? heightOverride;
+  const resolvedScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
 
   /** @type {ConvertCToCResult} */
   const result = {
@@ -80,6 +93,7 @@ export function convertCToC({
     height: 0,
     sourceWidth: decodeWidth ?? 0,
     sourceHeight: decodeHeight ?? 0,
+    scale: resolvedScale,
     frameCount: parsed.frameCount,
     inputFormat,
     detectedFormat: detected,
@@ -91,20 +105,12 @@ export function convertCToC({
 
   if (!decodeWidth || !decodeHeight || decodeWidth <= 0 || decodeHeight <= 0) {
     result.error =
-      "Could not determine image width/height. Set them manually or include FRAME_WIDTH / FRAME_HEIGHT defines.";
+      "Could not determine input width/height. Set them manually or include FRAME_WIDTH / FRAME_HEIGHT defines.";
     return result;
   }
 
-  const outWidth = Math.max(
-    1,
-    Math.round(widthOverride && widthOverride > 0 ? widthOverride : decodeWidth)
-  );
-  const outHeight = Math.max(
-    1,
-    Math.round(
-      heightOverride && heightOverride > 0 ? heightOverride : decodeHeight
-    )
-  );
+  const outWidth = scaledSize(decodeWidth, resolvedScale);
+  const outHeight = scaledSize(decodeHeight, resolvedScale);
   result.sourceWidth = decodeWidth;
   result.sourceHeight = decodeHeight;
   result.width = outWidth;

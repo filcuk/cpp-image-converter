@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Convert between C/C++ image arrays and SVG in the browser (ARGB32, RGB565, indexed, grayscale, and more)."
+      content="Convert between C/C++ image arrays and SVG locally in the browser."
     />
     <title>C++ Image Converter</title>
     <link rel="icon" href="app/res/app-light.svg" type="image/svg+xml" data-brand-icon />
@@ -35,39 +35,10 @@
         />
         <h1>C++ Image Converter</h1>
       </div>
-      <p class="tagline">Convert between C/C++ image arrays and SVG in the browser.</p>
+      <p class="tagline">Convert between C/C++ image arrays and SVG locally in the browser.</p>
     </header>
 
     <main id="main">
-      <div
-        id="converter-error"
-        class="banner banner-error hidden"
-        role="alert"
-        hidden
-      >
-        <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-error-body">Conversion failed.</span>
-      </div>
-      <div
-        id="converter-warning"
-        class="banner banner-warning hidden"
-        role="status"
-        hidden
-      >
-        <span class="banner-icon" data-icon="warning" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-warning-body"></span>
-      </div>
-      <div
-        id="converter-success"
-        class="banner banner-success hidden"
-        role="status"
-        hidden
-        data-banner-expire="2500"
-      >
-        <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
-        <span class="banner-body" id="converter-success-body">SVG ready.</span>
-      </div>
-
       <section id="direction" aria-labelledby="direction-heading">
         <h2 id="direction-heading" class="visually-hidden">Direction</h2>
         <div
@@ -114,6 +85,38 @@
 
       <section id="input" aria-labelledby="input-heading">
         <h2 id="input-heading">Input</h2>
+
+        <div class="converter-input-banners" id="converter-banners">
+          <div
+            id="converter-error"
+            class="banner banner-error hidden"
+            role="alert"
+            hidden
+          >
+            <span class="banner-icon" data-icon="error" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-error-body">Conversion failed.</span>
+          </div>
+          <div
+            id="converter-warning"
+            class="banner banner-warning hidden"
+            role="status"
+            hidden
+          >
+            <span class="banner-icon" data-icon="warning" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-warning-body"></span>
+          </div>
+          <div
+            id="converter-success"
+            class="banner banner-success hidden"
+            role="status"
+            hidden
+            data-banner-expire="2500"
+          >
+            <span class="banner-icon" data-icon="success" data-icon-class="banner-icon-svg"></span>
+            <span class="banner-body" id="converter-success-body">SVG ready.</span>
+          </div>
+        </div>
+
         <div class="converter-input" id="c-input-panel">
           <div class="file-dropzone" id="source-dropzone">
             <div class="file-dropzone-target">
@@ -134,19 +137,18 @@
           </div>
 
           <label class="field converter-source-field" for="source-textarea">
-            <span class="field-label">Or paste C/C++ array source</span>
             <textarea
               id="source-textarea"
               class="textarea converter-source-textarea"
               rows="16"
               spellcheck="false"
               wrap="off"
-              placeholder="Paste a .c / .h array"
+              placeholder="Enter a .c / .h array"
             ></textarea>
           </label>
 
           <div class="toolbar converter-source-actions">
-            <button type="button" class="btn hidden" id="clear-source-btn" hidden>
+            <button type="button" class="btn" id="clear-source-btn" disabled>
               Clear
             </button>
             <button type="button" class="btn" id="load-example-btn">
@@ -175,20 +177,22 @@
           </div>
 
           <label class="field converter-source-field" for="svg-textarea">
-            <span class="field-label">Or paste SVG markup</span>
             <textarea
               id="svg-textarea"
               class="textarea converter-source-textarea"
               rows="16"
               spellcheck="false"
               wrap="off"
-              placeholder="Paste SVG (paths and shapes are supported)"
+              placeholder="Enter SVG markup"
             ></textarea>
           </label>
 
           <div class="toolbar converter-source-actions">
-            <button type="button" class="btn hidden" id="clear-svg-btn" hidden>
+            <button type="button" class="btn" id="clear-svg-btn" disabled>
               Clear
+            </button>
+            <button type="button" class="btn" id="load-example-svg-btn">
+              Load Example
             </button>
           </div>
         </div>
@@ -480,22 +484,23 @@
               </div>
             </div>
 
-            <div class="converter-options__row converter-needs-size hidden" id="size-options-row" hidden>
+            <div class="converter-options__row" id="size-options-row">
               <div
-                class="stepper"
+                class="stepper converter-needs-input-size"
                 id="width-stepper"
                 data-stepper-min="1"
                 data-stepper-max="4096"
-                data-stepper-default="14"
                 data-stepper-format="integer"
               >
-                <label class="field-label" for="width-stepper-input">Width</label>
+                <label class="field-label" for="width-stepper-input" id="width-stepper-label"
+                  >Input width</label
+                >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease width"
+                    aria-label="Decrease input width"
                   >
                     −
                   </button>
@@ -504,13 +509,51 @@
                     id="width-stepper-input"
                     class="input stepper-input"
                     inputmode="numeric"
-                    aria-label="Width"
+                    aria-label="Input width"
                   />
                   <button
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase width"
+                    aria-label="Increase input width"
+                  >
+                    +
+                  </button>
+                  <input type="hidden" class="stepper-value" />
+                </div>
+              </div>
+
+              <div
+                class="stepper converter-needs-input-size"
+                id="height-stepper"
+                data-stepper-min="1"
+                data-stepper-max="4096"
+                data-stepper-format="integer"
+              >
+                <label class="field-label" for="height-stepper-input" id="height-stepper-label"
+                  >Input height</label
+                >
+                <div class="stepper-control">
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-decrement"
+                    data-stepper-decrement
+                    aria-label="Decrease input height"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="text"
+                    id="height-stepper-input"
+                    class="input stepper-input"
+                    inputmode="numeric"
+                    aria-label="Input height"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-icon stepper-increment"
+                    data-stepper-increment
+                    aria-label="Increase input height"
                   >
                     +
                   </button>
@@ -520,43 +563,6 @@
 
               <div
                 class="stepper"
-                id="height-stepper"
-                data-stepper-min="1"
-                data-stepper-max="4096"
-                data-stepper-default="14"
-                data-stepper-format="integer"
-              >
-                <label class="field-label" for="height-stepper-input">Height</label>
-                <div class="stepper-control">
-                  <button
-                    type="button"
-                    class="btn btn-icon stepper-decrement"
-                    data-stepper-decrement
-                    aria-label="Decrease height"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="text"
-                    id="height-stepper-input"
-                    class="input stepper-input"
-                    inputmode="numeric"
-                    aria-label="Height"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-icon stepper-increment"
-                    data-stepper-increment
-                    aria-label="Increase height"
-                  >
-                    +
-                  </button>
-                  <input type="hidden" class="stepper-value" />
-                </div>
-              </div>
-
-              <div
-                class="stepper converter-c-to-svg-only"
                 id="scale-stepper"
                 data-stepper-min="0.1"
                 data-stepper-max="100"
@@ -564,13 +570,15 @@
                 data-stepper-default="1"
                 data-stepper-format="decimal"
               >
-                <label class="field-label" for="scale-stepper-input">Scale</label>
+                <label class="field-label" for="scale-stepper-input" id="scale-stepper-label"
+                  >Output scale</label
+                >
                 <div class="stepper-control">
                   <button
                     type="button"
                     class="btn btn-icon stepper-decrement"
                     data-stepper-decrement
-                    aria-label="Decrease scale"
+                    aria-label="Decrease output scale"
                   >
                     −
                   </button>
@@ -585,7 +593,7 @@
                     type="button"
                     class="btn btn-icon stepper-increment"
                     data-stepper-increment
-                    aria-label="Increase scale"
+                    aria-label="Increase output scale"
                   >
                     +
                   </button>
@@ -826,7 +834,7 @@
               spellcheck="false"
               wrap="off"
               readonly
-              placeholder="Converted C array will appear here"
+              placeholder="C array output"
             ></textarea>
           </label>
           <div class="field converter-source-field">

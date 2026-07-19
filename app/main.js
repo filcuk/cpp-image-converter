@@ -19,6 +19,7 @@ import {
   formatNeedsBitOrder,
 } from "./converter/formats.js";
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
+import { EXAMPLE_SVG } from "./examples/example-svg.js";
 
 initShell({ pageNav: false });
 
@@ -28,6 +29,7 @@ const arrayNameInput = document.getElementById("array-name-input");
 const clearSourceBtn = document.getElementById("clear-source-btn");
 const clearSvgBtn = document.getElementById("clear-svg-btn");
 const loadExampleBtn = document.getElementById("load-example-btn");
+const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const previewEl = document.getElementById("svg-preview");
@@ -51,7 +53,6 @@ const outputFormatWrapEl = document.getElementById("output-format-wrap");
 const outputFormatDropdownLabelEl = document.getElementById(
   "output-format-dropdown-label"
 );
-const sizeOptionsRowEl = document.getElementById("size-options-row");
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -264,8 +265,12 @@ function setDirection(next) {
   setHidden(cOutputPanel, !writesC());
   setHidden(downloadSvgBtn, writesC());
   setHidden(downloadCBtn, !writesC());
-  setHidden(sizeOptionsRowEl, svgMode);
   setHidden(outputFormatWrapEl, !cToC);
+
+  // Input width/height only for C sources; output scale is available in every mode
+  document.querySelectorAll(".converter-needs-input-size").forEach((el) => {
+    setHidden(el, svgMode);
+  });
 
   document.querySelectorAll(".converter-c-to-svg-only").forEach((el) => {
     if (el.id === "animate-options-wrap") {
@@ -307,6 +312,12 @@ function setDirection(next) {
   // Fresh inputs/outputs whenever the direction changes
   clearSourceInputs();
   clearSvgInputs();
+  applyingMetadata = true;
+  try {
+    scaleStepper?.setValue(1);
+  } finally {
+    applyingMetadata = false;
+  }
   if (cPreviewEmptyEl) {
     cPreviewEmptyEl.textContent = cToC
       ? "Converted preview will appear here."
@@ -314,41 +325,42 @@ function setDirection(next) {
   }
 }
 
-/** @type {number | null} */
-let lastDecodedWidth = null;
-/** @type {number | null} */
-let lastDecodedHeight = null;
+/**
+ * Reset width/height to blank when there is no source size to show.
+ */
+function clearSizeSteppers() {
+  applyingMetadata = true;
+  try {
+    widthStepper?.clear({ emit: false });
+    heightStepper?.clear({ emit: false });
+    widthStepper?.setDisabled(false);
+    heightStepper?.setDisabled(false);
+  } finally {
+    applyingMetadata = false;
+  }
+}
 
 /**
  * @param {string} source
  */
 function applySourceMetadata(source) {
+  if (!source?.trim()) {
+    clearSizeSteppers();
+    updateFrameStepper(1);
+    return;
+  }
+
   const parsed = parseCArray(source);
   applyingMetadata = true;
   try {
     const hasWidth = Boolean(parsed.width);
     const hasHeight = Boolean(parsed.height);
 
-    if (isCToC()) {
-      // Seed output size from the source image; keep user resize until the source size changes
-      if (hasWidth && parsed.width !== lastDecodedWidth) {
-        widthStepper?.setValue(parsed.width);
-        lastDecodedWidth = parsed.width;
-      }
-      if (hasHeight && parsed.height !== lastDecodedHeight) {
-        heightStepper?.setValue(parsed.height);
-        lastDecodedHeight = parsed.height;
-      }
-      widthStepper?.setDisabled(false);
-      heightStepper?.setDisabled(false);
-    } else {
-      lastDecodedWidth = parsed.width ?? null;
-      lastDecodedHeight = parsed.height ?? null;
-      if (hasWidth) widthStepper?.setValue(parsed.width);
-      if (hasHeight) heightStepper?.setValue(parsed.height);
-      widthStepper?.setDisabled(hasWidth);
-      heightStepper?.setDisabled(hasHeight);
-    }
+    // Width/height are input decode size (locked when defines are present)
+    if (hasWidth) widthStepper?.setValue(parsed.width);
+    if (hasHeight) heightStepper?.setValue(parsed.height);
+    widthStepper?.setDisabled(hasWidth);
+    heightStepper?.setDisabled(hasHeight);
     updateFrameStepper(parsed.frameCount);
   } finally {
     applyingMetadata = false;
@@ -487,20 +499,20 @@ function readFileText(file) {
 
 function syncSourceActionVisibility() {
   const hasSource = Boolean(sourceTextarea?.value);
-  setHidden(clearSourceBtn, !hasSource);
+  if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
   setHidden(loadExampleBtn, hasSource);
 }
 
 function syncSvgActionVisibility() {
-  setHidden(clearSvgBtn, !svgTextarea?.value);
+  const hasSvg = Boolean(svgTextarea?.value);
+  if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
+  setHidden(loadExampleSvgBtn, hasSvg);
 }
 
 function clearSourceInputs() {
   sourceFromFile = false;
   downloadFilename = "converted.svg";
   if (isCToC()) downloadCFilename = "converted.c";
-  lastDecodedWidth = null;
-  lastDecodedHeight = null;
   if (sourceTextarea) sourceTextarea.value = "";
   ignoringDropzoneClear = true;
   try {
@@ -509,6 +521,7 @@ function clearSourceInputs() {
     ignoringDropzoneClear = false;
   }
   syncSourceActionVisibility();
+  clearSizeSteppers();
   clearPreview();
   if (writesC()) clearCOutput();
   hideBanner(errorBanner);
@@ -610,6 +623,18 @@ function loadExampleSource() {
   runConvert({ showSuccess: true });
 }
 
+function loadExampleSvg() {
+  if (!svgTextarea) {
+    showError("SVG text area is missing.");
+    return;
+  }
+  clearFileIfEditingSvg();
+  svgTextarea.value = EXAMPLE_SVG;
+  syncSvgActionVisibility();
+  downloadCFilename = "example.c";
+  runConvert({ showSuccess: true });
+}
+
 function clearFileIfEditingSource() {
   if (!sourceFromFile) return;
   sourceFromFile = false;
@@ -645,14 +670,8 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
     hideBanner(errorBanner);
     hideBanner(successBanner);
     hideBanner(warningBanner);
-    applyingMetadata = true;
-    try {
-      widthStepper?.setDisabled(false);
-      heightStepper?.setDisabled(false);
-      updateFrameStepper(1);
-    } finally {
-      applyingMetadata = false;
-    }
+    clearSizeSteppers();
+    updateFrameStepper(1);
     return;
   }
 
@@ -660,8 +679,10 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
   hideBanner(errorBanner);
 
   const parsedHint = parseCArray(source);
-  const widthFromUi = Math.round(widthStepper?.getValue() ?? 0);
-  const heightFromUi = Math.round(heightStepper?.getValue() ?? 0);
+  const widthRaw = widthStepper?.getValue();
+  const heightRaw = heightStepper?.getValue();
+  const widthFromUi = Number.isFinite(widthRaw) ? Math.round(widthRaw) : 0;
+  const heightFromUi = Number.isFinite(heightRaw) ? Math.round(heightRaw) : 0;
   const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
   const displayScale =
     Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
@@ -779,6 +800,10 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
       bitOrder: /** @type {"msb" | "lsb"} */ (
         bitOrderControl?.getValue() ?? "msb"
       ),
+      scale: (() => {
+        const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
+        return Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
+      })(),
       arrayName: arrayNameInput?.value?.trim() || "image",
     });
   } catch (err) {
@@ -802,7 +827,11 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   showCPreviewSvg(source);
 
   if (cMetaEl) {
-    cMetaEl.textContent = `${result.width}×${result.height} · ${formatIdLabel(result.format)} · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"} · ${result.elementType}`;
+    const scaled =
+      result.scale !== 1
+        ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
+        : "";
+    cMetaEl.textContent = `${result.width}×${result.height}${scaled} · ${formatIdLabel(result.format)} · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"} · ${result.elementType}`;
   }
   setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
@@ -822,14 +851,8 @@ function runConvertCToC({ showSuccess = true } = {}) {
     hideBanner(errorBanner);
     hideBanner(successBanner);
     hideBanner(warningBanner);
-    applyingMetadata = true;
-    try {
-      widthStepper?.setDisabled(false);
-      heightStepper?.setDisabled(false);
-      updateFrameStepper(1);
-    } finally {
-      applyingMetadata = false;
-    }
+    clearSizeSteppers();
+    updateFrameStepper(1);
     return;
   }
 
@@ -837,8 +860,13 @@ function runConvertCToC({ showSuccess = true } = {}) {
   hideBanner(errorBanner);
 
   const parsedHint = parseCArray(source);
-  const widthFromUi = Math.round(widthStepper?.getValue() ?? 0);
-  const heightFromUi = Math.round(heightStepper?.getValue() ?? 0);
+  const widthRaw = widthStepper?.getValue();
+  const heightRaw = heightStepper?.getValue();
+  const widthFromUi = Number.isFinite(widthRaw) ? Math.round(widthRaw) : 0;
+  const heightFromUi = Number.isFinite(heightRaw) ? Math.round(heightRaw) : 0;
+  const scaleFromUi = Number(scaleStepper?.getValue() ?? 1);
+  const scale =
+    Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
 
   let result;
   try {
@@ -851,6 +879,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
       ),
       width: widthFromUi > 0 ? widthFromUi : parsedHint.width,
       height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
+      scale,
       arrayName: arrayNameInput?.value?.trim() || "image",
     });
   } catch (err) {
@@ -876,8 +905,8 @@ function runConvertCToC({ showSuccess = true } = {}) {
   showCPreviewSvg(result.previewSvg);
 
   const resized =
-    result.width !== result.sourceWidth || result.height !== result.sourceHeight
-      ? ` · resized from ${result.sourceWidth}×${result.sourceHeight}`
+    result.scale !== 1
+      ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
       : "";
   const detected =
     result.detectedFormat && result.detectedFormat !== result.inputFormat
@@ -996,6 +1025,7 @@ try {
       if (isCToC()) downloadCFilename = "converted.c";
       if (sourceTextarea) sourceTextarea.value = "";
       syncSourceActionVisibility();
+      clearSizeSteppers();
       clearPreview();
       if (writesC()) clearCOutput();
       hideBanner(errorBanner);
@@ -1038,6 +1068,7 @@ try {
   clearSourceBtn?.addEventListener("click", clearSourceInputs);
   clearSvgBtn?.addEventListener("click", clearSvgInputs);
   loadExampleBtn?.addEventListener("click", loadExampleSource);
+  loadExampleSvgBtn?.addEventListener("click", loadExampleSvg);
   arrayNameInput?.addEventListener("input", onOptionChange);
 
   syncSourceActionVisibility();
@@ -1065,6 +1096,7 @@ try {
     if (!sourceTextarea.value.trim()) {
       if (isCToC()) clearCOutput();
       else clearPreview();
+      clearSizeSteppers();
       hideBanner(errorBanner);
       return;
     }
