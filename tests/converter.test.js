@@ -362,3 +362,105 @@ test("svgToPixels reads style=fill colours", async () => {
   const backG = convertSvgToC({ source: styleOnG, format: "argb32" });
   assert.match(backG.source, /0xff00ff00/i);
 });
+
+test("svg to indexed I1 emits palette and packed bytes", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 8 1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/><rect x="1" y="0" width="7" height="1" fill="#FFFFFF"/></svg>`;
+  const result = convertSvgToC({ source: svg, format: "i1", arrayName: "x" });
+  assert.equal(result.error, null);
+  assert.equal(result.elementType, "uint8_t");
+  assert.match(result.source, /X_COLOR_COUNT 2/);
+  assert.match(result.source, /static const uint32_t x_color\[2\]/);
+  assert.match(result.source, /static const uint8_t x_data/);
+  assert.match(result.source, /0xff0000ff/i);
+  assert.match(result.source, /0xffffffff/i);
+});
+
+test("resizePixels nearest-neighbour doubles a row", async () => {
+  const { resizePixels } = await import("../app/converter/resize-pixels.js");
+  const red = { r: 255, g: 0, b: 0, a: 255 };
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const out = resizePixels([red, white], 2, 1, 4, 1);
+  assert.deepEqual(out, [red, red, white, white]);
+});
+
+test("elementTypeForFormat and formatLabelWithType", async () => {
+  const {
+    elementTypeForFormat,
+    formatLabelWithType,
+  } = await import("../app/converter/formats.js");
+  assert.equal(elementTypeForFormat("argb32"), "uint32_t");
+  assert.equal(elementTypeForFormat("rgb565"), "uint16_t");
+  assert.equal(elementTypeForFormat("i1"), "uint8_t");
+  assert.equal(formatLabelWithType("rgb565"), "RGB565 · uint16_t");
+  assert.equal(formatLabelWithType("auto"), "Auto");
+});
+
+test("convertCToC converts uint32 ARGB32 to uint16 RGB565", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][1] = { { 0xff0000ff } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "rgb565",
+    arrayName: "pix",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.elementType, "uint16_t");
+  assert.match(result.source, /static const uint16_t pix_data/);
+  assert.match(result.source, /0xf800/i);
+});
+
+test("convertCToC packs ARGB32 to indexed I1", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_WIDTH 8
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][8] = {
+  { 0xff0000ff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff }
+};
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "i1",
+    arrayName: "x",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.width, 8);
+  assert.equal(result.height, 1);
+  assert.equal(result.outputFormat, "i1");
+  assert.equal(result.elementType, "uint8_t");
+  assert.match(result.source, /X_COLOR_COUNT 2/);
+  assert.match(result.source, /static const uint8_t x_data/);
+  assert.match(result.source, /0x7f/i);
+});
+
+test("convertCToC resizes while packing", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][2] = { { 0xff0000ff, 0xffffffff } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "argb32",
+    width: 4,
+    height: 1,
+    arrayName: "scaled",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.sourceWidth, 2);
+  assert.equal(result.width, 4);
+  assert.match(result.source, /SCALED_FRAME_WIDTH 4/);
+  const reds = result.source.match(/0xff0000ff/gi) ?? [];
+  const whites = result.source.match(/0xffffffff/gi) ?? [];
+  assert.equal(reds.length, 2);
+  assert.equal(whites.length, 2);
+});

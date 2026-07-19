@@ -202,12 +202,17 @@ export function buildPalette(pixels, maxColors) {
 }
 
 /**
+ * @typedef {{ palette: Rgba[], indexOf: (pixel: Rgba | null) => number, warnings: string[] }} BuiltPalette
+ */
+
+/**
  * @param {object} options
  * @param {string} options.format
  * @param {(Rgba | null)[]} options.pixels
  * @param {number} options.width
  * @param {number} options.height
  * @param {BitOrder} [options.bitOrder]
+ * @param {BuiltPalette | null} [options.sharedPalette] Reuse one palette across frames (indexed formats).
  * @returns {{ values: number[], palette: number[] | null, elementType: string, warnings: string[] }}
  */
 export function encodePixels({
@@ -216,6 +221,7 @@ export function encodePixels({
   width,
   height,
   bitOrder = "msb",
+  sharedPalette = null,
 }) {
   /** @type {string[]} */
   const warnings = [];
@@ -346,8 +352,8 @@ export function encodePixels({
   const indexedBpp = indexedBitsPerPixel(format);
   if (indexedBpp !== null) {
     const maxColors = 1 << indexedBpp;
-    const built = buildPalette(pixels, maxColors);
-    warnings.push(...built.warnings);
+    const built = sharedPalette ?? buildPalette(pixels, maxColors);
+    if (!sharedPalette) warnings.push(...built.warnings);
     const paletteValues = built.palette.map((c) => encodeArgb32(c));
 
     if (indexedBpp === 8) {

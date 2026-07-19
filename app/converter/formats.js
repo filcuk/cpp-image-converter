@@ -49,10 +49,53 @@ export function getFormatInfo(id) {
 }
 
 /**
+ * C array element type used when encoding this pixel format.
+ * @param {string} format
+ * @returns {"uint8_t" | "uint16_t" | "uint32_t" | null}
+ */
+export function elementTypeForFormat(format) {
+  switch (format) {
+    case "argb32":
+    case "argb32-classic":
+    case "xrgb8888":
+      return "uint32_t";
+    case "rgb565":
+    case "rgb565-swap":
+      return "uint16_t";
+    case "rgb888":
+    case "bgr888":
+    case "rgb565a8":
+    case "argb8565":
+    case "i1":
+    case "i2":
+    case "i4":
+    case "i8":
+    case "l8":
+    case "al88":
+    case "p2":
+    case "p4":
+    case "1bit":
+      return "uint8_t";
+    default:
+      return null;
+  }
+}
+
+/**
  * @param {string} id
  */
 export function formatLabel(id) {
   return getFormatInfo(id)?.label ?? String(id).toUpperCase();
+}
+
+/**
+ * Label including the C element type, e.g. `RGB565 (uint16_t)`.
+ * @param {string} id
+ */
+export function formatLabelWithType(id) {
+  const label = formatLabel(id);
+  const elementType = elementTypeForFormat(id);
+  return elementType ? `${label} · ${elementType}` : label;
 }
 
 /**

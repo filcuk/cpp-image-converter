@@ -3,9 +3,9 @@
  */
 
 import { svgToPixels, svgToPixelsAsync } from "./svg-to-pixels.js";
-import { encodePixels } from "./encode-pixels.js";
+import { buildPalette, encodePixels } from "./encode-pixels.js";
 import { toCArray } from "./to-c-array.js";
-import { isManualFormat } from "./formats.js";
+import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
 
 /**
  * @typedef {object} ConvertSvgToCOptions
@@ -68,6 +68,14 @@ function encodeRaster(options, raster) {
   result.frameCount = raster.frames.length;
 
   const bitOrder = options.bitOrder === "lsb" ? "lsb" : "msb";
+  /** @type {import("./encode-pixels.js").BuiltPalette | null} */
+  let sharedPalette = null;
+  const indexedBpp = indexedBitsPerPixel(format);
+  if (indexedBpp !== null) {
+    sharedPalette = buildPalette(raster.frames.flat(), 1 << indexedBpp);
+    result.warnings.push(...sharedPalette.warnings);
+  }
+
   /** @type {number[][]} */
   const encodedFrames = [];
   /** @type {number[] | null} */
@@ -81,6 +89,7 @@ function encodeRaster(options, raster) {
       width: raster.width,
       height: raster.height,
       bitOrder,
+      sharedPalette,
     });
     result.warnings.push(...encoded.warnings);
     encodedFrames.push(encoded.values);

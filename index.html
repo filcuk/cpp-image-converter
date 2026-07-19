@@ -98,6 +98,15 @@
             >
               SVG → C
             </button>
+            <button
+              type="button"
+              class="segmented-control-item"
+              role="radio"
+              aria-checked="false"
+              data-segmented-control-value="c-to-c"
+            >
+              C → C
+            </button>
           </div>
           <input type="hidden" class="segmented-control-value" value="c-to-svg" />
         </div>
@@ -405,6 +414,37 @@
               </div>
             </div>
 
+            <div
+              class="converter-format converter-c-to-c-only hidden"
+              id="output-format-wrap"
+              hidden
+            >
+              <span class="field-label" id="output-format-label">Output C type</span>
+              <div class="dropdown" id="output-format-dropdown">
+                <button
+                  type="button"
+                  class="btn dropdown-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                  aria-controls="output-format-dropdown-menu"
+                  aria-labelledby="output-format-label"
+                >
+                  <span
+                    class="dropdown-trigger-label"
+                    id="output-format-dropdown-label"
+                    >ARGB32 (Piskel) · uint32_t</span
+                  >
+                  <span class="combo-btn-chevron" aria-hidden="true"></span>
+                </button>
+                <ul
+                  id="output-format-dropdown-menu"
+                  class="dropdown-menu converter-format-menu hidden"
+                  role="menu"
+                  hidden
+                ></ul>
+              </div>
+            </div>
+
             <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
               <span class="field-label" id="bit-order-label">Bit order</span>
               <div
@@ -440,7 +480,7 @@
               </div>
             </div>
 
-            <div class="converter-options__row converter-c-to-svg-only" id="size-options-row">
+            <div class="converter-options__row converter-needs-size hidden" id="size-options-row" hidden>
               <div
                 class="stepper"
                 id="width-stepper"
@@ -516,7 +556,7 @@
               </div>
 
               <div
-                class="stepper"
+                class="stepper converter-c-to-svg-only"
                 id="scale-stepper"
                 data-stepper-min="0.1"
                 data-stepper-max="100"
@@ -723,7 +763,11 @@
               </div>
             </div>
 
-            <div class="converter-options__row converter-svg-to-c-only hidden" id="svg-to-c-options-row" hidden>
+            <div
+              class="converter-options__row converter-writes-c-only hidden"
+              id="svg-to-c-options-row"
+              hidden
+            >
               <label class="field" for="array-name-input">
                 <span class="field-label">Array name</span>
                 <input
