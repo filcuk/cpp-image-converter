@@ -48,6 +48,7 @@ const svgInputPanel = document.getElementById("svg-input-panel");
 const svgOutputPanel = document.getElementById("svg-output-panel");
 const cOutputPanel = document.getElementById("c-output-panel");
 const frameStepperEl = document.getElementById("frame-stepper");
+const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const fillWrapEl = document.getElementById("fill-color-picker");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
@@ -423,6 +424,7 @@ function updateFrameStepper(frameCount) {
       animateFramesToggle.setChecked(false, { emit: false });
     }
     setHidden(frameStepperEl, true);
+    setHidden(frameFpsStepperEl, true);
     return;
   }
 
@@ -433,6 +435,7 @@ function updateFrameStepper(frameCount) {
 
   const animate = Boolean(animateFramesToggle?.getChecked());
   setHidden(frameStepperEl, animate);
+  setHidden(frameFpsStepperEl, !animate);
 
   const maxIndex = lastFrameCount - 1;
   frameStepper?.setBounds({ min: 0, max: maxIndex, emit: false });
