@@ -1,5 +1,6 @@
 import { initShell } from "./shell/shell.js";
 import { setHidden } from "./utils/dom.js";
+import { copyTextToClipboard } from "./utils/clipboard.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
@@ -32,6 +33,7 @@ const loadExampleBtn = document.getElementById("load-example-btn");
 const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
+const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
 const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
@@ -266,6 +268,7 @@ function setDirection(next) {
   setHidden(downloadSvgBtn, writesC());
   setHidden(downloadCBtn, !writesC());
   setHidden(outputFormatWrapEl, !cToC);
+  syncCopyEnabled();
 
   // Input width/height only for C sources; output scale is available in every mode
   document.querySelectorAll(".converter-needs-input-size").forEach((el) => {
@@ -441,12 +444,18 @@ function showSuccessBanner(message) {
   showBanner(successBanner);
 }
 
+function syncCopyEnabled() {
+  const hasOutput = writesC() ? Boolean(latestC) : Boolean(latestSvg);
+  if (copyOutputBtn) copyOutputBtn.disabled = !hasOutput;
+}
+
 function clearPreview() {
   latestSvg = null;
   previewEl?.querySelector("svg")?.remove();
   setHidden(previewEmptyEl, false);
   setHidden(metaEl, true);
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
+  syncCopyEnabled();
 }
 
 function clearCPreview() {
@@ -460,6 +469,7 @@ function clearCOutput() {
   clearCPreview();
   setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
+  syncCopyEnabled();
 }
 
 function triggerSvgDownload() {
@@ -478,6 +488,25 @@ function triggerCDownload() {
     content: latestC,
     mimeType: "text/x-c;charset=utf-8",
   });
+}
+
+async function triggerCopyOutput() {
+  if (!copyOutputBtn || copyOutputBtn.disabled) return;
+  const text = writesC() ? latestC : latestSvg;
+  if (!text) return;
+
+  const restoreLabel = () => {
+    copyOutputBtn.textContent = "Copy";
+  };
+
+  try {
+    await copyTextToClipboard(text);
+    copyOutputBtn.textContent = "Copied";
+    window.setTimeout(restoreLabel, 2000);
+  } catch {
+    copyOutputBtn.textContent = "Failed";
+    window.setTimeout(restoreLabel, 2000);
+  }
 }
 
 /**
@@ -754,6 +783,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
   }
   setHidden(metaEl, false);
   if (downloadSvgBtn) downloadSvgBtn.disabled = false;
+  syncCopyEnabled();
 
   if (showSuccess) {
     showSuccessBanner(
@@ -835,6 +865,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   }
   setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
+  syncCopyEnabled();
 
   if (showSuccess) {
     showSuccessBanner("C array ready.");
@@ -918,6 +949,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
   }
   setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
+  syncCopyEnabled();
 
   if (showSuccess) {
     showSuccessBanner("C array ready.");
@@ -1065,6 +1097,9 @@ try {
 
   downloadSvgBtn?.addEventListener("click", triggerSvgDownload);
   downloadCBtn?.addEventListener("click", triggerCDownload);
+  copyOutputBtn?.addEventListener("click", () => {
+    void triggerCopyOutput();
+  });
   clearSourceBtn?.addEventListener("click", clearSourceInputs);
   clearSvgBtn?.addEventListener("click", clearSvgInputs);
   loadExampleBtn?.addEventListener("click", loadExampleSource);
