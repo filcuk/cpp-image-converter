@@ -304,7 +304,7 @@ function setDirection(next) {
   );
   setHidden(autoItem?.closest("li") ?? autoItem, svgMode);
   if (svgMode && selectedFormat === "auto") {
-    setFormatSelection("argb32", "ARGB32 (Piskel)");
+    setFormatSelection("argb32", "ARGB32 (LE RGBA)");
   }
 
   syncBitOrderVisibility(selectedFormat);

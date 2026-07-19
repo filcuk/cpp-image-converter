@@ -38,7 +38,7 @@ function solidOrTransparent(pixel) {
 }
 
 /**
- * Piskel little-endian RGBA.
+ * Little-endian RGBA (`0xAABBGGRR`).
  * @param {Rgba | null} pixel
  */
 export function encodeArgb32(pixel) {
@@ -380,7 +380,7 @@ export function encodePixels({
     };
   }
 
-  warnings.push(`Unsupported encode format “${format}”; falling back to ARGB32 (Piskel).`);
+  warnings.push(`Unsupported encode format “${format}”; falling back to ARGB32 (LE RGBA).`);
   return {
     values: pixels.map((p) => encodeArgb32(p)),
     palette: null,

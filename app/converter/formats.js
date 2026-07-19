@@ -15,7 +15,7 @@
 /** @type {FormatInfo[]} */
 export const FORMAT_CATALOGUE = [
   { id: "auto", label: "Auto" },
-  { id: "argb32", label: "ARGB32 (Piskel)" },
+  { id: "argb32", label: "ARGB32 (LE RGBA)" },
   { id: "argb32-classic", label: "ARGB32 (classic)" },
   { id: "xrgb8888", label: "XRGB8888" },
   { id: "rgb888", label: "RGB888" },

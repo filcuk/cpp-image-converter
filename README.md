@@ -8,7 +8,7 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
 - **SVG → C** — paste or upload `.svg` (including path-based artwork); download a Piskel-like `.c` array (including indexed I1–I8 with palette)
 - **C → C** — convert between C array types (e.g. `uint32_t` ARGB32 → `uint16_t` RGB565 or indexed `uint8_t`) and/or resize, without going through SVG
 - **Pixel formats** — Auto-detect from element type, or pick manually:
-  - ARGB32 (Piskel little-endian RGBA / `0xAABBGGRR`) and classic AARRGGBB
+  - ARGB32 (LE RGBA / `0xAABBGGRR`) and classic AARRGGBB
   - XRGB8888, RGB888 / BGR888
   - RGB565 / byte-swapped RGB565, RGB565A8, ARGB8565
   - Indexed I1–I8 (palette from `*_color` / `*_palette` when present)
@@ -33,7 +33,7 @@ Then open `http://localhost:3000`.
 
 1. Choose **C → SVG**
 2. Paste array source or upload a `.c` / `.h` / `.txt` file
-3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 Piskel, `uint16_t` → RGB565, `uint8_t` → 1-bit) and **input** size when defines are missing
+3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 LE RGBA, `uint16_t` → RGB565, `uint8_t` → 1-bit) and **input** size when defines are missing
 4. Optionally set **output scale**, override fill, or animate multi-frame sources
 5. Preview and download the `.svg`
 

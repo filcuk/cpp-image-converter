@@ -43,7 +43,7 @@ function rgbaOrNull(r, g, b, a) {
 }
 
 /**
- * Piskel / little-endian RGBA (`0xAABBGGRR`). Opaque red is `0xff0000ff`.
+ * Little-endian RGBA (`0xAABBGGRR`). Opaque red is `0xff0000ff`.
  * @param {number} value
  * @returns {Rgba | null}
  */
@@ -177,7 +177,7 @@ export function grayRamp(levelCount) {
 }
 
 /**
- * Decode palette entries (Piskel ABGR / little-endian RGBA).
+ * Decode palette entries (little-endian RGBA / `0xAABBGGRR`).
  * @param {number[]} values
  * @returns {(Rgba | null)[]}
  */
