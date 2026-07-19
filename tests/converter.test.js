@@ -103,6 +103,48 @@ test("resolveFormat prefers manual selection over auto", () => {
   });
 });
 
+test("auto-detects indexed I8 when palette and 1 byte/pixel", () => {
+  const detected = resolveFormat("auto", {
+    elementType: "uint8_t",
+    palette: new Array(29).fill(0xff000000),
+    width: 48,
+    height: 48,
+    valueCount: 6 * 2304,
+    frameCount: 6,
+    colorCount: 29,
+  });
+  assert.deepEqual(detected, { format: "i8", detected: "i8" });
+});
+
+test("auto-detects indexed I1 when palette and packed bit stride", () => {
+  const detected = resolveFormat("auto", {
+    elementType: "uint8_t",
+    palette: [0xff0000ff, 0xffffffff],
+    width: 8,
+    height: 1,
+    valueCount: 1,
+    frameCount: 1,
+    colorCount: 2,
+  });
+  assert.deepEqual(detected, { format: "i1", detected: "i1" });
+});
+
+test("convertCToSvg auto uses I8 for paletted uint8 image", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+#define COLOR_COUNT 2
+static const uint32_t image_color[2] = { 0xff0000ff, 0xffffffff };
+static const uint8_t image_data[1][2] = { { 0x00, 0x01 } };
+`;
+  const result = convertCToSvg({ source, format: "auto", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.equal(result.format, "i8");
+  assert.equal(result.detectedFormat, "i8");
+  assert.match(result.svg, /fill="#FF0000"/i);
+  assert.match(result.svg, /fill="#FFFFFF"/i);
+});
+
 test("frameValueCount covers packed formats", () => {
   assert.equal(frameValueCount("argb32", 2, 2), 4);
   assert.equal(frameValueCount("rgb888", 2, 2), 12);
