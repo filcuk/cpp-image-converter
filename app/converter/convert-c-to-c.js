@@ -219,5 +219,6 @@ export function convertCToC({
     minify: true,
   });
 
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }

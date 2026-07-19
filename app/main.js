@@ -450,11 +450,12 @@ function showError(message) {
  * @param {string[]} warnings
  */
 function showWarnings(warnings) {
-  if (!warnings.length) {
+  const unique = [...new Set(warnings)];
+  if (!unique.length) {
     hideBanner(warningBanner);
     return;
   }
-  if (warningBody) warningBody.textContent = warnings.join(" ");
+  if (warningBody) warningBody.textContent = unique.join(" ");
   showBanner(warningBanner);
 }
 

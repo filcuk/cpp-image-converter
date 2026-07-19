@@ -205,6 +205,7 @@ export function convertCToSvg({
       frameDurationMs: duration,
       minify,
     });
+    result.warnings = [...new Set(result.warnings)];
     return result;
   }
 
@@ -224,6 +225,7 @@ export function convertCToSvg({
   result.rectCount = rects.length;
   result.svg = toSvg({ width, height, rects, displayScale, minify });
 
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }
 

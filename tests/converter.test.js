@@ -311,6 +311,27 @@ static const uint32_t data[2][2] = {
   assert.match(result.svg, /fill="#FFFFFF"/);
 });
 
+test("convertCToSvg animateFrames dedupes per-frame decode warnings", () => {
+  const source = `
+#define FRAME_COUNT 3
+#define FRAME_WIDTH 8
+#define FRAME_HEIGHT 1
+static const uint32_t palette[] = { 0xff0000ff };
+static const uint8_t data[3][1] = { { 0x00 }, { 0xff }, { 0xaa } };
+`;
+  const result = convertCToSvg({
+    source,
+    format: "i1",
+    animateFrames: true,
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.animated, true);
+  const paletteWarnings = result.warnings.filter((w) =>
+    w.includes("Indexed format needs up to")
+  );
+  assert.equal(paletteWarnings.length, 1);
+});
+
 test("svg round-trip preserves ARGB32 red pixel", async () => {
   const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
   const source = `
