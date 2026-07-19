@@ -1,6 +1,9 @@
 import { setHidden } from "./dom.js";
 import { onDocumentClickOutside, onDocumentEscape } from "./document-listeners.js";
 
+/** @type {Set<() => void>} */
+const openMenuClosers = new Set();
+
 /**
  * Shared open/close behaviour for anchored popup menus (combo chevron, dropdown).
  */
@@ -34,13 +37,18 @@ export function initPopupMenu({
   function closeMenu() {
     if (!isOpen) return;
     isOpen = false;
+    openMenuClosers.delete(closeMenu);
     setHidden(menuEl, true);
     toggleEl?.setAttribute("aria-expanded", "false");
     toggleEl?.focus();
   }
 
   function openMenu() {
+    for (const closeOther of [...openMenuClosers]) {
+      if (closeOther !== closeMenu) closeOther();
+    }
     isOpen = true;
+    openMenuClosers.add(closeMenu);
     setHidden(menuEl, false);
     toggleEl?.setAttribute("aria-expanded", "true");
     focusFirstItem();
@@ -124,6 +132,7 @@ export function initPopupMenu({
     toggleMenu,
     isOpen: () => isOpen,
     destroy() {
+      closeMenu();
       toggleEl?.removeEventListener("click", onToggleClick);
       menuEl.removeEventListener("click", onMenuClick);
       menuEl.removeEventListener("keydown", onMenuKeydown);
