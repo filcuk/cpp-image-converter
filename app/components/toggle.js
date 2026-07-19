@@ -98,8 +98,12 @@ export function initToggle(
     getChecked() {
       return isChecked;
     },
-    setChecked(checked) {
-      setChecked(checked);
+    /**
+     * @param {boolean} checked
+     * @param {{ emit?: boolean, source?: string }} [options]
+     */
+    setChecked(checked, options) {
+      setChecked(checked, options);
     },
     toggle() {
       setChecked(!isChecked, { source: "api" });

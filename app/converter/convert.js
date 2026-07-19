@@ -103,7 +103,15 @@ export function convertCToSvg({
   frameDurationMs = 100,
 }) {
   const parsed = parseCArray(source);
-  const { format, detected } = resolveFormat(formatSelection, parsed.elementType);
+  const { format, detected } = resolveFormat(formatSelection, {
+    elementType: parsed.elementType,
+    palette: parsed.palette,
+    width: widthOverride ?? parsed.width,
+    height: heightOverride ?? parsed.height,
+    valueCount: parsed.values.length,
+    frameCount: parsed.frameCount,
+    colorCount: parsed.colorCount,
+  });
 
   const width = widthOverride ?? parsed.width;
   const height = heightOverride ?? parsed.height;
@@ -205,6 +213,7 @@ export function convertCToSvg({
       frameDurationMs: duration,
       minify,
     });
+    result.warnings = [...new Set(result.warnings)];
     return result;
   }
 
@@ -224,6 +233,7 @@ export function convertCToSvg({
   result.rectCount = rects.length;
   result.svg = toSvg({ width, height, rects, displayScale, minify });
 
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }
 

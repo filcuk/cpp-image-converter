@@ -15,6 +15,7 @@ import { convertCToC } from "./converter/convert-c-to-c.js";
 import { parseCArray } from "./converter/parse-c-array.js";
 import {
   FORMAT_CATALOGUE,
+  FORMAT_GROUP_LABELS,
   formatLabel as formatIdLabel,
   formatLabelWithType,
   formatNeedsBitOrder,
@@ -60,8 +61,25 @@ const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
 const warningBanner = document.getElementById("converter-warning");
 const warningBody = document.getElementById("converter-warning-body");
+const optionsWarningBanner = document.getElementById("converter-options-warning");
+const optionsWarningBody = document.getElementById(
+  "converter-options-warning-body"
+);
 const successBanner = document.getElementById("converter-success");
 const successBody = document.getElementById("converter-success-body");
+
+/** Warnings about output format / palette limits (shown under Options). */
+function isOptionsWarning(message) {
+  return (
+    message.includes("Indexed format keeps") ||
+    message.includes("will be remapped to palette index")
+  );
+}
+
+function hideWarningBanners() {
+  hideBanner(warningBanner);
+  hideBanner(optionsWarningBanner);
+}
 
 /** @type {string | null} */
 let latestSvg = null;
@@ -219,8 +237,22 @@ function setOutputFormatSelection(value, label) {
 function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
   if (!menu) return;
   menu.replaceChildren();
+  /** @type {string | null} */
+  let lastGroup = null;
   for (const format of FORMAT_CATALOGUE) {
     if (!includeAuto && format.id === "auto") continue;
+
+    if (format.group && format.group !== lastGroup) {
+      lastGroup = format.group;
+      const groupLi = document.createElement("li");
+      groupLi.setAttribute("role", "presentation");
+      const groupLabel = document.createElement("div");
+      groupLabel.className = "dropdown-menu-group";
+      groupLabel.textContent = FORMAT_GROUP_LABELS[format.group] ?? format.group;
+      groupLi.append(groupLabel);
+      menu.append(groupLi);
+    }
+
     const li = document.createElement("li");
     li.setAttribute("role", "none");
     const btn = document.createElement("button");
@@ -291,26 +323,24 @@ function setDirection(next) {
   });
 
   if (formatLabelEl) {
-    formatLabelEl.textContent = svgMode
-      ? "Output format"
-      : cToC
-        ? "Input C type"
-        : "Pixel format";
+    formatLabelEl.textContent = svgMode ? "Output type" : "Input type";
   }
 
-  // Auto is for reading C; SVG→C / C→C output defaults stay manual
+  // Auto is for reading C; SVG→C output format stays manual
   const autoItem = document.querySelector(
     '#format-dropdown-menu [data-value="auto"]'
   );
   setHidden(autoItem?.closest("li") ?? autoItem, svgMode);
   if (svgMode && selectedFormat === "auto") {
-    setFormatSelection("argb32", "ARGB32 (Piskel)");
+    setFormatSelection("argb32", "ARGB32 (LE RGBA)");
+  } else if (cToC) {
+    setFormatSelection("auto", "Auto");
   }
 
   syncBitOrderVisibility(selectedFormat);
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 
   // Fresh inputs/outputs whenever the direction changes
   clearSourceInputs();
@@ -374,6 +404,7 @@ function applySourceMetadata(source) {
  * @param {number} frameCount
  */
 function updateFrameStepper(frameCount) {
+  const wasMulti = lastFrameCount > 1;
   lastFrameCount = Math.max(1, frameCount || 1);
   if (isSvgToC() || isCToC()) {
     setHidden(animateOptionsWrapEl, true);
@@ -384,25 +415,29 @@ function updateFrameStepper(frameCount) {
   const multi = lastFrameCount > 1;
   setHidden(animateOptionsWrapEl, !multi);
 
-  const animate = Boolean(animateFramesToggle?.getChecked());
-  setHidden(frameStepperEl, !multi || animate);
-
   if (!multi) {
+    frameStepper?.setBounds({ min: 0, max: 0, emit: false });
     frameStepper?.setValue(0);
     if (animateFramesToggle?.getChecked()) {
-      applyingMetadata = true;
-      try {
-        animateFramesToggle.setChecked(false);
-      } finally {
-        applyingMetadata = false;
-      }
+      animateFramesToggle.setChecked(false, { emit: false });
     }
+    setHidden(frameStepperEl, true);
     return;
   }
 
-  if (animate) return;
+  // Newly multi-frame source → animate by default
+  if (!wasMulti && animateFramesToggle && !animateFramesToggle.getChecked()) {
+    animateFramesToggle.setChecked(true, { emit: false });
+  }
+
+  const animate = Boolean(animateFramesToggle?.getChecked());
+  setHidden(frameStepperEl, animate);
 
   const maxIndex = lastFrameCount - 1;
+  frameStepper?.setBounds({ min: 0, max: maxIndex, emit: false });
+
+  if (animate) return;
+
   let current = Math.round(frameStepper?.getValue() ?? 0);
   if (current > maxIndex) current = 0;
   frameStepper?.setValue(current);
@@ -418,7 +453,7 @@ function getFrameIndex() {
  * @param {string} message
  */
 function showError(message) {
-  hideBanner(warningBanner);
+  hideWarningBanners();
   hideBanner(successBanner);
   if (errorBody) errorBody.textContent = message;
   showBanner(errorBanner);
@@ -428,12 +463,25 @@ function showError(message) {
  * @param {string[]} warnings
  */
 function showWarnings(warnings) {
-  if (!warnings.length) {
-    hideBanner(warningBanner);
-    return;
+  const unique = [...new Set(warnings)];
+  const optionsWarnings = unique.filter(isOptionsWarning);
+  const inputWarnings = unique.filter((w) => !isOptionsWarning(w));
+
+  if (optionsWarnings.length) {
+    if (optionsWarningBody) {
+      optionsWarningBody.textContent = optionsWarnings.join(" ");
+    }
+    showBanner(optionsWarningBanner);
+  } else {
+    hideBanner(optionsWarningBanner);
   }
-  if (warningBody) warningBody.textContent = warnings.join(" ");
-  showBanner(warningBanner);
+
+  if (inputWarnings.length) {
+    if (warningBody) warningBody.textContent = inputWarnings.join(" ");
+    showBanner(warningBanner);
+  } else {
+    hideBanner(warningBanner);
+  }
 }
 
 /**
@@ -555,7 +603,7 @@ function clearSourceInputs() {
   if (writesC()) clearCOutput();
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 }
 
 function clearSvgInputs() {
@@ -572,7 +620,7 @@ function clearSvgInputs() {
   clearCOutput();
   hideBanner(errorBanner);
   hideBanner(successBanner);
-  hideBanner(warningBanner);
+  hideWarningBanners();
 }
 
 /**
@@ -698,7 +746,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
     clearPreview();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     clearSizeSteppers();
     updateFrameStepper(1);
     return;
@@ -816,7 +864,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
     clearCOutput();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     return;
   }
 
@@ -854,7 +902,7 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   latestC = result.source;
   if (cOutputTextarea) cOutputTextarea.value = result.source;
   showWarnings(result.warnings);
-  showCPreviewSvg(source);
+  showCPreviewSvg(result.previewSvg);
 
   if (cMetaEl) {
     const scaled =
@@ -881,7 +929,7 @@ function runConvertCToC({ showSuccess = true } = {}) {
     clearCOutput();
     hideBanner(errorBanner);
     hideBanner(successBanner);
-    hideBanner(warningBanner);
+    hideWarningBanners();
     clearSizeSteppers();
     updateFrameStepper(1);
     return;
@@ -1062,7 +1110,7 @@ try {
       if (writesC()) clearCOutput();
       hideBanner(errorBanner);
       hideBanner(successBanner);
-      hideBanner(warningBanner);
+      hideWarningBanners();
     },
     onError: ({ message }) => showError(message || "File upload failed."),
   });
@@ -1086,7 +1134,7 @@ try {
       clearCOutput();
       hideBanner(errorBanner);
       hideBanner(successBanner);
-      hideBanner(warningBanner);
+      hideWarningBanners();
     },
     onError: ({ message }) => showError(message || "File upload failed."),
   });

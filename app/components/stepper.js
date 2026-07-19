@@ -336,6 +336,35 @@ export function initStepper(
     setValue(nextValue) {
       setValue(nextValue);
     },
+    /**
+     * Update min/max bounds. Clamps the current value when it falls outside.
+     * @param {{ min?: number, max?: number, emit?: boolean }} [options]
+     */
+    setBounds({ min, max, emit = false } = {}) {
+      const nextMin =
+        min === undefined ? config.min : parseConfigNumber(min, config.min);
+      const nextMax =
+        max === undefined ? config.max : parseConfigNumber(max, config.max);
+      config.min = Math.min(nextMin, nextMax);
+      config.max = Math.max(nextMin, nextMax);
+      stepperEl.dataset.stepperMin = String(config.min);
+      stepperEl.dataset.stepperMax = String(config.max);
+
+      if (currentValue !== null) {
+        const clamped = snapToStep(
+          currentValue,
+          config.min,
+          config.max,
+          config.step
+        );
+        if (clamped !== currentValue) {
+          currentValue = clamped;
+          syncDom({ emit, source: "api" });
+          return;
+        }
+      }
+      syncButtonStates();
+    },
     clear({ emit = true } = {}) {
       setValue(null, { emit, source: "api" });
     },

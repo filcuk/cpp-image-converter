@@ -103,6 +103,48 @@ test("resolveFormat prefers manual selection over auto", () => {
   });
 });
 
+test("auto-detects indexed I8 when palette and 1 byte/pixel", () => {
+  const detected = resolveFormat("auto", {
+    elementType: "uint8_t",
+    palette: new Array(29).fill(0xff000000),
+    width: 48,
+    height: 48,
+    valueCount: 6 * 2304,
+    frameCount: 6,
+    colorCount: 29,
+  });
+  assert.deepEqual(detected, { format: "i8", detected: "i8" });
+});
+
+test("auto-detects indexed I1 when palette and packed bit stride", () => {
+  const detected = resolveFormat("auto", {
+    elementType: "uint8_t",
+    palette: [0xff0000ff, 0xffffffff],
+    width: 8,
+    height: 1,
+    valueCount: 1,
+    frameCount: 1,
+    colorCount: 2,
+  });
+  assert.deepEqual(detected, { format: "i1", detected: "i1" });
+});
+
+test("convertCToSvg auto uses I8 for paletted uint8 image", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+#define COLOR_COUNT 2
+static const uint32_t image_color[2] = { 0xff0000ff, 0xffffffff };
+static const uint8_t image_data[1][2] = { { 0x00, 0x01 } };
+`;
+  const result = convertCToSvg({ source, format: "auto", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.equal(result.format, "i8");
+  assert.equal(result.detectedFormat, "i8");
+  assert.match(result.svg, /fill="#FF0000"/i);
+  assert.match(result.svg, /fill="#FFFFFF"/i);
+});
+
 test("frameValueCount covers packed formats", () => {
   assert.equal(frameValueCount("argb32", 2, 2), 4);
   assert.equal(frameValueCount("rgb888", 2, 2), 12);
@@ -311,6 +353,55 @@ static const uint32_t data[2][2] = {
   assert.match(result.svg, /fill="#FFFFFF"/);
 });
 
+test("convertCToSvg animateFrames dedupes per-frame decode warnings", () => {
+  const source = `
+#define FRAME_COUNT 3
+#define FRAME_WIDTH 8
+#define FRAME_HEIGHT 1
+static const uint32_t palette[] = { 0xff0000ff };
+static const uint8_t data[3][1] = { { 0x00 }, { 0xff }, { 0xaa } };
+`;
+  const result = convertCToSvg({
+    source,
+    format: "i1",
+    animateFrames: true,
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.animated, true);
+  const paletteWarnings = result.warnings.filter((w) =>
+    w.includes("outside the") && w.includes("palette")
+  );
+  assert.equal(paletteWarnings.length, 1);
+});
+
+test("decodePixels short indexed palette does not warn when indices fit", () => {
+  const { pixels, warnings } = decodePixels({
+    format: "i8",
+    values: [0, 1, 0, 1],
+    width: 2,
+    height: 2,
+    palette: [0xff0000ff, 0xffffffff],
+  });
+  assert.equal(warnings.length, 0);
+  assert.deepEqual(pixels[0], { r: 255, g: 0, b: 0, a: 255 });
+  assert.deepEqual(pixels[1], { r: 255, g: 255, b: 255, a: 255 });
+});
+
+test("buildPalette warns when unique colours exceed format limit", async () => {
+  const { buildPalette } = await import("../app/converter/encode-pixels.js");
+  const pixels = [
+    { r: 255, g: 0, b: 0, a: 255 },
+    { r: 0, g: 255, b: 0, a: 255 },
+    { r: 0, g: 0, b: 255, a: 255 },
+  ];
+  const built = buildPalette(pixels, 2);
+  assert.equal(built.palette.length, 2);
+  assert.equal(built.warnings.length, 1);
+  assert.match(built.warnings[0], /keeps 2 colours; image has 3 unique/);
+  assert.match(built.warnings[0], /1 colour will be remapped/);
+  assert.equal(built.indexOf(pixels[2]), 0);
+});
+
 test("svg round-trip preserves ARGB32 red pixel", async () => {
   const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
   const source = `
@@ -363,6 +454,43 @@ test("svgToPixels reads style=fill colours", async () => {
   assert.match(backG.source, /0xff00ff00/i);
 });
 
+test("prepareFrameGroupMarkup forces opacity and drops animate", async () => {
+  const { prepareFrameGroupMarkup } = await import(
+    "../app/converter/svg-to-pixels.js"
+  );
+  const markup = `<g id="frame-1" opacity="0"><animate attributeName="opacity" values="0;1" dur="1s"/><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></g>`;
+  const prepared = prepareFrameGroupMarkup(markup);
+  assert.match(prepared, /opacity="1"/);
+  assert.doesNotMatch(prepared, /opacity="0"/);
+  assert.doesNotMatch(prepared, /<animate\b/i);
+  assert.match(prepared, /<rect/);
+});
+
+test("animated SVG round-trip keeps all frames", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const source = `
+#define FRAME_COUNT 2
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[2][1] = { { 0xff0000ff }, { 0xff00ff00 } };
+`;
+  const forward = convertCToSvg({
+    source,
+    format: "argb32",
+    animateFrames: true,
+    displayScale: 1,
+  });
+  assert.equal(forward.error, null);
+  assert.equal(forward.animated, true);
+  assert.match(forward.svg, /id="frame-1"[^>]*opacity="0"/);
+
+  const back = convertSvgToC({ source: forward.svg, format: "argb32" });
+  assert.equal(back.error, null);
+  assert.match(back.source, /FRAME_COUNT 2/);
+  assert.match(back.source, /0xff0000ff/i);
+  assert.match(back.source, /0xff00ff00/i);
+});
+
 test("svg to indexed I1 emits palette and packed bytes", async () => {
   const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
   const svg = `<svg viewBox="0 0 8 1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/><rect x="1" y="0" width="7" height="1" fill="#FFFFFF"/></svg>`;
@@ -374,6 +502,41 @@ test("svg to indexed I1 emits palette and packed bytes", async () => {
   assert.match(result.source, /static const uint8_t x_data/);
   assert.match(result.source, /0xff0000ff/i);
   assert.match(result.source, /0xffffffff/i);
+});
+
+test("svg to indexed I1 preview reflects quantised colours only", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 3 1">
+    <rect x="0" y="0" width="1" height="1" fill="#FF0000"/>
+    <rect x="1" y="0" width="1" height="1" fill="#00FF00"/>
+    <rect x="2" y="0" width="1" height="1" fill="#0000FF"/>
+  </svg>`;
+  const result = convertSvgToC({ source: svg, format: "i1" });
+  assert.equal(result.error, null);
+  assert.ok(result.previewSvg);
+  const fills = [...result.previewSvg.matchAll(/fill="(#[0-9A-Fa-f]+)"/g)].map(
+    (m) => m[1].toUpperCase()
+  );
+  assert.deepEqual([...new Set(fills)].sort(), ["#00FF00", "#FF0000"]);
+  assert.doesNotMatch(result.previewSvg, /fill="#0000FF"/i);
+  assert.match(result.warnings.join(" "), /Indexed format keeps 2 colours/);
+});
+
+test("multi-frame svg to c preview is animated", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1">
+    <g id="frame-0" opacity="1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></g>
+    <g id="frame-1" opacity="0"><rect x="0" y="0" width="1" height="1" fill="#00FF00"/></g>
+  </svg>`;
+  const result = convertSvgToC({ source: svg, format: "argb32" });
+  assert.equal(result.error, null);
+  assert.equal(result.frameCount, 2);
+  assert.ok(result.previewSvg);
+  assert.match(result.previewSvg, /id="frame-0"/);
+  assert.match(result.previewSvg, /id="frame-1"/);
+  assert.match(result.previewSvg, /<animate\b/);
+  assert.match(result.previewSvg, /fill="#FF0000"/i);
+  assert.match(result.previewSvg, /fill="#00FF00"/i);
 });
 
 test("resizePixels nearest-neighbour doubles a row", async () => {
@@ -392,7 +555,8 @@ test("elementTypeForFormat and formatLabelWithType", async () => {
   assert.equal(elementTypeForFormat("argb32"), "uint32_t");
   assert.equal(elementTypeForFormat("rgb565"), "uint16_t");
   assert.equal(elementTypeForFormat("i1"), "uint8_t");
-  assert.equal(formatLabelWithType("rgb565"), "RGB565 · uint16_t");
+  assert.equal(formatLabelWithType("rgb565"), "RGB565 (TFT) · uint16_t");
+  assert.equal(formatLabelWithType("1bit"), "1-bit (B/W) · uint8_t");
   assert.equal(formatLabelWithType("auto"), "Auto");
 });
 

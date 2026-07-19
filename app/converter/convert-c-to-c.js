@@ -9,11 +9,10 @@ import {
   indexedBitsPerPixel,
   isManualFormat,
 } from "./formats.js";
-import { decodePixels, pixelColorKey } from "./decode-pixels.js";
+import { decodePixels } from "./decode-pixels.js";
 import { buildPalette, encodePixels } from "./encode-pixels.js";
 import { resizePixels } from "./resize-pixels.js";
-import { mergeRects } from "./merge-rects.js";
-import { toSvg } from "./to-svg.js";
+import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { toCArray } from "./to-c-array.js";
 
 /**
@@ -70,10 +69,17 @@ export function convertCToC({
   arrayName = "image",
 }) {
   const parsed = parseCArray(source);
-  const { format: inputFormat, detected } = resolveFormat(
-    inputSelection,
-    parsed.elementType
-  );
+  const decodeWidth = parsed.width ?? widthOverride;
+  const decodeHeight = parsed.height ?? heightOverride;
+  const { format: inputFormat, detected } = resolveFormat(inputSelection, {
+    elementType: parsed.elementType,
+    palette: parsed.palette,
+    width: decodeWidth,
+    height: decodeHeight,
+    valueCount: parsed.values.length,
+    frameCount: parsed.frameCount,
+    colorCount: parsed.colorCount,
+  });
   const outputFormat =
     outputSelection &&
     outputSelection !== "auto" &&
@@ -81,8 +87,6 @@ export function convertCToC({
       ? outputSelection
       : "argb32";
 
-  const decodeWidth = parsed.width ?? widthOverride;
-  const decodeHeight = parsed.height ?? heightOverride;
   const resolvedScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
 
   /** @type {ConvertCToCResult} */
@@ -209,15 +213,19 @@ export function convertCToC({
     palette,
   });
 
-  const colorGrid = frames[0].map((p) => pixelColorKey(p, null));
-  const rects = mergeRects(colorGrid, outWidth, outHeight);
-  result.previewSvg = toSvg({
-    width: outWidth,
-    height: outHeight,
-    rects,
-    displayScale: 1,
-    minify: true,
-  });
+  if (encodedFrames.length > 0) {
+    const preview = previewSvgFromEncoded({
+      format: outputFormat,
+      frames: encodedFrames,
+      width: outWidth,
+      height: outHeight,
+      bitOrder: resolvedBitOrder,
+      palette,
+    });
+    result.previewSvg = preview.svg;
+    result.warnings.push(...preview.warnings);
+  }
 
+  result.warnings = [...new Set(result.warnings)];
   return result;
 }

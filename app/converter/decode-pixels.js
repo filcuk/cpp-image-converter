@@ -43,7 +43,7 @@ function rgbaOrNull(r, g, b, a) {
 }
 
 /**
- * Piskel / little-endian RGBA (`0xAABBGGRR`). Opaque red is `0xff0000ff`.
+ * Little-endian RGBA (`0xAABBGGRR`). Opaque red is `0xff0000ff`.
  * @param {number} value
  * @returns {Rgba | null}
  */
@@ -177,7 +177,7 @@ export function grayRamp(levelCount) {
 }
 
 /**
- * Decode palette entries (Piskel ABGR / little-endian RGBA).
+ * Decode palette entries (little-endian RGBA / `0xAABBGGRR`).
  * @param {number[]} values
  * @returns {(Rgba | null)[]}
  */
@@ -410,19 +410,11 @@ export function decodePixels({
   const indexedBpp = indexedBitsPerPixel(format);
   if (indexedBpp !== null) {
     const levelCount = 1 << indexedBpp;
+    const paletteLen = palette && palette.length > 0 ? palette.length : 0;
     /** @type {(Rgba | null)[]} */
     let colors;
-    if (palette && palette.length > 0) {
+    if (paletteLen > 0) {
       colors = decodePaletteEntries(palette);
-      if (colors.length < levelCount) {
-        warnings.push(
-          `Indexed format needs up to ${levelCount} palette entries; got ${colors.length}. Missing entries use gray.`
-        );
-        const ramp = grayRamp(levelCount);
-        while (colors.length < levelCount) {
-          colors.push(ramp[colors.length] ?? { r: 0, g: 0, b: 0, a: 255 });
-        }
-      }
     } else {
       warnings.push(
         `No palette found for ${format}; using a ${levelCount}-level grayscale ramp.`
@@ -430,7 +422,18 @@ export function decodePixels({
       colors = grayRamp(levelCount);
     }
 
+    let missingIndexWarned = false;
     const indexToColor = (index) => {
+      if (paletteLen > 0 && index >= paletteLen) {
+        if (!missingIndexWarned) {
+          missingIndexWarned = true;
+          warnings.push(
+            `Pixel index ${index} is outside the ${paletteLen}-entry palette; out-of-range indices use gray.`
+          );
+        }
+        const ramp = grayRamp(levelCount);
+        return ramp[index] ? { ...ramp[index] } : { r: 0, g: 0, b: 0, a: 255 };
+      }
       const c = colors[index];
       if (!c || c.a === 0) return null;
       return { ...c };
