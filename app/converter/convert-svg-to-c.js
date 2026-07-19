@@ -25,6 +25,9 @@ function scaledSize(size, scale) {
  * @property {"msb" | "lsb"} [bitOrder]
  * @property {number} [scale] Output scale factor (nearest-neighbour resize before encode)
  * @property {string} [arrayName]
+ * @property {number} [frameIndex] Used when animateFrames is false
+ * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
+ * @property {number} [frameDurationMs] Preview animation frame duration
  */
 
 /**
@@ -36,7 +39,10 @@ function scaledSize(size, scale) {
  * @property {number} sourceWidth
  * @property {number} sourceHeight
  * @property {number} scale
- * @property {number} frameCount
+ * @property {number} frameCount Output frame count in the C array
+ * @property {number} sourceFrameCount Frame count detected in the SVG
+ * @property {number} frameIndex
+ * @property {boolean} animated
  * @property {string} format
  * @property {string} elementType
  * @property {string[]} warnings
@@ -63,6 +69,9 @@ function encodeRaster(options, raster) {
       : "argb32";
   const resolvedScale =
     Number.isFinite(options.scale) && options.scale > 0 ? options.scale : 1;
+  const frameDurationMs = Number.isFinite(options.frameDurationMs)
+    ? Math.max(16, options.frameDurationMs)
+    : 100;
 
   /** @type {ConvertSvgToCResult} */
   const result = {
@@ -74,6 +83,9 @@ function encodeRaster(options, raster) {
     sourceHeight: 0,
     scale: resolvedScale,
     frameCount: 0,
+    sourceFrameCount: 0,
+    frameIndex: 0,
+    animated: false,
     format,
     elementType: "uint32_t",
     warnings: [...raster.warnings],
@@ -94,13 +106,30 @@ function encodeRaster(options, raster) {
   result.sourceHeight = sourceHeight;
   result.width = outWidth;
   result.height = outHeight;
-  result.frameCount = raster.frames.length;
+
+  const sourceFrameCount = raster.frames.length;
+  result.sourceFrameCount = sourceFrameCount;
+  const keepAllFrames =
+    sourceFrameCount > 1 && options.animateFrames !== false;
+  const selectedIndex = Math.min(
+    Math.max(0, Math.round(options.frameIndex ?? 0)),
+    sourceFrameCount - 1
+  );
+
+  /** @type {(import("./decode-pixels.js").Rgba | null)[][]} */
+  const sourceFrames = keepAllFrames
+    ? raster.frames
+    : [raster.frames[selectedIndex]];
+
+  result.frameCount = sourceFrames.length;
+  result.frameIndex = keepAllFrames ? 0 : selectedIndex;
+  result.animated = keepAllFrames && sourceFrames.length > 1;
 
   /** @type {(import("./decode-pixels.js").Rgba | null)[][]} */
   const frames =
     outWidth === sourceWidth && outHeight === sourceHeight
-      ? raster.frames
-      : raster.frames.map((frame) =>
+      ? sourceFrames
+      : sourceFrames.map((frame) =>
           resizePixels(frame, sourceWidth, sourceHeight, outWidth, outHeight)
         );
 
@@ -152,6 +181,7 @@ function encodeRaster(options, raster) {
       height: outHeight,
       bitOrder,
       palette,
+      frameDurationMs,
     });
     result.previewSvg = preview.svg;
     result.warnings.push(...preview.warnings);

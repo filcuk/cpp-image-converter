@@ -13,7 +13,7 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
   - Black & white / e-ink — 1-bit (B/W)
   - Grayscale — L8 / AL88, packed 2/4-bit
   - Indexed / palette — I1–I8 (palette from `*_color` / `*_palette` when present)
-- **Multi-frame** — frame picker, or **Animate frames** for SMIL-animated SVG
+- **Multi-frame** — frame picker, or **Animate frames** (+ FPS) in every direction (SMIL SVG out, or multi-frame C arrays with animated preview)
 - **Options** — input width/height (when not in source defines), output scale, override fill, minimised SVG, array name
 
 ## Quick start
@@ -42,7 +42,8 @@ Then open `http://localhost:3000`.
 1. Choose **SVG → C**
 2. Paste SVG or upload an `.svg` (paths and shapes are rasterised in the browser)
 3. Pick output format (including **Indexed I1–I8** for palette + packed indices), **output scale**, and array name
-4. Download the `.c` file
+4. For multi-frame SVG (`frame-N` groups): keep **Animate frames** (all frames + FPS preview) or pick a single frame
+5. Download the `.c` file
 
 ### C → C
 
@@ -50,7 +51,8 @@ Then open `http://localhost:3000`.
 2. Paste or upload a `.c` / `.h` / `.txt` array
 3. Confirm **input C type** (Auto or manual) and choose **output C type** — any supported format (`uint32_t` ARGB32, `uint16_t` RGB565, `uint8_t` indexed/packed, etc.)
 4. Set **input** width/height if the source has no size defines; use **output scale** to resize (nearest-neighbour)
-5. Download the converted `.c` file
+5. For multi-frame sources: keep **Animate frames** (all frames + FPS preview) or pick a single frame
+6. Download the converted `.c` file
 
 ## Documentation
 

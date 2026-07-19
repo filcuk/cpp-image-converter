@@ -531,12 +531,64 @@ test("multi-frame svg to c preview is animated", async () => {
   const result = convertSvgToC({ source: svg, format: "argb32" });
   assert.equal(result.error, null);
   assert.equal(result.frameCount, 2);
+  assert.equal(result.sourceFrameCount, 2);
+  assert.equal(result.animated, true);
   assert.ok(result.previewSvg);
   assert.match(result.previewSvg, /id="frame-0"/);
   assert.match(result.previewSvg, /id="frame-1"/);
   assert.match(result.previewSvg, /<animate\b/);
   assert.match(result.previewSvg, /fill="#FF0000"/i);
   assert.match(result.previewSvg, /fill="#00FF00"/i);
+});
+
+test("countSvgFrames counts frame groups", async () => {
+  const { countSvgFrames } = await import("../app/converter/svg-to-pixels.js");
+  assert.equal(countSvgFrames(`<svg viewBox="0 0 1 1"><rect/></svg>`), 1);
+  assert.equal(
+    countSvgFrames(`<svg viewBox="0 0 1 1">
+      <g id="frame-0"></g><g id="frame-1"></g><g id="frame-2"></g>
+    </svg>`),
+    3
+  );
+});
+
+test("svg to c can export a single selected frame", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1">
+    <g id="frame-0" opacity="1"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></g>
+    <g id="frame-1" opacity="0"><rect x="0" y="0" width="1" height="1" fill="#00FF00"/></g>
+  </svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    animateFrames: false,
+    frameIndex: 1,
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.sourceFrameCount, 2);
+  assert.equal(result.frameCount, 1);
+  assert.equal(result.frameIndex, 1);
+  assert.equal(result.animated, false);
+  assert.match(result.source, /FRAME_COUNT 1/);
+  assert.match(result.source, /0xff00ff00/i);
+  assert.doesNotMatch(result.source, /0xff0000ff/i);
+  assert.doesNotMatch(result.previewSvg, /<animate\b/);
+});
+
+test("svg to c preview respects frameDurationMs", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1">
+    <g id="frame-0"><rect x="0" y="0" width="1" height="1" fill="#FF0000"/></g>
+    <g id="frame-1"><rect x="0" y="0" width="1" height="1" fill="#00FF00"/></g>
+  </svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    animateFrames: true,
+    frameDurationMs: 50,
+  });
+  assert.equal(result.error, null);
+  assert.match(result.previewSvg, /dur="0\.1s"/);
 });
 
 test("resizePixels nearest-neighbour doubles a row", async () => {
@@ -577,6 +629,54 @@ static const uint32_t data[1][1] = { { 0xff0000ff } };
   assert.equal(result.elementType, "uint16_t");
   assert.match(result.source, /static const uint16_t pix_data/);
   assert.match(result.source, /0xf800/i);
+});
+
+test("convertCToC can export a single selected frame", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_COUNT 2
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[2][1] = { { 0xff0000ff }, { 0xff00ff00 } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "argb32",
+    animateFrames: false,
+    frameIndex: 1,
+    arrayName: "pix",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.sourceFrameCount, 2);
+  assert.equal(result.frameCount, 1);
+  assert.equal(result.animated, false);
+  assert.match(result.source, /FRAME_COUNT 1/);
+  assert.match(result.source, /0xff00ff00/i);
+  assert.doesNotMatch(result.source, /0xff0000ff/i);
+});
+
+test("convertCToC keeps all frames when animateFrames is on", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_COUNT 2
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[2][1] = { { 0xff0000ff }, { 0xff00ff00 } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "argb32",
+    animateFrames: true,
+    frameDurationMs: 50,
+    arrayName: "pix",
+  });
+  assert.equal(result.error, null);
+  assert.equal(result.frameCount, 2);
+  assert.equal(result.animated, true);
+  assert.match(result.source, /FRAME_COUNT 2/);
+  assert.match(result.previewSvg, /dur="0\.1s"/);
 });
 
 test("convertCToC packs ARGB32 to indexed I1", async () => {

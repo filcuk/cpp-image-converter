@@ -34,6 +34,9 @@ function scaledSize(size, scale) {
  * @property {number | null} [height] Input height when source defines are missing
  * @property {number} [scale] Output scale factor (nearest-neighbour resize)
  * @property {string} [arrayName]
+ * @property {number} [frameIndex] Used when animateFrames is false
+ * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
+ * @property {number} [frameDurationMs] Preview animation frame duration
  */
 
 /**
@@ -45,7 +48,10 @@ function scaledSize(size, scale) {
  * @property {number} sourceWidth
  * @property {number} sourceHeight
  * @property {number} scale
- * @property {number} frameCount
+ * @property {number} frameCount Output frame count in the C array
+ * @property {number} sourceFrameCount Frame count in the input array
+ * @property {number} frameIndex
+ * @property {boolean} animated
  * @property {string} inputFormat
  * @property {string | null} detectedFormat
  * @property {string} outputFormat
@@ -67,6 +73,9 @@ export function convertCToC({
   height: heightOverride = null,
   scale = 1,
   arrayName = "image",
+  frameIndex = 0,
+  animateFrames = true,
+  frameDurationMs = 100,
 }) {
   const parsed = parseCArray(source);
   const decodeWidth = parsed.width ?? widthOverride;
@@ -88,6 +97,9 @@ export function convertCToC({
       : "argb32";
 
   const resolvedScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const duration = Number.isFinite(frameDurationMs)
+    ? Math.max(16, frameDurationMs)
+    : 100;
 
   /** @type {ConvertCToCResult} */
   const result = {
@@ -99,6 +111,9 @@ export function convertCToC({
     sourceHeight: decodeHeight ?? 0,
     scale: resolvedScale,
     frameCount: parsed.frameCount,
+    sourceFrameCount: parsed.frameCount,
+    frameIndex: 0,
+    animated: false,
     inputFormat,
     detectedFormat: detected,
     outputFormat,
@@ -141,9 +156,24 @@ export function convertCToC({
   const resolvedBitOrder = bitOrder === "lsb" ? "lsb" : "msb";
   const oneBitForeground = { r: 0, g: 0, b: 0, a: 255 };
 
+  const keepAllFrames = parsed.frameCount > 1 && animateFrames !== false;
+  const selectedIndex = Math.min(
+    Math.max(0, Math.round(frameIndex ?? 0)),
+    Math.max(0, parsed.frameCount - 1)
+  );
+  /** @type {number[]} */
+  const frameIndices = keepAllFrames
+    ? Array.from({ length: parsed.frameCount }, (_, i) => i)
+    : [selectedIndex];
+
+  result.sourceFrameCount = parsed.frameCount;
+  result.frameCount = frameIndices.length;
+  result.frameIndex = keepAllFrames ? 0 : selectedIndex;
+  result.animated = keepAllFrames && frameIndices.length > 1;
+
   /** @type {(import("./decode-pixels.js").Rgba | null)[][]} */
   const frames = [];
-  for (let i = 0; i < parsed.frameCount; i++) {
+  for (const i of frameIndices) {
     const values = sliceFrameValues(allValues, i, frameSize);
     const decoded = decodePixels({
       format: inputFormat,
@@ -221,6 +251,7 @@ export function convertCToC({
       height: outHeight,
       bitOrder: resolvedBitOrder,
       palette,
+      frameDurationMs: duration,
     });
     result.previewSvg = preview.svg;
     result.warnings.push(...preview.warnings);
