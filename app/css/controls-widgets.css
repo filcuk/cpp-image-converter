@@ -8,9 +8,7 @@
 
 .toggle {
   display: flex;
-  align-items: center;
   min-width: 0;
-  min-height: var(--control-height);
 }
 
 .toggle-btn {
@@ -70,29 +68,47 @@
 }
 
 .toggle-thumb-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: block;
   flex-shrink: 0;
   width: 0.75rem;
   height: 0.75rem;
   color: var(--accent);
   opacity: 0;
+  transform: translate(-50%, -50%);
   transition: opacity 0.15s ease;
 }
 
-.toggle-btn[aria-checked="true"] .toggle-thumb-icon {
+.toggle-btn[aria-checked="true"] .toggle-thumb-icon--on,
+.toggle-btn[aria-checked="true"] .toggle-thumb-icon:not(.toggle-thumb-icon--mixed) {
   opacity: 1;
+}
+
+.toggle-btn[aria-checked="mixed"] .toggle-thumb-icon--mixed {
+  opacity: 1;
+}
+
+.toggle-btn[aria-checked="mixed"] .toggle-thumb-icon--on {
+  opacity: 0;
 }
 
 :root[data-theme="dark"] .toggle-thumb {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.toggle-btn[aria-checked="true"] .toggle-track {
+.toggle-btn[aria-checked="true"] .toggle-track,
+.toggle-btn[aria-checked="mixed"] .toggle-track {
   background: var(--accent);
 }
 
 .toggle-btn[aria-checked="true"] .toggle-thumb {
   transform: translateX(calc(2.5rem - 1.375rem));
+}
+
+.toggle-btn[aria-checked="mixed"] .toggle-thumb {
+  transform: translateX(calc((2.5rem - 1.375rem) / 2));
 }
 
 .toggle-label {
@@ -176,6 +192,7 @@
 }
 
 :root[data-theme="dark"] .segmented-control-item[aria-checked="true"] {
+  background: var(--bg);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
@@ -348,9 +365,11 @@
 }
 
 .progress-bar-fill {
+  position: relative;
   display: block;
   height: 100%;
   width: 0%;
+  overflow: hidden;
   border-radius: inherit;
   background: var(--accent);
   transition: width 0.15s ease;
@@ -372,6 +391,39 @@
   animation: progress-bar-indeterminate 1.2s ease-in-out infinite;
 }
 
+.progress-bar--error .progress-bar-fill {
+  background: var(--banner-error-border);
+  animation: progress-bar-error-pulse 1.4s ease-in-out infinite;
+}
+
+.progress-bar--disabled .progress-bar-fill {
+  background: var(--muted);
+  animation: none;
+}
+
+.progress-bar--disabled[data-progress-bar-shine] .progress-bar-fill::after {
+  content: none;
+  animation: none;
+}
+
+/* Soft highlight sweeping the filled segment (opt-in via data-progress-bar-shine) */
+.progress-bar[data-progress-bar-shine]:not(.progress-bar--indeterminate):not(.progress-bar--error):not(
+    .progress-bar--disabled
+  )
+  .progress-bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    color-mix(in srgb, #fff 42%, transparent) 50%,
+    transparent 75%
+  );
+  transform: translateX(-100%);
+  animation: progress-bar-shine 1.75s ease-in-out infinite;
+}
+
 @keyframes progress-bar-indeterminate {
   0% {
     transform: translateX(-120%);
@@ -379,6 +431,27 @@
 
   100% {
     transform: translateX(320%);
+  }
+}
+
+@keyframes progress-bar-shine {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progress-bar-error-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
   }
 }
 
@@ -390,6 +463,18 @@
   .progress-bar--indeterminate .progress-bar-fill {
     animation: none;
     width: 50%;
+  }
+
+  .progress-bar--error .progress-bar-fill {
+    animation: none;
+  }
+
+  .progress-bar[data-progress-bar-shine]:not(.progress-bar--indeterminate):not(.progress-bar--error):not(
+      .progress-bar--disabled
+    )
+    .progress-bar-fill::after {
+    content: none;
+    animation: none;
   }
 }
 
