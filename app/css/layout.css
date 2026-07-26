@@ -71,6 +71,85 @@ img.brand-icon--dark {
   color: var(--accent);
 }
 
+/* Optional sticky chrome — opt in via data-sticky-* on :root */
+
+:root[data-sticky-header] body > header {
+  position: sticky;
+  /* Flush at rest — top: sticky-gap would offset the header immediately at scroll 0 */
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Cover strips only while stuck so they don’t hide in-flow content at rest */
+:root[data-sticky-header-stuck] body > header::before,
+:root[data-sticky-header-stuck] body > header::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 100vw;
+  height: var(--sticky-gap);
+  transform: translateX(-50%);
+  background: var(--bg);
+  pointer-events: none;
+}
+
+:root[data-sticky-header-stuck] body > header::before {
+  bottom: 100%;
+}
+
+:root[data-sticky-header-stuck] body > header::after {
+  top: 100%;
+}
+
+:root[data-sticky-section-headings] .demo-tier-header,
+:root[data-sticky-section-headings] .section-heading {
+  position: sticky;
+  top: max(var(--sticky-header-offset), var(--sticky-gap));
+}
+
+:root[data-sticky-section-headings] .demo-tier-header {
+  z-index: 30;
+}
+
+:root[data-sticky-section-headings] .section-heading {
+  z-index: 31;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+:root[data-sticky-section-headings] .demo-tier-header::before,
+:root[data-sticky-section-headings] .demo-tier-header::after,
+:root[data-sticky-section-headings] .section-heading::before,
+:root[data-sticky-section-headings] .section-heading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--sticky-gap);
+  background: var(--bg);
+  pointer-events: none;
+}
+
+:root[data-sticky-section-headings] .demo-tier-header::before,
+:root[data-sticky-section-headings] .section-heading::before {
+  bottom: 100%;
+}
+
+:root[data-sticky-section-headings] .demo-tier-header::after,
+:root[data-sticky-section-headings] .section-heading::after {
+  top: 100%;
+}
+
+:root[data-sticky-section-headings] .demo-tier-header::before,
+:root[data-sticky-section-headings] .demo-tier-header::after {
+  left: 50%;
+  right: auto;
+  width: 100vw;
+  transform: translateX(-50%);
+}
+
 main {
   flex: 1;
   display: flex;
@@ -90,7 +169,7 @@ main {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  scroll-margin-top: 1rem;
+  scroll-margin-top: calc(max(var(--sticky-header-offset), var(--sticky-gap)) + 1rem);
 }
 
 .heading-anchor {
@@ -179,7 +258,7 @@ main {
   font-size: 1.625rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  scroll-margin-top: 1.5rem;
+  scroll-margin-top: calc(max(var(--sticky-header-offset), var(--sticky-gap)) + 1.5rem);
 }
 
 .demo-tier-lead {
@@ -213,12 +292,19 @@ main {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--section-bg);
+  --badge-ring: var(--section-bg);
 }
 
 .demo-card-title {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 600;
+}
+
+.demo-colour-swatch {
+  height: 3rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
 .demo-banner-controls {
@@ -531,6 +617,19 @@ body > footer {
   line-height: 1;
 }
 
+.footer-meta-copy {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.footer-meta-sep {
+  color: var(--muted);
+  user-select: none;
+}
+
 .footer-brand {
   display: inline-flex;
   align-items: center;
@@ -547,6 +646,39 @@ body > footer {
   font-size: 0.8125rem;
   color: var(--muted);
   cursor: default;
+}
+
+.footer-also-see.dropdown {
+  position: relative;
+  display: inline-block;
+  align-self: center;
+  /* Keep the menu above in-flow main content when not using fixed positioning. */
+  z-index: 20;
+}
+
+.footer-also-see-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.015em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.footer-also-see-trigger:hover,
+.footer-also-see-trigger:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.footer-also-see .footer-also-see-menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+  min-width: 12rem;
 }
 
 body > footer a {

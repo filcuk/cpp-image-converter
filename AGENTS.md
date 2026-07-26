@@ -20,7 +20,7 @@ Prefer the simplest approach that fits the existing template.
 
 ## Reuse the design system
 
-- Use CSS custom properties from `app/tokens.css` (`--bg`, `--accent`, etc.)
+- Use CSS custom properties from `app/tokens.css` (`--bg`, `--surface`, `--input-bg`, `--accent`, etc.)
 - Use existing component classes: `.btn`, `.btn-primary`, `.modal`, `.banner`, `.section-panel`, `.code-block`, `.theme-toggle`
 - Add or edit inline UI icons in `app/icons.js` only — do not duplicate SVG paths in HTML
 - Do not introduce parallel styling systems (Tailwind, CSS-in-JS, component libraries)
@@ -33,9 +33,9 @@ Every HTML entry point should:
 2. Link `app/styles.css` (imports `tokens.css` + `app/css/*.css` partials)
 3. Call `initShell()` from `app/shell/shell.js` as the first step in the page module
 
-`initShell()` renders shared chrome via `renderPageShell()` (`app/render-shell.js`), then boots icons, external links, heading links, theme toggle, tooltips, and page navigation. Do **not** duplicate footer, theme toggle, or `#page-nav` markup in HTML.
+`initShell()` renders shared chrome via `renderPageShell()` (`app/render-shell.js`), then boots icons, external links, heading links, theme toggle, sticky chrome offsets, tooltips, and page navigation. Do **not** duplicate footer, theme toggle, or `#page-nav` markup in HTML.
 
-Optional `renderPageShell({ repoUrl, brandUrl, brandName })` overrides for forks.
+Optional `renderPageShell({ repoUrl, appUrl, brandUrl, brandName, alsoSee, alsoSeeUrl, alsoSeeTopics })` overrides for forks. Pass `alsoSee: false` or `alsoSee: []` to hide the footer related-apps menu when there is no remote list. Set `alsoSeeUrl` to a JSON URL (topic sections and/or flat links) to load a shared live list; local `alsoSee` is the fallback. Set `alsoSeeTopics` to a string array to show only those topics (case-insensitive; ungrouped flat links always remain). Set `appUrl` to this app’s public site URL so a matching entry in the list is omitted.
 
 ## Module conventions
 
@@ -43,13 +43,15 @@ Optional `renderPageShell({ repoUrl, brandUrl, brandName })` overrides for forks
 | -------- | ------- |
 | `initX({ … })` | Single instance (dialog, combo, dropdown, expand, tab) |
 | `initXs(root)` | Scan a subtree for blocks (e.g. `initTabs`, `initExpands`, `initAccordions`, `initCodeBlocks`) |
-| `initShell()` | Standard page boot (footer, theme, page nav, tooltips, external links, heading links) |
+| `initShell()` | Standard page boot (footer, theme, page nav, tooltips, external links, heading links, also-see) |
+| `initAlsoSee(root)` | Footer “also see” related-apps menu — no-op when disabled |
 | `initExternalLinks(root)` | Append arrow-outward icon to external links |
 | `initHeadingLinks(root)` | Copy-link button on `main h2[id]` headings |
 | `initCodeBlocks(root)` / `initCodeBlock(el)` | Prism code blocks with copy, modes, toolbar toggles |
 | `initExpandableSurfaces(root)` | Maximize `[data-expandable-surface]` to page-width overlay |
 | `showBanner()` / `hideBanner()` | Show or hide `.banner` elements; respects `data-banner-expire` |
 | `initPageNav()` / `initPageNavPanel()` | Page nav only — requires `PAGE_NAV_MARKUP` from `app/shell/render-shell.js` |
+| `initStickyChrome()` / `setStickyHeader()` / `setStickySectionHeadings()` | Optional sticky site header and section headings (`data-sticky-header`, `data-sticky-section-headings`) |
 | `initTab()` / `initTabs()` | Single tabbed section vs every `.tabs` block |
 | `setHidden()` / `parseBooleanAttr()` | Toggle visibility — always sets **both** `.hidden` class and `hidden` attribute; parse HTML boolean `data-*` values |
 | `initPopupMenu()` | Anchored popup menus (combo chevron, dropdown) |
@@ -63,10 +65,15 @@ Optional `renderPageShell({ repoUrl, brandUrl, brandName })` overrides for forks
 | `initSpinner()` / `initSpinners()` | Loading spinner; optional blocking overlay on a host |
 | `initStepper()` / `initSteppers()` | Numeric nudger with decrement/increment buttons |
 | `initColorPicker()` / `initColorPickers()` | Hex colour input with inline swatch preview |
-| `initToggle()` / `initToggles()` | On/off switch control |
+| `initToggle()` / `initToggles()` | On/off switch control; optional `data-toggle-tristate` for off → on → mixed |
+| `initTriStateCheckbox()` / `initTriStateCheckboxes()` | Tri-state checkbox (`data-checkbox-tristate`) — unchecked → checked → mixed |
+| `initBadge()` / `initBadges()` | Corner badge on a `.badge-host` (normal readout or `.badge--sm` dot) |
+| `initChipGroup()` / `initChipGroups()` | Selectable filter chips (toggle pressed; not removable) |
+| `initChipInput()` / `initChipInputs()` | Text field that adds removable chips |
 | `initSegmentedControl()` / `initSegmentedControls()` | Segmented control (toggle button group) |
 | `initPagination()` / `initPaginations()` | Client-side pagination (numbered pages, no URL change) |
 | `initTable()` / `initTables()` | Data table with optional sortable columns and row selection |
+| `initTabularInput()` / `initTabularInputs()` | Editable typed grid; paste; reset; add/remove rows and columns; rename / type |
 | `initProgressIndicator()` / `initProgressIndicators()` | Multi-step wizard with indicators, panels, and back/next |
 | `initRichTextEditor()` / `initRichTextEditors()` | Toast UI rich text editor (Markdown + WYSIWYG); requires vendor scripts |
 | `onDocumentClickOutside()` / `onDocumentEscape()` | Shared document listeners — do not add per-instance `document` listeners for these |
@@ -104,6 +111,8 @@ Always use `setHidden()` from `app/utils/dom.js` when showing/hiding elements pr
 | `app/css/layout.css` | Page shell, sections, section panels, page nav, footer, theme toggle |
 | `app/css/code-block.css` | Code blocks and expandable surfaces |
 | `app/css/controls-buttons.css` | Toolbar, buttons |
+| `app/css/controls-badges.css` | Corner badges on controls and labels |
+| `app/css/controls-chips.css` | Selectable filter chips and removable input chips |
 | `app/css/controls-fields.css` | Fields, combobox, date/time, color picker |
 | `app/css/controls-widgets.css` | Toggle, segmented control, pagination, progress bar, spinner, slider, stepper |
 | `app/css/controls-section-panel.css` | Section panel grid rows |
@@ -113,6 +122,7 @@ Always use `setHidden()` from `app/utils/dom.js` when showing/hiding elements pr
 | `app/css/overlays.css` | Banners, tooltips, modals |
 | `app/css/rich-text-editor.css` | Rich text editor field layout and Toast UI token overrides |
 | `app/css/table.css` | Data table layout, sort controls, and selection column |
+| `app/css/controls-tabular-input.css` | Editable typed grid (tabular input) |
 
 Keep HTML linking only `styles.css`. Edit tokens or the relevant partial under `app/css/`; do not merge back into a monolith.
 
@@ -123,7 +133,7 @@ Modules live under `app/shell/`, `app/utils/`, and `app/components/` (no build s
 | Layer | Examples | Role |
 | ----- | -------- | ---- |
 | Entry | `main.js`, `theme-init.js`, `config.js`, `version.js` | Loaded directly from HTML |
-| Shell | `app/shell/shell.js`, `render-shell.js`, `theme.js`, `page-nav.js`, … | Shared page chrome via `initShell()` |
+| Shell | `app/shell/shell.js`, `render-shell.js`, `theme.js`, `page-nav.js`, `sticky.js`, … | Shared page chrome via `initShell()` |
 | Infrastructure | `app/utils/dom.js`, `document-listeners.js`, `icons.js`, `menu.js`, `brand-icon.js` | Shared helpers and registries |
 | Components | `app/components/dialog.js`, `dropdown.js`, `tabs.js`, `code-block.js`, … | One `initX` (or `initXs`) per feature — import only what you need |
 
@@ -142,7 +152,7 @@ CI runs the same checks on push and pull requests (`.github/workflows/ci.yml`).
 
 ## Keep GitHub Pages deployable
 
-- Entry HTML files live at the repo root (`index.html`)
+- Entry HTML files live at the repo root (`index.html` — this fork has no `demo.html`)
 - Shared assets live under `app/`
 - Avoid features that require a backend or server-only APIs
 - ES modules need a local server for development (`npx serve .`) — document if adding fetch-based features
@@ -167,7 +177,7 @@ Match the established look (based on [pqm-stepper](https://github.com/filcuk/pqm
 
 ## When extending this template
 
-1. Read `USAGE.md` for available components and markup examples
+1. Read `USAGE.md` for available components and fork instructions
 2. Keep changes focused — one concern per file when possible
 3. Update `USAGE.md` when you add or change a reusable component, module API, or deploy workflow (see `.cursor/rules/usage-docs.mdc`)
 4. Update `AGENTS.md` if you add a new `initX` pattern to the module conventions table

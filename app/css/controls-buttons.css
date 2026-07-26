@@ -46,6 +46,23 @@
   color: #0d1117;
 }
 
+/* Primary destructive action (delete, reset, irreversible confirm) */
+.btn-danger {
+  background: var(--banner-error-border);
+  color: #ffffff;
+  border-color: var(--banner-error-border);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--banner-error-text);
+  border-color: var(--banner-error-text);
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .btn-danger:hover:not(:disabled) {
+  color: #0d1117;
+}
+
 .btn-icon {
   display: inline-flex;
   align-items: center;

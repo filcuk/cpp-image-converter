@@ -1,4 +1,4 @@
-import { initPopupMenu } from "../utils/menu.js";
+import { initPopupMenu, menuItemLabel } from "../utils/menu.js";
 
 function isItemSelected(item) {
   return item.getAttribute("aria-checked") === "true";
@@ -110,7 +110,7 @@ export function initToggleDropdown(dropdownEl, { onToggle } = {}) {
         label,
         selected,
         values: selectedItems.map((el) => el.dataset.value).filter(Boolean),
-        labels: selectedItems.map((el) => el.textContent.trim()),
+        labels: selectedItems.map((el) => menuItemLabel(el)),
       });
     },
   });
@@ -122,7 +122,7 @@ export function initToggleDropdown(dropdownEl, { onToggle } = {}) {
     getSelected() {
       return getSelectedItems(menu, itemSelector).map((item) => ({
         value: item.dataset.value,
-        label: item.textContent.trim(),
+        label: menuItemLabel(item),
         item,
       }));
     },
