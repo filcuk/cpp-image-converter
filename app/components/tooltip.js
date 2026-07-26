@@ -149,6 +149,10 @@ function handleFocusOut(e) {
 
 function repositionActiveTooltip() {
   if (!activeTarget) return;
+  if (!activeTarget.isConnected) {
+    hideTooltip();
+    return;
+  }
   positionTooltip(
     activeTarget,
     activeTarget.dataset.tooltip,

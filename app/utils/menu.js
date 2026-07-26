@@ -1,11 +1,23 @@
 import { setHidden } from "./dom.js";
 import { onDocumentClickOutside, onDocumentEscape } from "./document-listeners.js";
 
-/** @type {Set<() => void>} */
-const openMenuClosers = new Set();
+/** Primary label for a menu item (ignores `.dropdown-menu-item-subtitle`). */
+export function menuItemLabel(item) {
+  if (!item) return "";
+  return (
+    item.querySelector(".dropdown-menu-item-label")?.textContent.trim() ??
+    item.textContent.trim()
+  );
+}
 
 /**
  * Shared open/close behaviour for anchored popup menus (combo chevron, dropdown).
+ *
+ * @param {object} options
+ * @param {boolean} [options.fixed=false] Position with `position: fixed` so the
+ *   menu escapes overflow clipping (e.g. inside `.table-wrap`).
+ * @param {"start" | "end"} [options.fixedAlign="start"] Horizontal align to the
+ *   toggle when `fixed` is true (`end` = right edges line up).
  */
 export function initPopupMenu({
   containerEl,
@@ -14,15 +26,20 @@ export function initPopupMenu({
   itemSelector,
   onSelect,
   closeOnSelect = true,
+  fixed = false,
+  fixedAlign = "start",
 }) {
   if (!containerEl || !menuEl) return null;
 
   let isOpen = false;
 
   function getItems() {
-    return [...menuEl.querySelectorAll(itemSelector)].filter(
-      (item) => !item.disabled && item.offsetParent !== null
-    );
+    return [...menuEl.querySelectorAll(itemSelector)].filter((item) => {
+      if (item.disabled) return false;
+      // `position: fixed` items have a null offsetParent — use layout boxes instead.
+      if (item.offsetParent !== null) return true;
+      return item.getClientRects().length > 0;
+    });
   }
 
   function focusItem(item) {
@@ -34,23 +51,80 @@ export function initPopupMenu({
     if (items.length) focusItem(items[0]);
   }
 
+  function clearFixedPosition() {
+    if (!fixed) return;
+    menuEl.style.position = "";
+    menuEl.style.top = "";
+    menuEl.style.left = "";
+    menuEl.style.right = "";
+    menuEl.style.bottom = "";
+    menuEl.style.zIndex = "";
+    menuEl.style.maxHeight = "";
+    menuEl.style.overflowY = "";
+  }
+
+  function positionFixedMenu() {
+    if (!fixed || !toggleEl) return;
+    const rect = toggleEl.getBoundingClientRect();
+    const gap = 4;
+    const viewportPadding = 8;
+    const viewportWidth = document.documentElement.clientWidth;
+
+    menuEl.style.position = "fixed";
+    menuEl.style.zIndex = "200";
+    menuEl.style.bottom = "auto";
+    menuEl.style.maxHeight = "";
+    menuEl.style.overflowY = "";
+    menuEl.style.top = `${rect.bottom + gap}px`;
+
+    if (fixedAlign === "end") {
+      menuEl.style.left = "auto";
+      menuEl.style.right = `${viewportWidth - rect.right}px`;
+    } else {
+      menuEl.style.right = "auto";
+      menuEl.style.left = `${rect.left}px`;
+    }
+
+    const menuRect = menuEl.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPadding;
+    const spaceAbove = rect.top - gap - viewportPadding;
+    if (menuRect.height > spaceBelow && spaceAbove > spaceBelow) {
+      menuEl.style.top = `${Math.max(viewportPadding, rect.top - menuRect.height - gap)}px`;
+    }
+
+    const top = Number.parseFloat(menuEl.style.top) || viewportPadding;
+    const maxHeight = window.innerHeight - top - viewportPadding;
+    if (menuEl.getBoundingClientRect().height > maxHeight) {
+      menuEl.style.maxHeight = `${Math.max(8 * 16, maxHeight)}px`;
+      menuEl.style.overflowY = "auto";
+    }
+
+    const placed = menuEl.getBoundingClientRect();
+    if (placed.left < viewportPadding) {
+      menuEl.style.right = "auto";
+      menuEl.style.left = `${viewportPadding}px`;
+    } else if (placed.right > viewportWidth - viewportPadding) {
+      menuEl.style.left = "auto";
+      menuEl.style.right = `${viewportPadding}px`;
+    }
+  }
+
   function closeMenu() {
     if (!isOpen) return;
     isOpen = false;
-    openMenuClosers.delete(closeMenu);
     setHidden(menuEl, true);
+    clearFixedPosition();
     toggleEl?.setAttribute("aria-expanded", "false");
-    toggleEl?.focus();
+    if (toggleEl?.isConnected) {
+      toggleEl.focus();
+    }
   }
 
   function openMenu() {
-    for (const closeOther of [...openMenuClosers]) {
-      if (closeOther !== closeMenu) closeOther();
-    }
     isOpen = true;
-    openMenuClosers.add(closeMenu);
     setHidden(menuEl, false);
     toggleEl?.setAttribute("aria-expanded", "true");
+    positionFixedMenu();
     focusFirstItem();
   }
 
@@ -60,13 +134,24 @@ export function initPopupMenu({
   }
 
   function activateItem(item) {
-    if (closeOnSelect) closeMenu();
+    // Close the panel before onSelect so handlers can tear down the DOM, but
+    // defer focus restore until afterward — focusing a trigger that is about
+    // to be destroyed (e.g. remove column) would flash its tooltip.
+    if (closeOnSelect) {
+      isOpen = false;
+      setHidden(menuEl, true);
+      clearFixedPosition();
+      toggleEl?.setAttribute("aria-expanded", "false");
+    }
     onSelect?.({
       containerEl,
       item,
       value: item.dataset.value,
-      label: item.textContent.trim(),
+      label: menuItemLabel(item),
     });
+    if (closeOnSelect && toggleEl?.isConnected) {
+      toggleEl.focus();
+    }
   }
 
   function onToggleClick(e) {
@@ -77,6 +162,22 @@ export function initPopupMenu({
   function onMenuClick(e) {
     const item = e.target.closest(itemSelector);
     if (!item) return;
+
+    if (item instanceof HTMLAnchorElement) {
+      // Modified clicks: let the browser open a new tab; only close the menu.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        if (closeOnSelect) {
+          isOpen = false;
+          setHidden(menuEl, true);
+          clearFixedPosition();
+          toggleEl?.setAttribute("aria-expanded", "false");
+        }
+        return;
+      }
+      // Plain primary click: onSelect handles navigation (e.g. same window).
+      e.preventDefault();
+    }
+
     activateItem(item);
   }
 
@@ -112,9 +213,18 @@ export function initPopupMenu({
     }
   }
 
+  function onViewportChange() {
+    if (isOpen) closeMenu();
+  }
+
   toggleEl?.addEventListener("click", onToggleClick);
   menuEl.addEventListener("click", onMenuClick);
   menuEl.addEventListener("keydown", onMenuKeydown);
+
+  if (fixed) {
+    window.addEventListener("scroll", onViewportChange, true);
+    window.addEventListener("resize", onViewportChange);
+  }
 
   const removeClickOutside = onDocumentClickOutside((e) => {
     if (!containerEl.contains(e.target)) closeMenu();
@@ -132,10 +242,14 @@ export function initPopupMenu({
     toggleMenu,
     isOpen: () => isOpen,
     destroy() {
-      closeMenu();
       toggleEl?.removeEventListener("click", onToggleClick);
       menuEl.removeEventListener("click", onMenuClick);
       menuEl.removeEventListener("keydown", onMenuKeydown);
+      if (fixed) {
+        window.removeEventListener("scroll", onViewportChange, true);
+        window.removeEventListener("resize", onViewportChange);
+      }
+      clearFixedPosition();
       removeClickOutside();
       removeEscape();
     },

@@ -531,6 +531,19 @@ body > footer {
   line-height: 1;
 }
 
+.footer-meta-copy {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.footer-meta-sep {
+  color: var(--muted);
+  user-select: none;
+}
+
 .footer-brand {
   display: inline-flex;
   align-items: center;
@@ -547,6 +560,39 @@ body > footer {
   font-size: 0.8125rem;
   color: var(--muted);
   cursor: default;
+}
+
+.footer-also-see.dropdown {
+  position: relative;
+  display: inline-block;
+  align-self: center;
+  /* Keep the menu above in-flow main content when not using fixed positioning. */
+  z-index: 20;
+}
+
+.footer-also-see-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.015em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.footer-also-see-trigger:hover,
+.footer-also-see-trigger:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.footer-also-see .footer-also-see-menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+  min-width: 12rem;
 }
 
 body > footer a {
