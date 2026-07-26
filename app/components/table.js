@@ -248,9 +248,27 @@ export function initTable(
     emitSelection("row");
   }
 
+  /** Toggle row checkbox when clicking the row (not nested controls). */
+  function onBodyClick(e) {
+    if (isDisabled || !isSelectable) return;
+
+    const row = e.target.closest("tr");
+    if (!row || !tbody.contains(row)) return;
+    if (e.target.closest("a, button, input, label, select, textarea")) return;
+
+    const input = row.querySelector("[data-table-row-select]");
+    if (!input || input.disabled) return;
+
+    input.checked = !input.checked;
+    syncSelectAllState();
+    emitSelection("row");
+  }
+
   selectAllInput?.addEventListener("change", onSelectAllChange);
 
   const rowHandlers = [];
+
+  blockEl.classList.toggle("table-block--selectable", isSelectable);
 
   if (isSelectable) {
     for (const input of rowInputs()) {
@@ -258,6 +276,7 @@ export function initTable(
       input.addEventListener("change", handler);
       rowHandlers.push({ input, handler });
     }
+    tbody.addEventListener("click", onBodyClick);
   } else {
     const selectCells = [
       selectAllInput?.closest("th, td"),
@@ -301,6 +320,10 @@ export function initTable(
       for (const { input, handler } of rowHandlers) {
         input.removeEventListener("change", handler);
       }
+      if (isSelectable) {
+        tbody.removeEventListener("click", onBodyClick);
+      }
+      blockEl.classList.remove("table-block--selectable");
     },
   };
 }

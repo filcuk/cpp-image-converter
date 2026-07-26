@@ -48,7 +48,7 @@
 .table thead th {
   font-weight: 600;
   color: var(--text);
-  background: var(--code-bg);
+  background: var(--table-header-bg);
 }
 
 .table tbody tr:last-child td,
@@ -58,6 +58,18 @@
 
 .table--striped tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--code-bg) 55%, transparent);
+}
+
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.table--striped tbody tr:nth-child(even):hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.table-block--selectable .table tbody tr {
+  cursor: pointer;
 }
 
 .table--compact th,
