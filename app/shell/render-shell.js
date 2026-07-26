@@ -82,7 +82,14 @@ export function normalizeSiteUrl(value) {
 }
 
 /**
- * @typedef {{ label: string, subtitle: string, url: string, iconLight: string, iconDark: string }} AlsoSeeLink
+ * @typedef {{
+ *   label: string,
+ *   subtitle: string,
+ *   url: string,
+ *   icon: string,
+ *   iconLight: string,
+ *   iconDark: string,
+ * }} AlsoSeeLink
  * @typedef {{ topic: string | null, items: AlsoSeeLink[] }} AlsoSeeSection
  */
 
@@ -106,13 +113,25 @@ function normalizeAlsoSeeLink(link, exclude) {
   const iconLight =
     typeof link.iconLight === "string" && link.iconLight.trim()
       ? link.iconLight.trim()
-      : icon;
+      : "";
   const iconDark =
     typeof link.iconDark === "string" && link.iconDark.trim()
       ? link.iconDark.trim()
-      : iconLight;
+      : "";
 
-  return { label, subtitle, url, iconLight, iconDark };
+  // Theme pair when either light/dark is set; otherwise a single always-visible icon.
+  if (iconLight || iconDark) {
+    return {
+      label,
+      subtitle,
+      url,
+      icon: "",
+      iconLight: iconLight || iconDark,
+      iconDark: iconDark || iconLight,
+    };
+  }
+
+  return { label, subtitle, url, icon, iconLight: "", iconDark: "" };
 }
 
 /**
@@ -193,16 +212,30 @@ export function normalizeAlsoSee(alsoSee, excludeUrl = "", topics) {
 
 /**
  * @param {AlsoSeeLink} link
+ * @returns {string}
+ */
+function renderAlsoSeeIconMarkup(link) {
+  if (link.iconLight || link.iconDark) {
+    return `<span class="dropdown-menu-item-icon-wrap" aria-hidden="true">
+              <img class="dropdown-menu-item-icon brand-icon--light" src="${escapeAttr(link.iconLight)}" alt="" width="24" height="24" />
+              <img class="dropdown-menu-item-icon brand-icon--dark" src="${escapeAttr(link.iconDark)}" alt="" width="24" height="24" />
+            </span>`;
+  }
+  if (link.icon) {
+    return `<span class="dropdown-menu-item-icon-wrap" aria-hidden="true">
+              <img class="dropdown-menu-item-icon" src="${escapeAttr(link.icon)}" alt="" width="24" height="24" />
+            </span>`;
+  }
+  return "";
+}
+
+/**
+ * @param {AlsoSeeLink} link
  * @param {number} index
  * @returns {string}
  */
 function renderAlsoSeeLinkItem(link, index) {
-  const iconMarkup = link.iconLight
-    ? `<span class="dropdown-menu-item-icon-wrap" aria-hidden="true">
-              <img class="dropdown-menu-item-icon brand-icon--light" src="${escapeAttr(link.iconLight)}" alt="" width="24" height="24" />
-              <img class="dropdown-menu-item-icon brand-icon--dark" src="${escapeAttr(link.iconDark)}" alt="" width="24" height="24" />
-            </span>`
-    : "";
+  const iconMarkup = renderAlsoSeeIconMarkup(link);
   const subtitleMarkup = link.subtitle
     ? `<span class="dropdown-menu-item-subtitle">${escapeText(link.subtitle)}</span>`
     : "";

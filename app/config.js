@@ -25,7 +25,8 @@ export const APP_CONFIG = {
    * Local related apps (fallback when `alsoSeeUrl` is empty or fetch fails).
    * Set to `[]` or `false` to hide the control when there is no remote list.
    * Entries: `{ topic, items: link[] }` and/or flat `{ label, url, subtitle?, icon? | iconLight?, iconDark? }`.
-   * Icon paths may be local (`app/res/…`) or absolute URLs (e.g. GitHub Pages / raw assets).
+   * Icons: single `icon`, or theme pair `iconLight`/`iconDark` (pair wins when either is set).
+   * Paths may be local (`app/res/…`) or absolute URLs (e.g. GitHub Pages / raw assets).
    */
   alsoSee: [],
 };

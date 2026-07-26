@@ -138,6 +138,7 @@ test("renderAlsoSeeMarkup emits group headers for topics", () => {
           label: "CS Builder",
           subtitle: "Zero-knowledge",
           url: "https://example.com/cs",
+          icon: "",
           iconLight: "",
           iconDark: "",
         },
@@ -164,6 +165,7 @@ test("renderAlsoSeeMarkup adds a separator before ungrouped links", () => {
           label: "CS Builder",
           subtitle: "",
           url: "https://example.com/cs",
+          icon: "",
           iconLight: "",
           iconDark: "",
         },
@@ -176,6 +178,7 @@ test("renderAlsoSeeMarkup adds a separator before ungrouped links", () => {
           label: "Profile",
           subtitle: "",
           url: "https://github.com/filcuk",
+          icon: "",
           iconLight: "",
           iconDark: "",
         },
@@ -186,5 +189,84 @@ test("renderAlsoSeeMarkup adds a separator before ungrouped links", () => {
   assert.match(
     markup,
     /dropdown-menu-group">Database[\s\S]*dropdown-menu-separator[\s\S]*Profile/
+  );
+});
+
+test("normalizeAlsoSee keeps a single icon without inventing a theme pair", () => {
+  const sections = normalizeAlsoSee([
+    {
+      label: "Legacy",
+      url: "https://example.com/legacy",
+      icon: "https://example.com/icon.svg",
+    },
+  ]);
+
+  assert.equal(sections[0].items[0].icon, "https://example.com/icon.svg");
+  assert.equal(sections[0].items[0].iconLight, "");
+  assert.equal(sections[0].items[0].iconDark, "");
+});
+
+test("normalizeAlsoSee prefers iconLight/iconDark theme pair", () => {
+  const sections = normalizeAlsoSee([
+    {
+      label: "Modern",
+      url: "https://example.com/modern",
+      icon: "https://example.com/ignored.svg",
+      iconLight: "https://example.com/app-light.svg",
+      iconDark: "https://example.com/app-dark.svg",
+    },
+  ]);
+
+  const item = sections[0].items[0];
+  assert.equal(item.icon, "");
+  assert.equal(item.iconLight, "https://example.com/app-light.svg");
+  assert.equal(item.iconDark, "https://example.com/app-dark.svg");
+});
+
+test("renderAlsoSeeMarkup uses one img for icon and a pair for light/dark", () => {
+  const single = renderAlsoSeeMarkup([
+    {
+      topic: null,
+      items: [
+        {
+          label: "Single",
+          subtitle: "",
+          url: "https://example.com/a",
+          icon: "https://example.com/icon.svg",
+          iconLight: "",
+          iconDark: "",
+        },
+      ],
+    },
+  ]);
+  assert.match(
+    single,
+    /dropdown-menu-item-icon" src="https:\/\/example\.com\/icon\.svg"/
+  );
+  assert.doesNotMatch(single, /brand-icon--light/);
+  assert.doesNotMatch(single, /brand-icon--dark/);
+
+  const pair = renderAlsoSeeMarkup([
+    {
+      topic: null,
+      items: [
+        {
+          label: "Pair",
+          subtitle: "",
+          url: "https://example.com/b",
+          icon: "",
+          iconLight: "https://example.com/app-light.svg",
+          iconDark: "https://example.com/app-dark.svg",
+        },
+      ],
+    },
+  ]);
+  assert.match(
+    pair,
+    /brand-icon--light" src="https:\/\/example\.com\/app-light\.svg"/
+  );
+  assert.match(
+    pair,
+    /brand-icon--dark" src="https:\/\/example\.com\/app-dark\.svg"/
   );
 });
