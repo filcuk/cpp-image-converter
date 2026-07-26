@@ -33,17 +33,21 @@ initShell(); // footer, theme toggle, page nav, tooltips, icons, links
 // …your app-specific inits…
 ```
 
-Optional shell overrides (repo link, brand URL, page nav scan):
+Optional shell overrides (repo link, brand URL, related apps, page nav scan):
 
 ```javascript
 initShell({
   repoUrl: "https://github.com/you/your-app",
+  appUrl: "https://you.github.io/your-app/",
   brandUrl: "https://yoursite.example",
   brandName: "Your name",
+  alsoSee: false, // or [] — hide the footer “also see” menu when no remote list
+  alsoSeeUrl: "", // optional remote JSON (topics + links)
+  alsoSeeTopics: null, // optional topic whitelist; null = all topics
   pageNav: { headingSelector: "main h2[id]" },
 });
 
-// Omit the floating page nav entirely:
+// Omit the floating page nav entirely (this app uses this):
 initShell({ pageNav: false });
 ```
 
@@ -52,21 +56,21 @@ initShell({ pageNav: false });
 Versions use [Semantic Versioning 2.0.0](https://semver.org/) and live in [`app/version.js`](app/version.js):
 
 ```javascript
-export const TEMPLATE_VERSION = "0.6.0"; // microapp-template release — sync with app/version.js
+export const TEMPLATE_VERSION = "0.9.0"; // microapp-template release — sync with app/version.js
 export const APP_VERSION = "0.0.0";      // your app — bump when you ship
 ```
 
 | Constant | Who sets it | Shown in UI |
 | -------- | ----------- | ----------- |
 | `APP_VERSION` | You, on your fork | Footer label (`v0.0.0`) |
-| `TEMPLATE_VERSION` | Template maintainers | Footer tooltip on hover/focus (`Template v0.6.0`) |
+| `TEMPLATE_VERSION` | Template maintainers | Footer tooltip on hover/focus (`Template v0.9.0`) |
 
 After forking, set `APP_VERSION` to your app’s release (e.g. `1.0.0`). Bump it when you publish a new version of **your** app. When you pull updates from the upstream template, the maintainer may have raised `TEMPLATE_VERSION` — hover the footer version to see which template release you are on.
 
 Optional runtime override (rare):
 
 ```javascript
-initShell({ appVersion: "1.2.3", templateVersion: "0.6.0" });
+initShell({ appVersion: "1.2.3", templateVersion: "0.9.0" });
 ```
 
 ### Configuration
@@ -76,16 +80,39 @@ Fork-sensitive defaults live in [`app/config.js`](app/config.js):
 ```javascript
 export const APP_CONFIG = {
   repoUrl: "https://github.com/you/your-app",
+  appUrl: "https://you.github.io/your-app/", // public Pages URL — omitted from “also see”
   brandUrl: "https://yoursite.example",
   brandName: "Your name",
   themeStorageKey: "microapp-theme",
   themeChangeEvent: "microapp-theme-change",
+  // Remote JSON for footer “also see” — empty skips fetch; falls back to alsoSee
+  alsoSeeUrl: "", // e.g. "https://raw.githubusercontent.com/you/shared/main/apps/links.json"
+  alsoSeeTopics: null, // e.g. ["Power BI", "Database"] — omit / null = all topics
+  // Local related apps (used when alsoSeeUrl is empty or fetch fails)
+  alsoSee: [
+    {
+      topic: "Examples",
+      items: [
+        {
+          label: "Example App A",
+          subtitle: "Sample related microapp",
+          url: "https://example.com/app-a",
+          iconLight: "app/res/app-light.svg",
+          iconDark: "app/res/app-dark.svg",
+        },
+      ],
+    },
+  ],
 };
 ```
 
 | Field | Used by |
 | ----- | ------- |
 | `repoUrl`, `brandUrl`, `brandName` | Footer links and brand tooltip via `renderPageShell()` |
+| `appUrl` | Public site URL; matching entries are dropped from “also see” |
+| `alsoSeeUrl` | Optional remote JSON for footer “also see”; empty skips fetch |
+| `alsoSeeTopics` | Optional topic whitelist (`null` / omit = all; `[]` = flat links only) |
+| `alsoSee` | Local footer “also see” list (`[]` / `false` disables when there is no remote list) |
 | `themeStorageKey` | `theme.js` and blocking `theme-init.js` |
 | `themeChangeEvent` | Theme changes; rich text editor syncs to dark mode |
 
@@ -124,12 +151,21 @@ Do **not** delete shared infrastructure you still need: `shell.js`, `render-shel
 
 | Asset | Purpose |
 | ----- | ------- |
-| `app/res/app-light.svg` / `app-dark.svg` | Header logo, favicon |
+| `app/res/app-light.svg` + `app-dark.svg` **or** `app/res/app.svg` | Header logo, favicon |
 | `app/res/sig-light.svg` / `sig-dark.svg` | Footer signature icon |
 
-Theme-aware swapping is handled in CSS and [`app/utils/brand-icon.js`](app/utils/brand-icon.js). Replace the SVG files or edit [`app/config.js`](app/config.js) and [`app/shell/render-shell.js`](app/shell/render-shell.js).
+**App logo — pair (default)** or **single**:
 
-For header logos, set a meaningful `alt` on the visible theme variant and `aria-hidden="true"` on the duplicate variant so screen readers are not announced twice.
+| Mode | Files | Config (`APP_ICON_SRC` in [`brand-icon.js`](app/utils/brand-icon.js) and/or `window.__MICROAPP__`) | Header markup |
+| ---- | ----- | --- | --- |
+| Pair | `app-light.svg`, `app-dark.svg` | `light` / `dark` set (default); `icon` empty | Two `<img class="site-logo brand-icon--light\|dark">` (see `index.html`) |
+| Single | `app.svg` | `icon: "app/res/app.svg"`, `light`/`dark` (and `__MICROAPP__` `appIconLight`/`appIconDark`) `""` | One `<img class="site-logo" src="app/res/app.svg">` (no `brand-icon--*` classes) |
+
+Set `__MICROAPP__.appIcon` / `appIconLight` / `appIconDark` in the HTML bridge (before `theme-init.js`) so the favicon is correct before modules load. [`brand-icon.js`](app/utils/brand-icon.js) reads the same keys and keeps the favicon in sync on theme change. If both a single `icon` and a light/dark pair are configured, the pair wins.
+
+Theme-aware swapping for pair mode is handled in CSS (`brand-icon--light` / `brand-icon--dark`). Replace the SVG files or edit the paths above.
+
+For pair-mode header logos, set a meaningful `alt` on the visible theme variant and `aria-hidden="true"` on the duplicate variant so screen readers are not announced twice.
 
 ### 6. Checklist before first deploy
 
@@ -182,6 +218,8 @@ app/
     layout.css          # Page shell, sections, page nav, footer, theme toggle
     code-block.css      # Code blocks and expandable surfaces
     controls-buttons.css  # Toolbar, buttons
+    controls-badges.css   # Corner badges on controls/labels
+    controls-chips.css    # Selectable / removable chips
     controls-fields.css   # Fields, combobox, date/time, color picker
     controls-widgets.css  # Toggle, segmented control, pagination, progress bar, spinner, slider, stepper
     controls-section-panel.css # Section panel grid
@@ -191,16 +229,21 @@ app/
     overlays.css        # Banners, tooltips, modals
     rich-text-editor.css # Rich text editor layout + Toast UI token overrides
     table.css            # Data tables
+    controls-tabular-input.css # Editable typed grid
+    converter.css       # App-specific converter UI
   config.js             # Fork defaults (repo URL, brand, theme key)
   version.js            # APP_VERSION + TEMPLATE_VERSION (SemVer 2.0.0)
   main.js               # index.html entry
+  converter/            # App-specific conversion logic
   shell/
     shell.js            # initShell() — shared page boot
     render-shell.js     # Footer, page nav, skip link
+    also-see.js         # Footer “also see” related-apps menu
     theme.js            # Theme preference module
     page-nav.js         # In-page heading nav + jump up/down
     external-link.js    # Arrow icon on outgoing links
     heading-link.js     # Copy section link on heading hover
+    sticky.js           # Optional sticky header / section headings
   utils/
     dom.js              # setHidden(), parseBooleanAttr(), focus helpers
     document-listeners.js
@@ -222,7 +265,7 @@ JS modules live under `app/shell/`, `app/utils/`, and `app/components/` — the 
 
 | Layer | Path | When you need it |
 | ----- | ---- | ---------------- |
-| **Entry** | `main.js`, `theme-init.js`, `config.js`, `version.js` | Always — wired from HTML |
+| **Entry** | `main.js`, `demo.js`, `theme-init.js`, `config.js`, `version.js` | Always — wired from HTML |
 | **Shell** | `app/shell/` | Always — call `initShell()` from `app/shell/shell.js` |
 | **Infrastructure** | `app/utils/` | Keep if any popup menu, icons, or shared helpers remain |
 | **Components** | `app/components/` | Import and init only the features your page uses; delete unused files |
@@ -235,31 +278,35 @@ Component CSS lives under `app/css/` (imported via `styles.css`). Match a compon
 
 | Feature | Description |
 | -------- | ----------- |
-| **Design tokens** | CSS custom properties in [`app/tokens.css`](app/tokens.css) for background, surface, section panels, `--control-height` (single-line controls), text, borders, accent, banners, and code blocks. Light and dark values via `[data-theme="dark"]`. Component styles in [`app/css/`](app/css/) partials (imported by [`app/styles.css`](app/styles.css)). |
-| **Theme toggle** | Footer control (injected by `initShell()`): light, dark, or system (`auto`). Stored in `localStorage` under the key from `APP_CONFIG.themeStorageKey`. `app/theme-init.js` runs in `<head>` to avoid flash of wrong theme. |
-| **Layout shell** | Semantic `header` / `main` / `footer` (footer rendered by JS), max-width 1200px, flex column page. App version in footer; template version on hover. |
-| **Buttons** | `.btn` (default), `.btn-primary`, `.btn-icon`, `.btn-toggle` (`aria-pressed` — accent border when on), `.btn-link`, disabled state. |
+| **Design tokens** | CSS custom properties in [`app/tokens.css`](app/tokens.css) for background, surface, section panels, `--input-bg` (form fields — lighter than page/section chrome), `--table-header-bg`, `--control-height` (single-line controls), text, borders, accent, banners, and code blocks. Light and dark values via `[data-theme="dark"]`. Component styles in [`app/css/`](app/css/) partials (imported by [`app/styles.css`](app/styles.css)). |
+| **Theme toggle** | Footer control (injected by `initShell()`): light, dark, or system (`auto`). Stored in `localStorage` under `microapp-theme`. `app/theme-init.js` runs in `<head>` to avoid flash of wrong theme. |
+| **Layout shell** | Semantic `header` / `main` / `footer` (footer rendered by JS), max-width 1200px, flex column page. App version in footer; template version on hover. Optional footer **also see** dropdown for related apps (`APP_CONFIG.alsoSee` / `alsoSeeUrl` / `alsoSeeTopics`, or `initShell({ alsoSee, alsoSeeUrl, alsoSeeTopics })`; `[]` / `false` disables when there is no remote list). Optional sticky site header (`data-sticky-header`) and sticky section headings (`data-sticky-section-headings`) — see **Sticky chrome**. |
+| **Buttons** | `.btn` (default), `.btn-primary`, `.btn-danger` (destructive primary), `.btn-icon`, `.btn-toggle` (`aria-pressed` — accent border when on), `.btn-link`, disabled state. |
+| **Badge** | Corner indicator on a control or text: normal readout or small `.badge--sm` dot. [`app/components/badge.js`](app/components/badge.js). |
+| **Chips** | Selectable filter tags and removable input chips. [`app/components/chip.js`](app/components/chip.js). |
 | **Inputs** | `.field` / `.field-label` with `.input`, `.textarea`, `.checkbox`, `.radio`, `.toggle`, `.segmented-control`, `.progress-bar`, `.spinner`, `.date-picker`, `.slider`, `.stepper`, `.color-picker`, and `.combobox`. |
 | **File dropzone** | `.file-dropzone` drag-and-drop / browse picker with file list and remove buttons. [`app/file-dropzone.js`](app/file-dropzone.js). |
 | **File download** | `.file-download` file list rows (like dropzone items) with on-demand download. [`app/file-download.js`](app/file-download.js). |
-| **Section panel** | `.section-panel` three-column grid rows, divider, submit row with expiring banner. See **Using components**. |
+| **Section panel** | `.section-panel` three-column grid rows, divider, submit row with expiring banner. |
 | **Combo button** | Split `.combo-btn` with main action + chevron menu; behaviour from [`app/combo.js`](app/combo.js). |
 | **Combobox** | Text input with filterable suggestion list. [`app/combobox.js`](app/combobox.js). |
 | **Slider** | Range control with editable value field; integer, decimal, percentage; optional disabled. [`app/slider.js`](app/slider.js). |
-| **Progress bar** | Horizontal fill for a value between min and max; optional % or x/y label. [`app/progress-bar.js`](app/progress-bar.js). |
+| **Progress bar** | Horizontal fill for a value between min and max; optional % or x/y label; optional shine; error (stuck) and disabled states. [`app/progress-bar.js`](app/progress-bar.js). |
 | **Spinner** | Loading indicator; optional blocking overlay on a host region. [`app/spinner.js`](app/spinner.js). |
 | **Stepper** | Numeric nudger with − / + buttons and editable value; integer or decimal. [`app/stepper.js`](app/stepper.js). |
 | **Colour picker** | Hex text input with inline swatch preview. [`app/color-picker.js`](app/color-picker.js). |
-| **Toggle** | On/off switch with track and thumb; `role="switch"`. [`app/toggle.js`](app/toggle.js). |
+| **Toggle** | On/off switch with track and thumb; `role="switch"`. Optional tri-state (`data-toggle-tristate`) cycles off → on → mixed. [`app/components/toggle.js`](app/components/toggle.js). |
+| **Tri-state checkbox** | Checkbox that cycles unchecked → checked → mixed (`indeterminate`). [`app/components/checkbox.js`](app/components/checkbox.js). |
 | **Segmented control** | Toggle button group for single selection; optional linked panels. [`app/segmented-control.js`](app/segmented-control.js). |
 | **Progress indicator** | Linear multi-step wizard; horizontal (default) or vertical step list. [`app/progress-indicator.js`](app/progress-indicator.js). |
-| **Dropdown** | `.dropdown` with `.dropdown-trigger` and `.dropdown-menu`; behaviour from [`app/dropdown.js`](app/dropdown.js). |
+| **Dropdown** | `.dropdown` with `.dropdown-trigger` and `.dropdown-menu`; optional `.dropdown-menu-group` headers, `.dropdown-menu-item-subtitle` context lines, and leading `.dropdown-menu-item-icon-wrap` icons. Behaviour from [`app/dropdown.js`](app/dropdown.js). |
 | **Toggle dropdown** | Multi-select dropdown; items toggle with `aria-checked`, menu stays open. [`app/dropdown-toggle.js`](app/dropdown-toggle.js). |
 | **Expand** | `.expand` disclosure with notch + label trigger and collapsible `.expand-panel`; behaviour from [`app/expand.js`](app/expand.js). |
 | **Accordion** | `.accordion` vertical stack of collapsible sections; one open at a time by default. [`app/accordion.js`](app/accordion.js). |
 | **Tabs** | `.tabs` block with `.tabs-list` / `.tabs-tab` and `.tabs-panel` content; behaviour from [`app/tabs.js`](app/tabs.js). |
 | **Pagination** | In-page page navigation with prev/next and numbered pages; no URL change. [`app/pagination.js`](app/pagination.js). |
 | **Table** | Data table with striped layout, sortable columns, and optional row selection. [`app/table.js`](app/table.js). |
+| **Tabular input** | Editable typed grid (text / number / logical); add/remove/reset; Excel/TSV paste (in-place or replace via footer buttons) with type detection; centered canvas breakout when wide. [`app/components/tabular-input.js`](app/components/tabular-input.js). |
 | **Page navigation** | Fixed `#page-nav`: always-visible jump up/down (shared progress ring), section links on hover. Group nested headings under `data-page-nav-tier` parents. [`app/page-nav.js`](app/page-nav.js). |
 | **Dialogs** | Accessible modal: backdrop, focus trap, Escape, focus restore. Markup uses `.modal` / `.modal-panel`; behaviour from [`app/dialog.js`](app/dialog.js). |
 | **Heading links** | Hover a `main h2[id]` heading to reveal a link icon; tooltip says “Get link”, then “Copied!” on success. [`app/heading-link.js`](app/heading-link.js). |
@@ -269,11 +316,11 @@ Component CSS lives under `app/css/` (imported via `styles.css`). Match a compon
 | **Code blocks** | `.code-block` with Prism highlighting, line numbers, copy, view/select/edit modes. [`app/code-block.js`](app/code-block.js). |
 | **Expandable surface** | Maximize code blocks or textareas to page width. [`app/expandable-surface.js`](app/expandable-surface.js). |
 | **Icons** | Inline SVGs in [`app/icons.js`](app/icons.js); use `data-icon` in HTML or `createIcon()` in JS. Source from [Icônes — Material Icons (Round)](https://icones.js.org/collection/ic?s=info&variant=Round). Logo files stay in `app/res/`. |
-| **Toolbar helper** | `.toolbar` flex row for button groups. See **Using components**. |
+| **Toolbar helper** | `.toolbar` flex row for button groups. |
 | **Code highlighting** | Optional [Prism.js](https://prismjs.com/) via [`app/code-block.js`](app/code-block.js) and [`app/vendor/prism/`](app/vendor/prism/). Load vendor scripts on the page (see Code blocks in **Using components**). |
 | **Rich text editor** | Markdown + WYSIWYG via [Toast UI Editor](https://github.com/nhn/tui.editor); table merged-cell plugin; base64 image paste. [`app/rich-text-editor.js`](app/rich-text-editor.js). Large vendor bundle (~500KB+). |
 
-Markup and init examples for each component are in **Using components** below.
+Markup and JS examples for each component are in the sections below. The upstream [microapp-template](https://github.com/filcuk/microapp-template) ships an optional `demo.html` showcase; this fork does not.
 
 ---
 
@@ -300,6 +347,34 @@ import { initTheme, initThemeToggle } from "./shell/theme.js";
 initTheme();
 initThemeToggle(document.getElementById("theme-toggle"));
 ```
+
+### Sticky chrome
+
+Optional stickiness for the site `<header>` and section titles. Off by default. Opt in with attributes on `<html>` (or the JS helpers). `initShell()` syncs scroll offsets on load and resize.
+
+| Opt-in | Effect |
+| ------ | ------ |
+| `data-sticky-header` | Sticky `body > header` |
+| `data-sticky-section-headings` | Sticky `.section-heading` and `.demo-tier-header` (so `.demo-tier-title` stays visible for the tier) |
+
+```html
+<html lang="en" data-sticky-header data-sticky-section-headings>
+```
+
+```javascript
+import {
+  setStickyHeader,
+  setStickySectionHeadings,
+  syncStickyOffsets,
+} from "./shell/sticky.js";
+
+setStickyHeader(true);
+setStickySectionHeadings(true);
+// After layout changes that alter header/tier-band height:
+syncStickyOffsets();
+```
+
+When both are on, section headings sit below the site header via `--sticky-header-offset`. The site header sticks flush to the top of the viewport; section and tier bands keep a `--sticky-gap` inset above and below (background extends into those gaps so content does not show through). Tier headers stick until a `.section-heading` reaches them and pushes them out the top; subheadings push each other the same way as you move between sections.
 
 ### Dialog
 
@@ -360,6 +435,70 @@ Enabled by `initShell()`. Any `http(s)` link to another origin gets an arrow-out
 <a href="https://example.com" data-no-external-icon>Stay plain</a>
 ```
 
+### Also see (related apps)
+
+Footer control between the GitHub and profile links. Configure in [`app/config.js`](app/config.js) (or pass `alsoSee` / `alsoSeeUrl` / `alsoSeeTopics` to `initShell()` / `renderPageShell()`):
+
+```javascript
+alsoSeeUrl: "https://raw.githubusercontent.com/you/shared/main/apps/links.json", // optional
+alsoSeeTopics: ["Power BI", "Database"], // optional whitelist; omit / null = all topics
+appUrl: "https://you.github.io/your-app/", // omit this site from the menu
+alsoSee: [
+  {
+    topic: "Examples",
+    items: [
+      {
+        label: "Example App A",
+        subtitle: "Sample related microapp", // optional
+        url: "https://example.com/app-a",
+        iconLight: "app/res/app-light.svg", // or single `icon` for one image
+        iconDark: "app/res/app-dark.svg",
+      },
+    ],
+  },
+  {
+    label: "Profile",
+    subtitle: "Find me on GitHub",
+    url: "https://github.com/you",
+    icon: "https://example.com/icon.svg",
+  },
+],
+```
+
+| Value | Behaviour |
+| ----- | --------- |
+| `alsoSeeUrl` string | Fetches remote JSON and replaces the menu |
+| Local `alsoSee` array | Renders immediately; kept as fallback if the remote fetch fails or `alsoSeeUrl` is empty |
+| `alsoSeeTopics` string[] | Case-insensitive topic whitelist; omit / `null` / `false` = all topics; `[]` = hide named topics (flat links still show) |
+| `appUrl` | Any entry whose `url` matches (trailing slash / case ignored) is excluded; empty topics are dropped |
+| `alsoSee: []` or `false` | Hides the control when there is no successful remote list |
+
+Remote / local JSON is a top-level array of **topic sections** and/or **flat links**:
+
+```json
+[
+  {
+    "topic": "Power BI",
+    "items": [
+      {
+        "label": "Power BI Tabulator",
+        "subtitle": "Tabular conversion for DAX & M",
+        "url": "https://filcuk.github.io/pbi-tabulator/",
+        "icon": "https://filcuk.github.io/pbi-tabulator/app/res/icon.svg"
+      }
+    ]
+  },
+  {
+    "label": "Profile",
+    "subtitle": "Find me on GitHub",
+    "url": "https://github.com/filcuk",
+    "icon": "https://example.com/icon.svg"
+  }
+]
+```
+
+Prefer a `raw.githubusercontent.com` or GitHub Pages URL and a simple `GET` (no custom headers). Topic headers use the same `.dropdown-menu-group` pattern as dropdowns. Each item is a real link: left-click opens in the current window; middle-click or Ctrl/Cmd-click opens in a new tab. Optional `subtitle` shows muted context under the label. Icons: use `iconLight` + `iconDark` for theme-swapped logos (`brand-icon--light` / `brand-icon--dark`), or a single `icon` for one always-visible image. If both forms are present, the light/dark pair wins. Icon values may be local paths (`app/res/…`) or absolute URLs (e.g. another GitHub Pages site or a raw asset URL). Flat legacy arrays (links only, no topics) still work.
+
 ### Heading links
 
 Enabled by `initShell()`. Section headings (`main h2[id]`) show a link icon on hover with a “Get link” tooltip; click copies the full section URL and the tooltip switches to “Copied!”.
@@ -379,10 +518,116 @@ Flex row for grouping related buttons. Wraps on narrow viewports.
   <button type="button" class="btn">Undo</button>
   <button type="button" class="btn">Redo</button>
   <button type="button" class="btn btn-primary">Save</button>
+  <button type="button" class="btn btn-danger">Delete</button>
   <button type="button" class="btn btn-icon" aria-label="More options" data-icon="lines"
     data-icon-class="btn-icon-svg"></button>
 </div>
 ```
+
+### Badge
+
+Corner indicator on a control or text. Wrap the host in `.badge-host` and add a `.badge` sibling (top-right, slightly overlapping).
+
+**Variants** (class on `.badge`):
+
+| Class | Role |
+| ----- | ---- |
+| `.badge` (default) | **Normal** — shows a number or text readout; empty or `0` hides it |
+| `.badge.badge--sm` | **Small** — round dot only; show/hide with a truthy value (`true` / count) or `clear()` |
+
+```html
+<!-- Normal (readout) -->
+<span class="badge-host" data-badge-label="Notifications">
+  <button type="button" class="btn" aria-label="Notifications, 3">Notifications</button>
+  <span class="badge" aria-hidden="true">3</span>
+</span>
+
+<!-- Small (dot) -->
+<span class="badge-host" data-badge-label="Updates">
+  <button type="button" class="btn" aria-label="Updates, updated">Updates</button>
+  <span class="badge badge--sm" aria-hidden="true"></span>
+</span>
+```
+
+```javascript
+import { initBadge, initBadges } from "./components/badge.js";
+
+const badge = initBadge(document.getElementById("notifications-badge"), {
+  onChange: ({ value, display, variant }) => console.log(value, display, variant),
+});
+
+badge?.getValue();
+badge?.setValue(12);
+badge?.increment(); // +1
+badge?.clear();     // hide (value 0)
+
+const dot = initBadge(document.getElementById("updates-badge"), { value: true });
+dot?.setValue(false); // hide
+dot?.setValue(true);  // show
+
+initBadges(document); // all `.badge-host` blocks with a `.badge`
+```
+
+`data-badge-label` keeps the control’s `aria-label` in sync (`{label}, {value}` for normal; `{label}, {detail}` for small). Optional `data-badge-max` (or `max` option) caps normal readouts (e.g. `99` → `99+`). Mark the control with `data-badge-control` when it is not the obvious button/link sibling. On tinted surfaces (`.section-panel`, `.demo-card`), `--badge-ring` matches the panel; override it where the host background differs.
+
+### Chips
+
+Selectable tags (filters) and removable input chips.
+
+**Filter group** — static chips that toggle on/off (`aria-pressed`); they cannot be removed.
+
+```html
+<div class="chip-group" role="group" aria-label="Categories">
+  <button type="button" class="chip" aria-pressed="true" data-chip-value="docs">Docs</button>
+  <button type="button" class="chip" aria-pressed="false" data-chip-value="api">API</button>
+</div>
+```
+
+```javascript
+import { initChipGroup, initChipGroups } from "./components/chip.js";
+
+const filters = initChipGroup(document.getElementById("category-filters"), {
+  onChange: ({ values, labels }) => console.log(values, labels),
+});
+
+filters?.getValues();
+filters?.setSelected(["docs", "api"]);
+filters?.clear();
+
+initChipGroups(document);
+```
+
+**Input chips** — type a value and press Enter or comma to add; remove with × or Backspace on an empty field.
+
+```html
+<div class="chip-input" id="tag-input">
+  <label class="field-label" for="tag-input-field">Tags</label>
+  <div class="chip-input-control">
+    <div class="chip-input-list"></div>
+    <input type="text" id="tag-input-field" class="input chip-input-field"
+      placeholder="Add tag…" autocomplete="off" />
+  </div>
+  <input type="hidden" class="chip-input-value" />
+</div>
+```
+
+```javascript
+import { initChipInput, initChipInputs } from "./components/chip.js";
+
+const tags = initChipInput(document.getElementById("tag-input"), {
+  values: ["urgent"],
+  onChange: ({ values }) => console.log(values),
+});
+
+tags?.getValues();
+tags?.add("mine");
+tags?.remove("urgent");
+tags?.clear();
+
+initChipInputs(document);
+```
+
+`data-chip-value` on selectable chips sets the value (defaults to label text). `data-chip-input-disabled` disables the input field. Remove buttons reuse the existing `error` (cancel) icon.
 
 ### Inputs
 
@@ -402,6 +647,12 @@ Flex row for grouping related buttons. Wraps on narrow viewports.
   <span>I agree</span>
 </label>
 
+<label class="checkbox">
+  <input type="checkbox" class="checkbox-input" id="partial"
+    data-checkbox-tristate data-checkbox-default="mixed" />
+  <span>Some selected</span>
+</label>
+
 <div class="field">
   <span class="field-label" id="size-label">Size</span>
   <div class="radio-group" role="radiogroup" aria-labelledby="size-label">
@@ -416,6 +667,25 @@ Flex row for grouping related buttons. Wraps on narrow viewports.
   </div>
 </div>
 ```
+
+```javascript
+import {
+  initTriStateCheckbox,
+  initTriStateCheckboxes,
+} from "./components/checkbox.js";
+
+const partial = initTriStateCheckbox(document.getElementById("partial"), {
+  onChange: ({ state, indeterminate }) => console.log(state, indeterminate),
+});
+
+partial?.getState(); // "true" | "false" | "mixed"
+partial?.setState("mixed");
+partial?.cycle();
+
+initTriStateCheckboxes(document); // all `[data-checkbox-tristate]` inputs
+```
+
+`data-checkbox-default` accepts `"true"`, `"false"`, or `"mixed"`. Click cycles **unchecked → checked → mixed**. Native `indeterminate` is set for mixed; `aria-checked` mirrors the state. Use a wrapping `<label>` **or** `for` (not both) so a single click does not activate the control twice.
 
 #### Date picker
 
@@ -480,17 +750,15 @@ The day view includes quick actions below the calendar: **Today** (date-only pic
 Drag-and-drop or click-to-browse file picker. Selected files appear in a list with remove buttons.
 
 ```html
-<div class="file-dropzone" id="my-dropzone" data-file-multiple data-file-max="5">
-  <div class="file-dropzone-target">
-    <input type="file" class="file-dropzone-input" aria-label="Upload files" />
-    <div class="file-dropzone-prompt" aria-hidden="true">
-      <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-      <span class="file-dropzone-text">
-        <span class="file-dropzone-primary">Drop files here</span>
-        <span class="file-dropzone-secondary">or browse</span>
-      </span>
-    </div>
-  </div>
+<div class="file-dropzone" id="my-dropzone" data-file-accept="image/*" data-file-multiple data-file-max="5">
+  <input type="file" class="file-dropzone-input" hidden />
+  <button type="button" class="file-dropzone-prompt">
+    <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+    <span class="file-dropzone-text">
+      <span class="file-dropzone-primary">Drop files here</span>
+      <span class="file-dropzone-secondary">or browse</span>
+    </span>
+  </button>
   <ul class="file-dropzone-list hidden" hidden></ul>
 </div>
 ```
@@ -511,9 +779,7 @@ dropzone?.clear();
 initFileDropzones(document); // wire every `.file-dropzone`
 ```
 
-`data-file-multiple` enables multi-select. `data-file-max` caps how many files can be added (extra files are trimmed; `onError` is called).
-
-The file input is a full-size transparent overlay on `.file-dropzone-target`, so browse and drop use the native control. Do **not** set a restrictive `accept` attribute — browsers (especially on Windows) often reject drops for `.c` / `.h` when MIME types are missing. Filter by filename in `onFiles` instead.
+`data-file-accept` maps to the hidden input's `accept`. `data-file-multiple` enables multi-select. `data-file-max` caps how many files can be added (extra files are trimmed; `onError` is called).
 
 ### File download
 
@@ -569,7 +835,20 @@ Three-column grid rows for compact forms. Stack fields across rows; use `.sectio
     </label>
   </div>
   <div class="section-panel__grid">
-    <button type="button" class="btn btn-toggle section-panel__toggle" aria-pressed="false">Toggle</button>
+    <div class="section-panel__controls">
+      <button type="button" class="btn btn-toggle" aria-pressed="false">Toggle</button>
+      <div class="toggle" data-toggle-default="false">
+        <button type="button" class="toggle-btn" role="switch" aria-checked="false">
+          <span class="toggle-track" aria-hidden="true">
+            <span class="toggle-thumb">
+              <span data-icon="check" data-icon-class="toggle-thumb-icon" aria-hidden="true"></span>
+            </span>
+          </span>
+          <span class="toggle-label">Enable option</span>
+        </button>
+        <input type="hidden" class="toggle-value" value="false" />
+      </div>
+    </div>
   </div>
   <div class="section-panel__grid">
     <label class="checkbox section-panel__checkbox" for="remember">
@@ -600,6 +879,8 @@ submitBtn.addEventListener("click", () => {
   showBanner(hasText ? successBanner : errorBanner);
 });
 ```
+
+See the interactive example on the upstream template `demo.html` (not shipped in this fork).
 
 ### Combo button
 
@@ -656,6 +937,8 @@ initComboboxes(document); // all `.combobox` blocks
 
 Keyboard: ArrowDown / ArrowUp navigate suggestions, Enter selects, Escape closes and restores the last committed value.
 
+See the interactive example on the upstream template `demo.html` (not shipped in this fork).
+
 ### Slider
 
 Range input with a compact value field beside the track. Drag the thumb or type a value directly; typed values are clamped to min/max and snapped to `step` on blur or Enter. Escape restores the last committed value while editing.
@@ -704,11 +987,11 @@ initSliders(document); // all `.slider` blocks
 
 ### Progress bar
 
-Horizontal fill for a value between min and max. Omit `.progress-bar-label` for a bar only; add it with `data-progress-bar-label="percent"` or `"fraction"` to show `75%` or `7/12` beside the track.
+Horizontal fill for a value between min and max. Omit `.progress-bar-label` for a bar only; add it with `data-progress-bar-label="percent"` or `"fraction"` to show `75%` or `7/12` beside the track. Set `data-progress-bar-shine` for a soft highlight that sweeps left→right across the filled segment (disabled while indeterminate, in error, or disabled, and when `prefers-reduced-motion` is set). Set `data-progress-bar-error` for a stuck/failed state: the fill stays at the current value, turns red, and pulses as a whole (mutually exclusive with indeterminate; pulse respects `prefers-reduced-motion`). Set `data-progress-bar-disabled` for a muted, non-animated display (form hidden input is disabled).
 
 ```html
 <div class="progress-bar" id="my-progress-bar" data-progress-bar-value="65" data-progress-bar-max="100"
-  data-progress-bar-label="percent">
+  data-progress-bar-label="percent" data-progress-bar-shine>
   <label class="field-label" id="my-progress-bar-label">Upload progress</label>
   <div class="progress-bar-row">
     <div class="progress-bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
@@ -729,6 +1012,24 @@ Fraction label (`7/12`) — set `data-progress-bar-label="fraction"` and match `
 </div>
 ```
 
+Error (stuck) state — keep the value and set `data-progress-bar-error`:
+
+```html
+<div class="progress-bar" data-progress-bar-value="55" data-progress-bar-max="100"
+  data-progress-bar-label="percent" data-progress-bar-error>
+  <!-- same .progress-bar-row structure -->
+</div>
+```
+
+Disabled — muted and frozen (no shine / pulse / indeterminate motion):
+
+```html
+<div class="progress-bar" data-progress-bar-value="30" data-progress-bar-max="100"
+  data-progress-bar-label="percent" data-progress-bar-disabled>
+  <!-- same .progress-bar-row structure -->
+</div>
+```
+
 ```javascript
 import { initProgressBar, initProgressBars } from "./components/progress-bar.js";
 
@@ -738,6 +1039,8 @@ const progressBar = initProgressBar(document.getElementById("my-progress-bar"), 
   max: 100,
   labelFormat: "percent", // "percent" | "fraction"
   indeterminate: false,
+  error: false,
+  disabled: false,
   onChange: ({ value, percent, source }) => console.log(value, percent, source),
 });
 
@@ -745,11 +1048,15 @@ progressBar?.getValue();
 progressBar?.setValue(80);
 progressBar?.getPercent();
 progressBar?.setIndeterminate(true);
+progressBar?.setError(true);
+progressBar?.isError();
+progressBar?.setDisabled(true);
+progressBar?.isDisabled();
 
 initProgressBars(document); // all `.progress-bar` blocks
 ```
 
-`data-progress-bar-value`, `data-progress-bar-min`, `data-progress-bar-max`, `data-progress-bar-label`, and `data-progress-bar-indeterminate` mirror the JS options. The track uses `role="progressbar"` with `aria-valuenow` / `aria-valuetext` for screen readers.
+`data-progress-bar-value`, `data-progress-bar-min`, `data-progress-bar-max`, `data-progress-bar-label`, `data-progress-bar-indeterminate`, `data-progress-bar-error`, `data-progress-bar-disabled`, and `data-progress-bar-shine` mirror the markup options. The track uses `role="progressbar"` with `aria-valuenow` / `aria-valuetext` for screen readers. `setValue()` clears both indeterminate and error.
 
 ### Spinner
 
@@ -837,8 +1144,6 @@ const stepper = initStepper(document.getElementById("my-stepper"), {
 
 stepper?.getValue();
 stepper?.setValue(5);
-stepper?.setBounds({ min: 0, max: 12 }); // update limits (clamps value if needed)
-stepper?.clear(); // empty the field
 stepper?.increment();
 stepper?.decrement();
 stepper?.setDisabled(true);
@@ -847,7 +1152,7 @@ stepper?.commitInput();
 initSteppers(document); // all `.stepper` blocks
 ```
 
-`data-stepper-min`, `data-stepper-max`, `data-stepper-step`, `data-stepper-default`, `data-stepper-format`, and `data-stepper-disabled` mirror the JS options. Omit `data-stepper-default` to start blank (`getValue()` returns `null`; `setValue(null)` / `clear()` empty the field). From empty, −/+ both land on the minimum. Decrement and increment buttons disable at the min and max bounds when a value is set. Call `setBounds({ min, max })` when limits must change after init (e.g. frame index for a multi-frame source).
+`data-stepper-min`, `data-stepper-max`, `data-stepper-step`, `data-stepper-default`, `data-stepper-format`, and `data-stepper-disabled` mirror the JS options. Decrement and increment buttons disable at the min and max bounds.
 
 ### Colour picker
 
@@ -895,12 +1200,29 @@ On/off switch for boolean settings. Uses `role="switch"` and `aria-checked` on t
   <button type="button" class="toggle-btn" role="switch" aria-checked="false">
     <span class="toggle-track" aria-hidden="true">
       <span class="toggle-thumb">
-        <span data-icon="check" data-icon-class="toggle-thumb-icon" aria-hidden="true"></span>
+        <span data-icon="check" data-icon-class="toggle-thumb-icon toggle-thumb-icon--on" aria-hidden="true"></span>
       </span>
     </span>
     <span class="toggle-label">Enable notifications</span>
   </button>
   <input type="hidden" class="toggle-value" name="notifications" value="false" />
+</div>
+```
+
+Tri-state variant (`data-toggle-tristate`) cycles **off → on → mixed**. ARIA `switch` is boolean-only, so the button uses `role="checkbox"` with `aria-checked="mixed"`. Include a minus (`remove`) icon for the mixed thumb, or one is injected automatically.
+
+```html
+<div class="toggle" id="my-toggle-tri" data-toggle-tristate data-toggle-default="mixed">
+  <button type="button" class="toggle-btn" role="checkbox" aria-checked="mixed">
+    <span class="toggle-track" aria-hidden="true">
+      <span class="toggle-thumb">
+        <span data-icon="check" data-icon-class="toggle-thumb-icon toggle-thumb-icon--on" aria-hidden="true"></span>
+        <span data-icon="remove" data-icon-class="toggle-thumb-icon toggle-thumb-icon--mixed" aria-hidden="true"></span>
+      </span>
+    </span>
+    <span class="toggle-label">Apply to selection</span>
+  </button>
+  <input type="hidden" class="toggle-value" name="apply" value="mixed" />
 </div>
 ```
 
@@ -918,10 +1240,18 @@ toggle?.setChecked(true);
 toggle?.toggle();
 toggle?.setDisabled(true);
 
+const tri = initToggle(document.getElementById("my-toggle-tri"), {
+  onChange: ({ state }) => console.log(state),
+});
+
+tri?.getState(); // "true" | "false" | "mixed"
+tri?.setState("mixed");
+tri?.cycle();
+
 initToggles(document); // all `.toggle` blocks
 ```
 
-`data-toggle-default` and `data-toggle-disabled` mirror the JS options. For a group of switches, wrap items in `.toggle-group`.
+`data-toggle-default`, `data-toggle-tristate`, and `data-toggle-disabled` mirror the JS options. For a group of switches, wrap items in `.toggle-group`.
 
 ### Segmented control
 
@@ -1067,6 +1397,53 @@ initDropdown(document.getElementById("my-dropdown"), {
 ```
 
 Markup: `.dropdown` > `.dropdown-trigger` + `ul.dropdown-menu` with `.dropdown-menu-item` buttons.
+
+Optional **group headers** — non-interactive labels between items. Insert a `<li role="presentation">` with a `.dropdown-menu-group` div before each group’s items. Headers are skipped by keyboard navigation (`itemSelector` is `.dropdown-menu-item` only). Later groups get a top border automatically.
+
+Optional **subtitles** — secondary muted text under the primary label. Wrap label + subtitle in `.dropdown-menu-item-text`:
+
+```html
+<button type="button" class="dropdown-menu-item" role="menuitem" data-value="argb32">
+  <span class="dropdown-menu-item-text">
+    <span class="dropdown-menu-item-label">ARGB32</span>
+    <span class="dropdown-menu-item-subtitle">Full colour with alpha</span>
+  </span>
+</button>
+```
+
+Optional **icons** — leading light/dark image pair via `.dropdown-menu-item-icon-wrap` (or a single `icon`):
+
+```html
+<button type="button" class="dropdown-menu-item" role="menuitem" data-value="app-a">
+  <span class="dropdown-menu-item-icon-wrap" aria-hidden="true">
+    <img class="dropdown-menu-item-icon brand-icon--light" src="app/res/app-light.svg" alt="" width="20" height="20" />
+    <img class="dropdown-menu-item-icon brand-icon--dark" src="app/res/app-dark.svg" alt="" width="20" height="20" />
+  </span>
+  <span class="dropdown-menu-item-text">
+    <span class="dropdown-menu-item-label">Example App A</span>
+    <span class="dropdown-menu-item-subtitle">Sample related microapp</span>
+  </span>
+</button>
+```
+
+`onSelect` / toggle APIs use `.dropdown-menu-item-label` when present (subtitle is not included in `label`).
+
+```html
+<ul class="dropdown-menu hidden" role="menu">
+  <li role="presentation">
+    <div class="dropdown-menu-group">True colour</div>
+  </li>
+  <li role="none">
+    <button type="button" class="dropdown-menu-item" role="menuitem" data-value="argb32">ARGB32</button>
+  </li>
+  <li role="presentation">
+    <div class="dropdown-menu-group">16-bit colour</div>
+  </li>
+  <li role="none">
+    <button type="button" class="dropdown-menu-item" role="menuitem" data-value="rgb565">RGB565</button>
+  </li>
+</ul>
+```
 
 ### Toggle dropdown
 
@@ -1250,7 +1627,7 @@ Styled data tables for lists of records. Wrap a semantic `<table>` in `.table-bl
 
 Optional **sortable** columns: set `data-table-sortable` on `.table-block` and `data-table-sort` on `<th>` cells. Add `data-sort-type="text"`, `"number"`, or `"date"` (default `text`). Put a `.table-sort-button` inside the header or let `initTable()` create one from the header text.
 
-Optional **row selection**: set `data-table-selectable` on `.table-block`, a `data-table-select-all` checkbox in the header row, and `data-table-row-select` on each row. Pair rows with `data-table-row-id` for stable ids in callbacks.
+Optional **row selection**: set `data-table-selectable` on `.table-block`, a `data-table-select-all` checkbox in the header row, and `data-table-row-select` on each row. Pair rows with `data-table-row-id` for stable ids in callbacks. Body rows highlight lightly on hover; when selectable, clicking anywhere on a row toggles that row (interactive controls inside the row are left alone).
 
 ```html
 <div class="table-block" id="issues-table" data-table-sortable data-table-selectable>
@@ -1310,6 +1687,84 @@ initTables(document);
 
 `data-table-sortable`, `data-table-selectable`, and `data-table-disabled` mirror the JS options. Add `.table-block--wide` to remove the default `40rem` max width.
 
+### Tabular input
+
+Editable data grid for collecting rows of typed values. Mount an empty `.tabular-input` root; `initTabularInput()` renders the table and controls. Column types are **`text`**, **`number`**, and **`logical`** (checkbox). Other kinds of values (dates, enums, etc.) use **text**.
+
+**Chrome**
+
+- Rename columns by clicking the header label (pointer cursor + “Click to edit” tooltip; Enter to commit, Escape to cancel); resting headers look like normal table headers until edited.
+- Column menu (chevron on the right of the name): **Type** group (text / number / logical; values are coerced) and **Column** group with **Remove**, **Add before**, and **Add after**. Only one column menu open at a time. Menus use fixed positioning so they are not clipped by the table scroll container.
+- Icon-only **add row** / **add column** (`plus`); **row remove** shares the trailing column with **add column** (header = add column, body = remove row).
+- **Copy** (beside Fit/Overflow) copies the grid as Excel-friendly TSV (header + rows) for paste into spreadsheets.
+- **Paste** replaces the whole grid from the clipboard, sized exactly to the clipboard (columns labeled `Column 1`…`N`; types auto-detected).
+- **Paste with Headers** same as Paste, but the first clipboard row becomes column labels and the remaining rows are data.
+- Leading column: header **reset** (`delete`); body rows get a square **up/down split** control to shift the row (`chevron-up` / `chevron-down`). First/last row disables the blocked direction.
+- Header **reset** opens a size-picker popover next to the button (up to **8×8**); choosing a size replaces the table with a blank text-column grid. Programmatic `reset({ columnCount, rowCount })` skips the picker (defaults to **3×2**).
+- Icon chrome uses `data-tooltip` (add/remove row, add column, reset, column menu trigger). Requires `initTooltips()` via `initShell()`.
+
+**Width / canvas breakout**
+
+- When the grid is wider than the page body, it **breaks out centered** up to the canvas (`100vw` minus page padding) instead of scrolling inside the body.
+- A **Fit** / **Overflow** toggle (`fullscreen` / `fullscreen-exit`) sits beside **add row** and appears **only while overflowing**; use it to constrain back to the body (horizontal scroll) or expand again. Tooltips stay “Fit to page width” / “Expand to canvas width”. Default is breakout on.
+- Opt out via `breakout: false` or `data-tabular-input-breakout="false"` (initial preference). `setBreakoutEnabled(boolean)` / `getBreakoutEnabled()` are also available.
+
+**Paste**
+
+- Paste Excel/TSV (`text/plain` with tabs or multiple lines) while focus is in the grid.
+- Starts at the focused body cell (else top-left); expands rows/columns as needed; overwrites that rectangle; keeps surplus cells outside it.
+- Re-detects each column’s type from its full values (number → logical → text), then coerces cells.
+- Plain single-cell paste without tabs/newlines still goes into the focused field as usual.
+- Footer **Paste** / **Paste with Headers** read the clipboard (secure context) and replace the entire grid; empty header cells fall back to `Column N`; a headers-only clipboard yields one blank data row. If clipboard read is blocked, the button prompts for **Ctrl+V** and captures the next paste.
+
+**Keyboard**
+
+- **Tab / Shift+Tab** move through fields and header controls first, then **remove row** buttons, then **move row** (up/down) controls.
+- **Arrow keys** move between body cells (left/right are caret-edge-aware in text/number fields; up/down always change row).
+
+```html
+<div class="tabular-input" id="inventory-grid" aria-label="Inventory"></div>
+```
+
+```javascript
+import { initTabularInput, initTabularInputs } from "./components/tabular-input.js";
+
+const grid = initTabularInput(document.getElementById("inventory-grid"), {
+  columns: [
+    { id: "name", label: "Name", type: "text" },
+    { id: "qty", label: "Qty", type: "number" },
+    { id: "active", label: "Active", type: "logical" },
+  ],
+  rows: [
+    { id: "r1", cells: { name: "Widget", qty: 12, active: true } },
+  ],
+  onChange: ({ columns, rows, source }) => console.log(source, columns, rows),
+});
+
+grid?.getData();
+grid?.addRow();
+grid?.addColumn({ label: "Notes", type: "text" });
+grid?.addColumn({ label: "Before qty" }, { index: 1 }); // insert at index
+grid?.removeRow("r1");
+grid?.moveRow("r1", { delta: -1 });
+grid?.removeColumn("qty");
+grid?.renameColumn("name", "Item");
+grid?.setColumnType("active", "text");
+grid?.reset(); // blank 3×2; no size picker
+grid?.reset({ columnCount: 4, rowCount: 5 });
+grid?.setData({ columns: [...], rows: [...] });
+grid?.setDisabled(true);
+grid?.setBreakoutEnabled(false);
+grid?.getBreakoutEnabled();
+grid?.destroy();
+
+initTabularInputs(document); // all `.tabular-input` roots
+```
+
+`data-tabular-input-disabled` mirrors the `disabled` option. `data-tabular-input-breakout` mirrors the `breakout` option (default on). `onChange` `source` values include `"input"`, `"add-row"`, `"remove-row"`, `"move-row"`, `"add-column"`, `"remove-column"`, `"rename"`, `"type-change"`, `"paste"`, `"reset"`, and `"api"`.
+
+Icons used: `plus`, `delete` (reset), `remove` (row/column), `type-text`, `type-number`, `type-logical`, `chevron-down`, `fullscreen`, `fullscreen-exit`, `copy`, `paste`, `paste-special` — defined in [`app/utils/icons.js`](app/utils/icons.js).
+
 ### Page navigation
 
 Injected by `initShell()` via [`app/shell/render-shell.js`](app/shell/render-shell.js). Collects `main h2[id]` headings automatically and shows plain section-title links (same weight and colour as `.section-heading`). Give each section heading a unique `id` and optional `.section-heading` class (`scroll-margin-top` is included).
@@ -1326,9 +1781,6 @@ initShell({
     headingRoot: document.getElementById("docs"),
   },
 });
-
-// Disable page nav (no floating jump control):
-initShell({ pageNav: false });
 ```
 
 Standalone use without the full shell — insert markup from `PAGE_NAV_MARKUP` in `render-shell.js`, then:
@@ -1408,13 +1860,13 @@ editor?.destroy();
 initRichTextEditors(document); // every `.rich-text-editor` with a mount node
 ```
 
-Theme (light/dark) follows the page `data-theme` attribute and updates on `APP_CONFIG.themeChangeEvent` from [`app/theme.js`](app/shell/theme.js).
+Theme (light/dark) follows the page `data-theme` attribute and updates on `microapp-theme-change` from [`app/theme.js`](app/theme.js).
 
 Switch between Markdown and WYSIWYG using Toast UI’s built-in mode control in the toolbar. Converting between Markdown and HTML is lossy for complex formatting (tables, nested lists, etc.) — treat one format as canonical when persisting content.
 
 ### Code highlighting (Prism)
 
-Optional syntax highlighting for docs or sample code.
+Optional syntax highlighting for docs or demos. Markup and JS options are documented below.
 
 ```html
 <link rel="stylesheet" href="app/prism.css" />
@@ -1502,7 +1954,7 @@ const svg = createIcon("lines", { className: "btn-icon-svg" });
 button.append(svg);
 ```
 
-Add new icons to the `ICONS` object in `app/icons.js`. App logo (`app/res/app-light.svg`, `app/res/app-dark.svg`) and signature (`app/res/sig-light.svg`, `app/res/sig-dark.svg`) swap by theme via CSS; favicon syncs in `app/utils/brand-icon.js`.
+Add new icons to the `ICONS` object in `app/icons.js`. App logo supports a light/dark pair (`app/res/app-light.svg`, `app/res/app-dark.svg`) or a single `app/res/app.svg` — see **Branding** and [`app/utils/brand-icon.js`](app/utils/brand-icon.js). Signature (`app/res/sig-light.svg`, `app/res/sig-dark.svg`) swaps by theme via CSS; favicon syncs in `brand-icon.js`.
 
 Licensed icon sets (e.g. Material Icons) can use optional metadata on each entry:
 
