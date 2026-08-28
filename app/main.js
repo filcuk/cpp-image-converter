@@ -10,6 +10,7 @@ import { initToggle } from "./components/toggle.js";
 import { initColorInput } from "./components/color-input.js";
 import { initImagePreview } from "./components/image-preview.js";
 import { initExpandableSurfaces } from "./components/expandable-surface.js";
+import { initDialog } from "./components/dialog.js";
 import {
   prepareButtonLabelFlash,
   setButtonLabelFlash,
@@ -64,6 +65,8 @@ const clearSourceBtn = document.getElementById("clear-source-btn");
 const clearSvgBtn = document.getElementById("clear-svg-btn");
 const loadExampleBtn = document.getElementById("load-example-btn");
 const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
+const overwriteDialogEl = document.getElementById("overwrite-dialog");
+const confirmOverwriteBtn = document.getElementById("confirm-overwrite-btn");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
@@ -146,6 +149,8 @@ let selectedOutputFormat = "argb32";
 let directionControl = null;
 /** @type {ReturnType<typeof initSegmentedControl>} */
 let bitOrderControl = null;
+/** @type {ReturnType<typeof initDialog>} */
+let overwriteDialog = null;
 /** @type {ReturnType<typeof initStepper>} */
 let widthStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -176,6 +181,7 @@ let svgDropzone = null;
 /** True while textarea content came from a loaded file */
 let sourceFromFile = false;
 let svgFromFile = false;
+let pendingExampleLoad = null;
 /** Skip clearing the textarea when we clear the dropzone ourselves */
 let ignoringDropzoneClear = false;
 let ignoringSvgDropzoneClear = false;
@@ -702,13 +708,11 @@ function readFileText(file) {
 function syncSourceActionVisibility() {
   const hasSource = Boolean(sourceTextarea?.value);
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
-  setHidden(loadExampleBtn, hasSource);
 }
 
 function syncSvgActionVisibility() {
   const hasSvg = Boolean(svgTextarea?.value);
   if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
-  setHidden(loadExampleSvgBtn, hasSvg);
 }
 
 function clearSourceInputs() {
@@ -811,9 +815,26 @@ async function loadSvgFile(file) {
   }
 }
 
-function loadExampleSource() {
+function requestExampleLoad(load) {
+  pendingExampleLoad = load;
+  if (!overwriteDialog) {
+    pendingExampleLoad = null;
+    showError("Overwrite confirmation failed to initialize.");
+    return;
+  }
+  overwriteDialog.openDialog();
+}
+
+/**
+ * @param {{ confirmed?: boolean }} [options]
+ */
+function loadExampleSource({ confirmed = false } = {}) {
   if (!sourceTextarea) {
     showError("Source text area is missing.");
+    return;
+  }
+  if (sourceTextarea.value.trim() && !confirmed) {
+    requestExampleLoad(() => loadExampleSource({ confirmed: true }));
     return;
   }
   clearFileIfEditingSource();
@@ -827,9 +848,16 @@ function loadExampleSource() {
   runConvert({ showSuccess: true });
 }
 
-function loadExampleSvg() {
+/**
+ * @param {{ confirmed?: boolean }} [options]
+ */
+function loadExampleSvg({ confirmed = false } = {}) {
   if (!svgTextarea) {
     showError("SVG text area is missing.");
+    return;
+  }
+  if (svgTextarea.value.trim() && !confirmed) {
+    requestExampleLoad(() => loadExampleSvg({ confirmed: true }));
     return;
   }
   clearFileIfEditingSvg();
@@ -1246,6 +1274,19 @@ try {
   }
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
+
+  overwriteDialog = initDialog({
+    dialogEl: overwriteDialogEl,
+    onClose: () => {
+      pendingExampleLoad = null;
+    },
+  });
+  confirmOverwriteBtn?.addEventListener("click", () => {
+    const load = pendingExampleLoad;
+    pendingExampleLoad = null;
+    overwriteDialog?.closeDialog();
+    load?.();
+  });
 
   sourceDropzone = initFileDropzone(document.getElementById("source-dropzone"), {
     onFiles: ({ files }) => {

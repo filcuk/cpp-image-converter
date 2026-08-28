@@ -159,7 +159,12 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
 }
 
 .converter-source-actions {
-  align-self: flex-start;
+  align-self: stretch;
+}
+
+.converter-source-actions #load-example-btn,
+.converter-source-actions #load-example-svg-btn {
+  margin-inline-start: auto;
 }
 
 .converter-input-banners,
