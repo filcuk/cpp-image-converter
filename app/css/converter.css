@@ -104,6 +104,11 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   max-width: 14rem;
 }
 
+.converter-options__row > .toggle {
+  align-self: flex-end;
+  margin-block-end: calc((var(--control-height) - 1.375rem) / 2);
+}
+
 #size-options-row,
 .converter-animate-row {
   flex-wrap: nowrap;
