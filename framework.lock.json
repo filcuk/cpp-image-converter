@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "frameworkVersion": "0.13.2",
+  "source": "filcuk/sma1-framework",
+  "components": [
+    "fields",
+    "section-panel",
+    "file-dropzone",
+    "file-download",
+    "segmented-control",
+    "dropdown",
+    "stepper",
+    "toggle",
+    "color-input",
+    "color-set",
+    "color-picker",
+    "slider",
+    "image-preview",
+    "expandable-surface",
+    "date-picker",
+    "table",
+    "tabular-input"
+  ],
+  "skills": [
+    "*"
+  ]
+}

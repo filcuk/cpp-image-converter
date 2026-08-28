@@ -33,15 +33,25 @@
  * data-table-selectable — enable row checkboxes and select-all
  * data-table-disabled — disable interaction
  * data-sort-type on th — text | number | date (default text)
+ * data-table-sort-default on th — ascending | descending (initial sort; multiple
+ *   headers stack in document order — primary first)
+ *
+ * Sort: header click cycles ascending → descending → unsorted. Hold Shift while
+ * clicking to add or cycle a secondary column without clearing the others.
  */
 
 import { createIcon } from "../utils/icons.js";
 import { parseBooleanAttr, setHidden } from "../utils/dom.js";
 
 const SORT_TYPES = ["text", "number", "date"];
+const SORT_DIRECTIONS = ["ascending", "descending"];
 
 function parseSortType(value) {
   return SORT_TYPES.includes(value) ? value : "text";
+}
+
+function parseSortDirection(value) {
+  return SORT_DIRECTIONS.includes(value) ? value : null;
 }
 
 function resolveSortable(blockEl, sortableOption) {
@@ -79,6 +89,33 @@ export function compareValues(a, b, sortType) {
   return String(a).localeCompare(String(b), undefined, { sensitivity: "base" });
 }
 
+/**
+ * Compare two rows by an ordered list of sort columns (first wins, then next).
+ * @param {HTMLTableRowElement} rowA
+ * @param {HTMLTableRowElement} rowB
+ * @param {{ columnIndex: number, sortType: string, direction: "ascending" | "descending" }[]} columns
+ * @returns {number}
+ */
+export function compareRowsByColumns(rowA, rowB, columns) {
+  for (const { columnIndex, sortType, direction } of columns) {
+    const multiplier = direction === "descending" ? -1 : 1;
+    const cmp =
+      compareValues(
+        getCellValue(rowA.cells[columnIndex], sortType),
+        getCellValue(rowB.cells[columnIndex], sortType),
+        sortType
+      ) * multiplier;
+    if (cmp !== 0) return cmp;
+  }
+  return 0;
+}
+
+function nextSortDirection(current) {
+  if (current === "ascending") return "descending";
+  if (current === "descending") return null;
+  return "ascending";
+}
+
 function ensureSortIcon(button) {
   let icon = button.querySelector(".table-sort-icon");
   if (icon) return icon;
@@ -106,9 +143,45 @@ function setSortButtonState(button, direction) {
   icon.replaceChildren(createIcon(iconName, { className: "table-sort-icon-svg" }));
 }
 
+/**
+ * @param {HTMLTableCellElement[]} sortHeaders
+ * @param {unknown} defaultSortOption
+ * @returns {{ th: HTMLTableCellElement, direction: "ascending" | "descending" }[]}
+ */
+function resolveDefaultSort(sortHeaders, defaultSortOption) {
+  if (Array.isArray(defaultSortOption)) {
+    const entries = [];
+    for (const item of defaultSortOption) {
+      if (!item || typeof item !== "object") continue;
+      const direction = parseSortDirection(item.direction);
+      if (direction === null || typeof item.columnIndex !== "number") continue;
+      const th = sortHeaders.find((header) => header.cellIndex === item.columnIndex);
+      if (th) entries.push({ th, direction });
+    }
+    return entries;
+  }
+
+  if (defaultSortOption && typeof defaultSortOption === "object") {
+    const direction = parseSortDirection(defaultSortOption.direction);
+    if (direction !== null && typeof defaultSortOption.columnIndex === "number") {
+      const th = sortHeaders.find(
+        (header) => header.cellIndex === defaultSortOption.columnIndex
+      );
+      if (th) return [{ th, direction }];
+    }
+  }
+
+  const fromMarkup = [];
+  for (const th of sortHeaders) {
+    const direction = parseSortDirection(th.dataset.tableSortDefault);
+    if (direction) fromMarkup.push({ th, direction });
+  }
+  return fromMarkup;
+}
+
 export function initTable(
   blockEl,
-  { sortable, selectable, disabled, onSort, onSelectionChange } = {}
+  { sortable, selectable, disabled, defaultSort, onSort, onSelectionChange } = {}
 ) {
   if (!blockEl) return null;
 
@@ -140,6 +213,10 @@ export function initTable(
   const rowInputs = () => [
     ...tbody.querySelectorAll("[data-table-row-select]"),
   ];
+  const originalRowOrder = isSortable ? [...tbody.querySelectorAll("tr")] : [];
+
+  /** @type {{ th: HTMLTableCellElement, button: HTMLButtonElement, columnIndex: number, sortType: string, direction: "ascending" | "descending" }[]} */
+  let sortStack = [];
 
   function syncDisabledClass() {
     blockEl.classList.toggle("table-block--disabled", isDisabled);
@@ -175,16 +252,23 @@ export function initTable(
     selectAllInput.checked = inputs.length > 0 && checkedCount === inputs.length;
   }
 
-  function sortByColumn(columnIndex, direction, sortType) {
+  function applySortStack() {
+    if (sortStack.length === 0) {
+      restoreOriginalOrder();
+      return;
+    }
+
     const rows = [...tbody.querySelectorAll("tr")];
-    const multiplier = direction === "descending" ? -1 : 1;
+    const columns = sortStack.map(({ columnIndex, sortType, direction }) => ({
+      columnIndex,
+      sortType,
+      direction,
+    }));
 
     rows.sort((rowA, rowB) => {
-      const cellA = rowA.cells[columnIndex];
-      const cellB = rowB.cells[columnIndex];
-      const valueA = getCellValue(cellA, sortType);
-      const valueB = getCellValue(cellB, sortType);
-      return compareValues(valueA, valueB, sortType) * multiplier;
+      const cmp = compareRowsByColumns(rowA, rowB, columns);
+      if (cmp !== 0) return cmp;
+      return originalRowOrder.indexOf(rowA) - originalRowOrder.indexOf(rowB);
     });
 
     for (const row of rows) {
@@ -192,44 +276,83 @@ export function initTable(
     }
   }
 
-  function clearOtherSortStates(activeButton) {
-    for (const button of sortButtons) {
-      if (button !== activeButton) {
-        setSortButtonState(button, null);
-      }
+  function restoreOriginalOrder() {
+    const known = new Set(originalRowOrder);
+    for (const row of originalRowOrder) {
+      if (row.parentNode === tbody) tbody.append(row);
+    }
+    for (const row of [...tbody.querySelectorAll("tr")]) {
+      if (!known.has(row)) tbody.append(row);
     }
   }
 
-  function onSortHeaderClick(th, button) {
-    if (isDisabled) return;
+  function syncSortButtonStates() {
+    for (const button of sortButtons) {
+      setSortButtonState(button, null);
+    }
+    for (const { button, direction } of sortStack) {
+      setSortButtonState(button, direction);
+    }
+  }
 
-    const columnIndex = th.cellIndex;
-    const sortType = parseSortType(th.dataset.sortType);
-    const current = button.getAttribute("aria-sort");
-    const next =
-      current === "ascending"
-        ? "descending"
-        : current === "descending"
-          ? "ascending"
-          : "ascending";
-
-    clearOtherSortStates(button);
-    setSortButtonState(button, next);
-    sortByColumn(columnIndex, next, sortType);
-
+  function emitSort(columnIndex, direction, sortType, source) {
     onSort?.({
       columnIndex,
-      direction: next,
+      direction,
       sortType,
-      source: "header",
+      columns: sortStack.map(({ columnIndex: i, direction: d, sortType: t }) => ({
+        columnIndex: i,
+        direction: d,
+        sortType: t,
+      })),
+      source,
     });
+  }
+
+  function onSortHeaderClick(th, button, event) {
+    if (isDisabled) return;
+
+    const multi = Boolean(event?.shiftKey);
+    const columnIndex = th.cellIndex;
+    const sortType = parseSortType(th.dataset.sortType);
+    const existingIndex = sortStack.findIndex((entry) => entry.columnIndex === columnIndex);
+    const current = existingIndex >= 0 ? sortStack[existingIndex].direction : null;
+    const next = nextSortDirection(current);
+
+    if (!multi) {
+      sortStack = next
+        ? [{ th, button, columnIndex, sortType, direction: next }]
+        : [];
+    } else if (existingIndex >= 0) {
+      if (next) {
+        sortStack[existingIndex] = {
+          th,
+          button,
+          columnIndex,
+          sortType,
+          direction: next,
+        };
+      } else {
+        sortStack.splice(existingIndex, 1);
+      }
+    } else if (next) {
+      sortStack.push({ th, button, columnIndex, sortType, direction: next });
+    }
+
+    syncSortButtonStates();
+    applySortStack();
+    emitSort(columnIndex, next, sortType, "header");
   }
 
   const sortHandlers = sortHeaders.map((th, index) => {
     const button = sortButtons[index];
-    const handler = () => onSortHeaderClick(th, button);
-    button.addEventListener("click", handler);
-    return { button, handler };
+    const onClick = (event) => onSortHeaderClick(th, button, event);
+    const onMouseDown = (event) => {
+      if (event.shiftKey) event.preventDefault();
+    };
+    button.addEventListener("click", onClick);
+    button.addEventListener("mousedown", onMouseDown);
+    return { button, onClick, onMouseDown };
   });
 
   function onSelectAllChange() {
@@ -291,12 +414,39 @@ export function initTable(
   syncDisabledClass();
   syncSelectAllState();
 
+  const initialSort = isSortable
+    ? resolveDefaultSort(sortHeaders, defaultSort)
+    : [];
+  if (initialSort.length) {
+    sortStack = initialSort.map(({ th, direction }) => {
+      const button = th.querySelector(".table-sort-button");
+      return {
+        th,
+        button,
+        columnIndex: th.cellIndex,
+        sortType: parseSortType(th.dataset.sortType),
+        direction,
+      };
+    });
+    syncSortButtonStates();
+    applySortStack();
+    const primary = sortStack[0];
+    emitSort(primary.columnIndex, primary.direction, primary.sortType, "default");
+  }
+
   return {
     getSelectedRows() {
       return getSelectedRows();
     },
     getSelectedIds() {
       return getSelectedIds();
+    },
+    getSortColumns() {
+      return sortStack.map(({ columnIndex, direction, sortType }) => ({
+        columnIndex,
+        direction,
+        sortType,
+      }));
     },
     clearSelection() {
       if (selectAllInput) {
@@ -313,8 +463,9 @@ export function initTable(
       syncDisabledClass();
     },
     destroy() {
-      for (const { button, handler } of sortHandlers) {
-        button.removeEventListener("click", handler);
+      for (const { button, onClick, onMouseDown } of sortHandlers) {
+        button.removeEventListener("click", onClick);
+        button.removeEventListener("mousedown", onMouseDown);
       }
       selectAllInput?.removeEventListener("change", onSelectAllChange);
       for (const { input, handler } of rowHandlers) {

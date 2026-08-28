@@ -6,7 +6,6 @@ import { createIcon } from "../utils/icons.js";
  */
 function isExternalLink(anchor) {
   if (anchor.dataset.noExternalIcon !== undefined) return false;
-  if (anchor.classList.contains("footer-brand")) return false;
 
   const href = anchor.getAttribute("href");
   if (!href || href.startsWith("#") || href.startsWith("javascript:")) {
@@ -25,7 +24,7 @@ function isExternalLink(anchor) {
 /**
  * Append an arrow-outward icon to external `http(s)` links.
  *
- * Skips links with `data-no-external-icon`, `.footer-brand`, and links already marked.
+ * Skips links with `data-no-external-icon` and links already marked.
  *
  * @param {ParentNode} [root=document]
  */

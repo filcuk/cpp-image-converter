@@ -22,9 +22,9 @@
     return fallback;
   }
 
-  var icon = pick("appIcon", "app/res/app.svg");
-  var light = pick("appIconLight", "");
-  var darkIcon = pick("appIconDark", "");
+  var icon = pick("appIcon", "");
+  var light = pick("appIconLight", "app/res/app-light.svg");
+  var darkIcon = pick("appIconDark", "app/res/app-dark.svg");
   var href;
   if (light || darkIcon) {
     href = dark ? darkIcon || light : light || darkIcon;
