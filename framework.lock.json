@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "frameworkVersion": "0.13.2",
+  "frameworkVersion": "0.13.3",
   "source": "filcuk/sma1-framework",
   "components": [
     "fields",
@@ -16,6 +16,7 @@
     "color-picker",
     "slider",
     "image-preview",
+    "code-block",
     "expandable-surface",
     "date-picker",
     "dialog",

@@ -164,7 +164,6 @@ html[data-converter-direction="c-to-c"]
 
 .converter-format .dropdown-trigger {
   width: 100%;
-  justify-content: space-between;
 }
 
 .converter-format-control {
