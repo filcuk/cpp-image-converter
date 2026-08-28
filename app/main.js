@@ -34,7 +34,7 @@ import {
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
 import { EXAMPLE_SVG } from "./examples/example-svg.js";
 
-initShell({ pageNav: false });
+initShell({ pageNav: false, headingLinks: false });
 
 const DIRECTION_STORAGE_KEY = "cpp-image-converter-direction";
 /** @type {ReadonlySet<"c-to-svg" | "svg-to-c" | "c-to-c">} */
