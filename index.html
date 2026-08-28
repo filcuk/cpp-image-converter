@@ -151,23 +151,21 @@
               class="code-block converter-array-code-block"
               id="source-code-block"
               data-code-mode="edit"
+              data-code-toolbar-actions="paste"
               data-code-editor-label="C or C++ array source"
               data-expandable-surface
               data-expandable-surface-label="C / C++ array source"
             >
               <div class="code-block-body" data-expandable-surface-trigger>
-                <pre><code></code></pre>
+                <pre class="language-cpp"><code class="language-cpp"></code></pre>
               </div>
+              <button type="button" class="btn" id="clear-source-btn" disabled>
+                Clear
+              </button>
+              <button type="button" class="btn" id="load-example-btn">
+                Load Example
+              </button>
             </div>
-          </div>
-
-          <div class="toolbar converter-source-actions">
-            <button type="button" class="btn" id="clear-source-btn" disabled>
-              Clear
-            </button>
-            <button type="button" class="btn" id="load-example-btn">
-              Load Example
-            </button>
           </div>
         </div>
 
@@ -787,11 +785,12 @@
               class="code-block converter-array-code-block converter-array-code-block--output"
               id="c-output-code-block"
               data-code-mode="select"
+              data-code-toolbar-actions="none"
               data-expandable-surface
               data-expandable-surface-label="Generated C / C++ array"
             >
               <div class="code-block-body" data-expandable-surface-trigger>
-                <pre><code></code></pre>
+                <pre class="language-cpp"><code class="language-cpp"></code></pre>
               </div>
             </div>
           </div>
@@ -853,6 +852,9 @@
       </div>
     </div>
 
+    <script defer src="app/vendor/prism/prism.min.js"></script>
+    <script defer src="app/vendor/prism/prism-c.min.js"></script>
+    <script defer src="app/vendor/prism/prism-cpp.min.js"></script>
     <script type="module" src="app/main.js"></script>
   </body>
 </html>

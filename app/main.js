@@ -719,6 +719,16 @@ function syncSourceActionVisibility() {
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
 }
 
+function moveSourceActionsToCodeToolbar() {
+  const toolbar = sourceCodeBlockEl?.querySelector(".code-block-toolbar");
+  const leftGroup = toolbar?.querySelector(".code-block-toolbar__group--left");
+  const rightGroup = toolbar?.querySelector(".code-block-toolbar__group--right");
+  if (!leftGroup || !rightGroup) return;
+
+  if (clearSourceBtn) leftGroup.appendChild(clearSourceBtn);
+  if (loadExampleBtn) rightGroup.appendChild(loadExampleBtn);
+}
+
 function syncSvgActionVisibility() {
   const hasSvg = Boolean(svgTextarea?.value);
   if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
@@ -1189,6 +1199,7 @@ try {
       scheduleConvert();
     },
   });
+  moveSourceActionsToCodeToolbar();
   cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
   initExpandableSurfaces(document);
 
