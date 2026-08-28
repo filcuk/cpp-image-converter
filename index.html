@@ -129,21 +129,20 @@
         </div>
 
         <div class="converter-input" id="c-input-panel">
-          <div class="file-dropzone" id="source-dropzone">
-            <div class="file-dropzone-target">
-              <input
-                type="file"
-                class="file-dropzone-input"
-                aria-label="Upload a .c or .h file"
-              />
-              <div class="file-dropzone-prompt" aria-hidden="true">
-                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-                <span class="file-dropzone-text">
-                  <span class="file-dropzone-primary">Drop a .c or .h file here</span>
-                  <span class="file-dropzone-secondary">or click to browse</span>
-                </span>
-              </div>
-            </div>
+          <div class="file-dropzone" id="source-dropzone" data-file-accept=".c,.h,.txt">
+            <input
+              type="file"
+              class="file-dropzone-input"
+              aria-label="Upload a file"
+              hidden
+            />
+            <button type="button" class="file-dropzone-prompt">
+              <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+              <span class="file-dropzone-text">
+                <span class="file-dropzone-primary">Drop a file here</span>
+                <span class="file-dropzone-secondary">or click to browse</span>
+              </span>
+            </button>
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
@@ -169,21 +168,20 @@
         </div>
 
         <div class="converter-input hidden" id="svg-input-panel" hidden>
-          <div class="file-dropzone" id="svg-dropzone">
-            <div class="file-dropzone-target">
-              <input
-                type="file"
-                class="file-dropzone-input"
-                aria-label="Upload an SVG file"
-              />
-              <div class="file-dropzone-prompt" aria-hidden="true">
-                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-                <span class="file-dropzone-text">
-                  <span class="file-dropzone-primary">Drop an .svg file here</span>
-                  <span class="file-dropzone-secondary">or click to browse</span>
-                </span>
-              </div>
-            </div>
+          <div class="file-dropzone" id="svg-dropzone" data-file-accept=".svg">
+            <input
+              type="file"
+              class="file-dropzone-input"
+              aria-label="Upload an SVG file"
+              hidden
+            />
+            <button type="button" class="file-dropzone-prompt">
+              <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+              <span class="file-dropzone-text">
+                <span class="file-dropzone-primary">Drop a .svg file here</span>
+                <span class="file-dropzone-secondary">or click to browse</span>
+              </span>
+            </button>
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
