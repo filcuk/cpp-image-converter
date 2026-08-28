@@ -574,7 +574,7 @@
               </div>
 
               <div
-                class="color-input converter-fill-wrap is-disabled"
+                class="color-input converter-fill-wrap"
                 id="fill-color-picker"
                 data-color-input-default="#FFFFFF"
                 data-color-input-open="picker"
@@ -725,8 +725,14 @@
             >
               Download
             </button>
-            <button type="button" class="btn" id="copy-output-btn" disabled>
-              Copy
+            <button
+              type="button"
+              class="btn"
+              id="copy-output-btn"
+              aria-label="Copy"
+              disabled
+            >
+              <span class="btn-label-flash__label">Copy</span>
             </button>
           </div>
         </div>

@@ -10,6 +10,11 @@ import { initToggle } from "./components/toggle.js";
 import { initColorInput } from "./components/color-input.js";
 import { initImagePreview } from "./components/image-preview.js";
 import { initExpandableSurfaces } from "./components/expandable-surface.js";
+import {
+  prepareButtonLabelFlash,
+  setButtonLabelFlash,
+  flashButtonLabel,
+} from "./utils/button-label.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
@@ -75,7 +80,6 @@ const cOutputPanel = document.getElementById("c-output-panel");
 const frameStepperEl = document.getElementById("frame-stepper");
 const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
-const fillWrapEl = document.getElementById("fill-color-picker");
 const backgroundColorPickerEl = document.getElementById("background-color-picker");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
 const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
@@ -211,7 +215,6 @@ function onOptionChange() {
 }
 
 function syncFillEnabled(enabled) {
-  fillWrapEl?.classList.toggle("is-disabled", !enabled);
   fillPicker?.setDisabled(!enabled);
 }
 
@@ -637,16 +640,21 @@ async function triggerCopyOutput() {
   if (!text) return;
 
   const restoreLabel = () => {
-    copyOutputBtn.textContent = "Copy";
+    setButtonLabelFlash(copyOutputBtn, "Copy");
+    copyOutputBtn.setAttribute("aria-label", "Copy");
   };
 
   try {
     await copyTextToClipboard(text);
-    copyOutputBtn.textContent = "Copied";
-    window.setTimeout(restoreLabel, 2000);
+    flashButtonLabel(copyOutputBtn, true, {
+      durationMs: 2000,
+      reset: restoreLabel,
+    });
   } catch {
-    copyOutputBtn.textContent = "Failed";
-    window.setTimeout(restoreLabel, 2000);
+    flashButtonLabel(copyOutputBtn, false, {
+      durationMs: 2000,
+      reset: restoreLabel,
+    });
   }
 }
 
@@ -1202,6 +1210,15 @@ try {
   minifyToggle = initToggle(document.getElementById("minify-toggle"), {
     onChange: onOptionChange,
   });
+
+  if (copyOutputBtn) {
+    prepareButtonLabelFlash(copyOutputBtn, {
+      idle: "Copy",
+      success: "Copied",
+      fail: "Failed",
+    });
+    copyOutputBtn.setAttribute("aria-label", "Copy");
+  }
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
 
