@@ -275,28 +275,36 @@
                 hidden
               >
                 <span class="field-label" id="output-format-label">Output type</span>
-                <div class="dropdown" id="output-format-dropdown">
-                  <button
-                    type="button"
-                    class="btn dropdown-trigger"
-                    aria-haspopup="menu"
-                    aria-expanded="false"
-                    aria-controls="output-format-dropdown-menu"
-                    aria-labelledby="output-format-label"
-                  >
-                    <span
-                      class="dropdown-trigger-label"
-                      id="output-format-dropdown-label"
-                      >ARGB32 (LE RGBA) · uint32_t</span
+                <div class="converter-format-control">
+                  <div class="dropdown" id="output-format-dropdown">
+                    <button
+                      type="button"
+                      class="btn dropdown-trigger"
+                      aria-haspopup="menu"
+                      aria-expanded="false"
+                      aria-controls="output-format-dropdown-menu"
+                      aria-labelledby="output-format-label"
                     >
-                    <span class="combo-btn-chevron" aria-hidden="true"></span>
-                  </button>
-                  <ul
-                    id="output-format-dropdown-menu"
-                    class="dropdown-menu converter-format-menu hidden"
-                    role="menu"
-                    hidden
-                  ></ul>
+                      <span
+                        class="dropdown-trigger-label"
+                        id="output-format-dropdown-label"
+                        >ARGB32 (LE RGBA)</span
+                      >
+                      <span class="combo-btn-chevron" aria-hidden="true"></span>
+                    </button>
+                    <ul
+                      id="output-format-dropdown-menu"
+                      class="dropdown-menu converter-format-menu hidden"
+                      role="menu"
+                      hidden
+                    ></ul>
+                  </div>
+                  <output
+                    class="btn converter-format-type"
+                    id="output-format-type-label"
+                    aria-label="C element type"
+                    >uint32_t</output
+                  >
                 </div>
               </div>
 

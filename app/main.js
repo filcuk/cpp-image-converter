@@ -93,6 +93,7 @@ const outputFormatWrapEl = document.getElementById("output-format-wrap");
 const outputFormatDropdownLabelEl = document.getElementById(
   "output-format-dropdown-label"
 );
+const outputFormatTypeLabelEl = document.getElementById("output-format-type-label");
 
 const previewApi = initImagePreview(previewEl);
 const cPreviewApi = initImagePreview(cPreviewEl);
@@ -304,7 +305,11 @@ function setOutputFormatSelection(value, label) {
   selectedOutputFormat = value || "argb32";
   if (outputFormatDropdownLabelEl) {
     outputFormatDropdownLabelEl.textContent =
-      label || formatLabelWithType(selectedOutputFormat);
+      label || formatIdLabel(selectedOutputFormat);
+  }
+  if (outputFormatTypeLabelEl) {
+    outputFormatTypeLabelEl.textContent =
+      elementTypeForFormat(selectedOutputFormat) ?? "—";
   }
   const menu = document.getElementById("output-format-dropdown-menu");
   menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
@@ -372,6 +377,7 @@ function populateFormatMenus() {
   });
   fillFormatMenu(document.getElementById("output-format-dropdown-menu"), {
     includeAuto: false,
+    includeType: false,
     selectedId: selectedOutputFormat,
   });
 }
@@ -1173,6 +1179,8 @@ try {
     },
   });
 
+  populateFormatMenus();
+
   initDropdown(document.getElementById("format-dropdown"), {
     gridMin: 0,
     gridCols: 2,
@@ -1183,13 +1191,14 @@ try {
   });
 
   initDropdown(document.getElementById("output-format-dropdown"), {
+    gridMin: 0,
+    gridCols: 2,
     onSelect: ({ value, label }) => {
       setOutputFormatSelection(value || "argb32", label);
       onOptionChange();
     },
   });
 
-  populateFormatMenus();
   setFormatSelection("auto", "Auto");
   setOutputFormatSelection("argb32");
 
