@@ -1,6 +1,6 @@
 import { initShell } from "./shell/shell.js";
 import { setHidden } from "./utils/dom.js";
-import { copyTextToClipboard } from "./utils/clipboard.js";
+import { copyText } from "./utils/clipboard.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
@@ -77,7 +77,7 @@ const cInputPanel = document.getElementById("c-input-panel");
 const svgInputPanel = document.getElementById("svg-input-panel");
 const svgOutputPanel = document.getElementById("svg-output-panel");
 const cOutputPanel = document.getElementById("c-output-panel");
-const frameStepperEl = document.getElementById("frame-stepper");
+let frameStepperEl = document.getElementById("frame-stepper");
 const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const backgroundColorPickerEl = document.getElementById("background-color-picker");
@@ -154,6 +154,7 @@ let heightStepper = null;
 let scaleStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
 let frameStepper = null;
+let frameStepperMax = null;
 /** @type {ReturnType<typeof initToggle>} */
 let animateFramesToggle = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -439,8 +440,8 @@ function setDirection(next) {
 function clearSizeSteppers() {
   applyingMetadata = true;
   try {
-    widthStepper?.clear({ emit: false });
-    heightStepper?.clear({ emit: false });
+    widthStepper?.setValue(1);
+    heightStepper?.setValue(1);
     widthStepper?.setDisabled(false);
     heightStepper?.setDisabled(false);
   } finally {
@@ -478,6 +479,29 @@ function applySourceMetadata(source) {
 /**
  * @param {number} frameCount
  */
+function ensureFrameStepperMax(maxIndex) {
+  if (frameStepper && frameStepperMax === maxIndex) return;
+
+  const currentValue = frameStepper?.getValue() ?? 0;
+  const nextValue = currentValue > maxIndex ? 0 : currentValue;
+
+  if (frameStepper) {
+    const nextEl = /** @type {HTMLElement} */ (frameStepperEl.cloneNode(true));
+    nextEl.dataset.stepperMax = String(maxIndex);
+    frameStepperEl.replaceWith(nextEl);
+    frameStepperEl = nextEl;
+  } else {
+    frameStepperEl.dataset.stepperMax = String(maxIndex);
+  }
+
+  frameStepper = initStepper(frameStepperEl, {
+    max: maxIndex,
+    defaultValue: nextValue,
+    onChange: onOptionChange,
+  });
+  frameStepperMax = maxIndex;
+}
+
 function updateFrameStepper(frameCount) {
   const wasMulti = lastFrameCount > 1;
   lastFrameCount = Math.max(1, frameCount || 1);
@@ -486,7 +510,7 @@ function updateFrameStepper(frameCount) {
   setHidden(animateOptionsWrapEl, !multi);
 
   if (!multi) {
-    frameStepper?.setBounds({ min: 0, max: 0, emit: false });
+    ensureFrameStepperMax(0);
     frameStepper?.setValue(0);
     if (animateFramesToggle?.getChecked()) {
       animateFramesToggle.setChecked(false, { emit: false });
@@ -506,7 +530,7 @@ function updateFrameStepper(frameCount) {
   setHidden(frameFpsStepperEl, !animate);
 
   const maxIndex = lastFrameCount - 1;
-  frameStepper?.setBounds({ min: 0, max: maxIndex, emit: false });
+  ensureFrameStepperMax(maxIndex);
 
   if (animate) return;
 
@@ -645,7 +669,7 @@ async function triggerCopyOutput() {
   };
 
   try {
-    await copyTextToClipboard(text);
+    await copyText(text);
     flashButtonLabel(copyOutputBtn, true, {
       durationMs: 2000,
       reset: restoreLabel,
@@ -1180,6 +1204,7 @@ try {
   frameStepper = initStepper(frameStepperEl, {
     onChange: onOptionChange,
   });
+  frameStepperMax = Number(frameStepperEl?.dataset.stepperMax ?? 0);
 
   animateFramesToggle = initToggle(document.getElementById("animate-frames-toggle"), {
     onChange: () => {
