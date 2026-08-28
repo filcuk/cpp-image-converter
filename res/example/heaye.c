@@ -1,5 +1,4 @@
-/** Sample ARGB32 C array from res/example/heaye.c. */
-export const EXAMPLE_SOURCE = `#include <stdint.h>
+#include <stdint.h>
 
 #define HEAYE_FRAME_COUNT 24
 #define HEAYE_FRAME_WIDTH 14
@@ -393,4 +392,3 @@ static const uint32_t heaye_data[24][196] = {
 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
 }
 };
-`;
