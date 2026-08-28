@@ -146,16 +146,20 @@
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
-          <label class="field converter-source-field" for="source-textarea">
-            <textarea
-              id="source-textarea"
-              class="textarea converter-source-textarea"
-              rows="16"
-              spellcheck="false"
-              wrap="off"
-              placeholder="Enter a .c / .h array"
-            ></textarea>
-          </label>
+          <div class="field converter-source-field">
+            <div
+              class="code-block converter-array-code-block"
+              id="source-code-block"
+              data-code-mode="edit"
+              data-code-editor-label="C or C++ array source"
+              data-expandable-surface
+              data-expandable-surface-label="C / C++ array source"
+            >
+              <div class="code-block-body" data-expandable-surface-trigger>
+                <pre><code></code></pre>
+              </div>
+            </div>
+          </div>
 
           <div class="toolbar converter-source-actions">
             <button type="button" class="btn" id="clear-source-btn" disabled>
@@ -188,7 +192,7 @@
           <label class="field converter-source-field" for="svg-textarea">
             <textarea
               id="svg-textarea"
-              class="textarea converter-source-textarea"
+              class="textarea converter-svg-textarea"
               rows="16"
               spellcheck="false"
               wrap="off"
@@ -778,18 +782,19 @@
           <p class="panel-hint" id="converter-meta" hidden></p>
         </div>
         <div class="hidden" id="c-output-panel" hidden>
-          <label class="field converter-source-field" for="c-output-textarea">
-            <textarea
-              id="c-output-textarea"
-              class="textarea converter-source-textarea"
-              rows="18"
-              spellcheck="false"
-              wrap="off"
-              readonly
-              placeholder="C array output"
-              aria-label="Generated C source"
-            ></textarea>
-          </label>
+          <div class="field converter-source-field">
+            <div
+              class="code-block converter-array-code-block converter-array-code-block--output"
+              id="c-output-code-block"
+              data-code-mode="select"
+              data-expandable-surface
+              data-expandable-surface-label="Generated C / C++ array"
+            >
+              <div class="code-block-body" data-expandable-surface-trigger>
+                <pre><code></code></pre>
+              </div>
+            </div>
+          </div>
           <div class="field converter-source-field">
             <div
               class="image-preview converter-preview"

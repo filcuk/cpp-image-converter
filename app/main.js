@@ -10,6 +10,7 @@ import { initToggle } from "./components/toggle.js";
 import { initColorInput } from "./components/color-input.js";
 import { initImagePreview } from "./components/image-preview.js";
 import { initExpandableSurfaces } from "./components/expandable-surface.js";
+import { initCodeBlock } from "./components/code-block.js";
 import { initDialog } from "./components/dialog.js";
 import {
   prepareButtonLabelFlash,
@@ -59,7 +60,7 @@ function persistDirection(value) {
   document.documentElement.dataset.converterDirection = value;
 }
 
-const sourceTextarea = document.getElementById("source-textarea");
+const sourceCodeBlockEl = document.getElementById("source-code-block");
 const svgTextarea = document.getElementById("svg-textarea");
 const arrayNameInput = document.getElementById("array-name-input");
 const clearSourceBtn = document.getElementById("clear-source-btn");
@@ -74,7 +75,7 @@ const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
 const metaEl = document.getElementById("converter-meta");
-const cOutputTextarea = document.getElementById("c-output-textarea");
+const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
 const cPreviewEmptyEl = document.getElementById("c-preview-empty");
 const cMetaEl = document.getElementById("c-converter-meta");
@@ -97,7 +98,10 @@ const outputFormatTypeLabelEl = document.getElementById("output-format-type-labe
 
 const previewApi = initImagePreview(previewEl);
 const cPreviewApi = initImagePreview(cPreviewEl);
-initExpandableSurfaces(document);
+/** @type {ReturnType<typeof initCodeBlock>} */
+let sourceCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let cOutputCodeBlock = null;
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -139,8 +143,6 @@ let direction = "c-to-svg";
 /** Skip stepper-driven reconvert while syncing size from source defines */
 let applyingMetadata = false;
 let convertTimer = 0;
-/** Paste fires before the textarea value updates; `input` always sees the new text. */
-let sourceChangeFromPaste = false;
 let svgChangeFromPaste = false;
 
 /** @type {string} */
@@ -211,7 +213,7 @@ function fpsToFrameDurationMs(fps) {
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
-  const source = isSvgToC() ? svgTextarea?.value : sourceTextarea?.value;
+  const source = isSvgToC() ? svgTextarea?.value : sourceCodeBlock?.getSource();
   if (!source?.trim()) return;
   convertTimer = window.setTimeout(() => {
     runConvert();
@@ -631,7 +633,7 @@ function clearCPreview() {
 
 function clearCOutput() {
   latestC = null;
-  if (cOutputTextarea) cOutputTextarea.value = "";
+  cOutputCodeBlock?.setSource("");
   clearCPreview();
   setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
@@ -713,7 +715,7 @@ function readFileText(file) {
 }
 
 function syncSourceActionVisibility() {
-  const hasSource = Boolean(sourceTextarea?.value);
+  const hasSource = Boolean(sourceCodeBlock?.getSource());
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
 }
 
@@ -726,7 +728,7 @@ function clearSourceInputs() {
   sourceFromFile = false;
   downloadFilename = "converted.svg";
   if (isCToC()) downloadCFilename = "converted.c";
-  if (sourceTextarea) sourceTextarea.value = "";
+  sourceCodeBlock?.setSource("");
   ignoringDropzoneClear = true;
   try {
     sourceDropzone?.clear();
@@ -767,12 +769,12 @@ function clearSvgInputs() {
 async function loadSourceFile(file) {
   try {
     const text = await readFileText(file);
-    if (!sourceTextarea) {
-      showError("Source text area is missing.");
+    if (!sourceCodeBlock) {
+      showError("Source code block is missing.");
       return;
     }
     sourceFromFile = true;
-    sourceTextarea.value = text;
+    sourceCodeBlock.setSource(text);
     syncSourceActionVisibility();
     const base = file.name.replace(/\.(c|h|txt)$/i, "");
     if (isCToC()) {
@@ -836,16 +838,16 @@ function requestExampleLoad(load) {
  * @param {{ confirmed?: boolean }} [options]
  */
 function loadExampleSource({ confirmed = false } = {}) {
-  if (!sourceTextarea) {
-    showError("Source text area is missing.");
+  if (!sourceCodeBlock) {
+    showError("Source code block is missing.");
     return;
   }
-  if (sourceTextarea.value.trim() && !confirmed) {
+  if (sourceCodeBlock.getSource().trim() && !confirmed) {
     requestExampleLoad(() => loadExampleSource({ confirmed: true }));
     return;
   }
   clearFileIfEditingSource();
-  sourceTextarea.value = EXAMPLE_SOURCE;
+  sourceCodeBlock.setSource(EXAMPLE_SOURCE);
   syncSourceActionVisibility();
   if (isCToC()) {
     downloadCFilename = "example-packed.c";
@@ -900,7 +902,7 @@ function clearFileIfEditingSvg() {
 }
 
 function runConvertCToSvg() {
-  const source = sourceTextarea?.value ?? "";
+  const source = sourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearPreview();
     hideBanner(errorBanner);
@@ -1054,7 +1056,7 @@ async function runConvertSvgToC() {
   }
 
   latestC = result.source;
-  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
 
@@ -1076,7 +1078,7 @@ async function runConvertSvgToC() {
 }
 
 function runConvertCToC() {
-  const source = sourceTextarea?.value ?? "";
+  const source = sourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearCOutput();
     hideBanner(errorBanner);
@@ -1137,7 +1139,7 @@ function runConvertCToC() {
   }
 
   latestC = result.source;
-  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
 
@@ -1170,6 +1172,26 @@ function runConvert() {
 }
 
 try {
+  sourceCodeBlock = initCodeBlock(sourceCodeBlockEl, {
+    onInput: () => {
+      clearFileIfEditingSource();
+      syncSourceActionVisibility();
+      window.clearTimeout(convertTimer);
+
+      if (!sourceCodeBlock?.getSource().trim()) {
+        if (isCToC()) clearCOutput();
+        else clearPreview();
+        clearSizeSteppers();
+        hideBanner(errorBanner);
+        return;
+      }
+
+      scheduleConvert();
+    },
+  });
+  cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
+  initExpandableSurfaces(document);
+
   directionControl = initSegmentedControl(document.getElementById("direction-control"), {
     defaultValue: loadStoredDirection(),
     onChange: ({ value }) => {
@@ -1292,7 +1314,7 @@ try {
       sourceFromFile = false;
       downloadFilename = "converted.svg";
       if (isCToC()) downloadCFilename = "converted.c";
-      if (sourceTextarea) sourceTextarea.value = "";
+      sourceCodeBlock?.setSource("");
       syncSourceActionVisibility();
       clearSizeSteppers();
       updateFrameStepper(1);
@@ -1355,32 +1377,6 @@ try {
 
   window.addEventListener("pageshow", syncSourceActionVisibility);
   window.setTimeout(syncSourceActionVisibility, 0);
-
-  sourceTextarea?.addEventListener("paste", () => {
-    sourceChangeFromPaste = true;
-  });
-
-  sourceTextarea?.addEventListener("input", () => {
-    const fromPaste = sourceChangeFromPaste;
-    sourceChangeFromPaste = false;
-    clearFileIfEditingSource();
-    syncSourceActionVisibility();
-    window.clearTimeout(convertTimer);
-
-    if (!sourceTextarea.value.trim()) {
-      if (isCToC()) clearCOutput();
-      else clearPreview();
-      clearSizeSteppers();
-      hideBanner(errorBanner);
-      return;
-    }
-
-    if (fromPaste) {
-      runConvert();
-      return;
-    }
-    scheduleConvert();
-  });
 
   svgTextarea?.addEventListener("paste", () => {
     svgChangeFromPaste = true;

@@ -203,7 +203,7 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   width: 100%;
 }
 
-.converter-source-textarea {
+.converter-svg-textarea {
   width: 100%;
   min-height: 14rem;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -213,6 +213,44 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   overflow-x: auto;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.converter-array-code-block {
+  width: 100%;
+  max-width: none;
+}
+
+.converter-array-code-block .code-block-body pre {
+  height: 14rem;
+  min-height: 14rem;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.converter-array-code-block--output .code-block-body pre {
+  height: 18rem;
+  min-height: 18rem;
+}
+
+.converter-array-code-block .token.comment {
+  color: var(--muted);
+}
+
+.converter-array-code-block .token.directive,
+.converter-array-code-block .token.keyword {
+  color: var(--banner-important-text);
+}
+
+.converter-array-code-block .token.number {
+  color: var(--accent);
+}
+
+.converter-array-code-block .token.string {
+  color: var(--banner-success-text);
+}
+
+.converter-array-code-block .token.operator {
+  color: var(--banner-warn-text);
 }
 
 .converter-source-actions {
