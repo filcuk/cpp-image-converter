@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="310"
-   height="310"
-   viewBox="0 0 310 310"
+   width="315"
+   height="315"
+   viewBox="0 0 315 315"
    version="1.1"
    id="svg1"
    xmlns="http://www.w3.org/2000/svg"
@@ -13,10 +13,10 @@
      id="defs1" />
   <g
      id="layer3"
-     transform="translate(-207.69872,-76.000077)"
+     transform="translate(-236.12022,-73.500193)"
      style="display:inline">
     <rect
-       style="fill:#1a1a1a;fill-opacity:1;stroke:none;stroke-width:1.52303;stroke-linecap:round;stroke-linejoin:round;paint-order:markers fill stroke"
+       style="display:none;fill:#1a1a1a;fill-opacity:1;stroke:none;stroke-width:1.52303;stroke-linecap:round;stroke-linejoin:round;paint-order:markers fill stroke"
        id="rect15"
        width="310"
        height="310"
@@ -25,10 +25,10 @@
   </g>
   <g
      id="layer1"
-     transform="translate(-207.69872,-76.000077)">
+     transform="translate(-236.12022,-73.500193)">
     <g
        id="g12"
-       transform="translate(30.9215,7.7e-5)">
+       transform="translate(61.843,1.93e-4)">
       <path
          id="path5"
          style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
@@ -48,7 +48,7 @@
     </g>
     <g
        id="g11"
-       transform="translate(30.9215,7.7e-5)">
+       transform="translate(61.843,1.93e-4)">
       <path
          style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
          d="M 342.60254,131 256,181 v 100 l 86.60254,50 86.60254,-50 21.65064,12.5 v 25 L 342.60254,381 212.69872,306 V 156 l 129.90382,-75 108.25318,62.5 v 25 L 429.20508,181 Z"
