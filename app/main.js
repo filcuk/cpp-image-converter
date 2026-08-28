@@ -107,7 +107,6 @@ const optionsWarningBody = document.getElementById(
   "converter-options-warning-body"
 );
 const successBanner = document.getElementById("converter-success");
-const successBody = document.getElementById("converter-success-body");
 
 /** Warnings about output format / palette limits (shown under Options). */
 function isOptionsWarning(message) {
@@ -214,7 +213,7 @@ function scheduleConvert() {
   const source = isSvgToC() ? svgTextarea?.value : sourceTextarea?.value;
   if (!source?.trim()) return;
   convertTimer = window.setTimeout(() => {
-    runConvert({ showSuccess: false });
+    runConvert();
   }, 200);
 }
 
@@ -607,14 +606,6 @@ function showWarnings(warnings) {
   }
 }
 
-/**
- * @param {string} message
- */
-function showSuccessBanner(message) {
-  if (successBody) successBody.textContent = message;
-  showBanner(successBanner);
-}
-
 function syncCopyEnabled() {
   const hasOutput = writesC() ? Boolean(latestC) : Boolean(latestSvg);
   if (copyOutputBtn) copyOutputBtn.disabled = !hasOutput;
@@ -783,7 +774,7 @@ async function loadSourceFile(file) {
     } else {
       downloadFilename = `${base}.svg`;
     }
-    runConvert({ showSuccess: true });
+    runConvert();
     if (!text.trim()) {
       showWarnings(["File was empty."]);
     }
@@ -811,7 +802,7 @@ async function loadSvgFile(file) {
     svgTextarea.value = text;
     syncSvgActionVisibility();
     downloadCFilename = file.name.replace(/\.svg$/i, "") + ".c";
-    runConvert({ showSuccess: true });
+    runConvert();
     if (!text.trim()) {
       showWarnings(["File was empty."]);
     }
@@ -855,7 +846,7 @@ function loadExampleSource({ confirmed = false } = {}) {
   } else {
     downloadFilename = "example.svg";
   }
-  runConvert({ showSuccess: true });
+  runConvert();
 }
 
 /**
@@ -874,7 +865,7 @@ function loadExampleSvg({ confirmed = false } = {}) {
   svgTextarea.value = EXAMPLE_SVG;
   syncSvgActionVisibility();
   downloadCFilename = "example.c";
-  runConvert({ showSuccess: true });
+  runConvert();
 }
 
 function clearFileIfEditingSource() {
@@ -902,10 +893,7 @@ function clearFileIfEditingSvg() {
   }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvertCToSvg({ showSuccess = true } = {}) {
+function runConvertCToSvg() {
   const source = sourceTextarea?.value ?? "";
   if (!source.trim()) {
     clearPreview();
@@ -997,11 +985,6 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
   if (downloadSvgBtn) downloadSvgBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner(
-      `Output ready - ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}.`
-    );
-  }
 }
 
 /**
@@ -1013,10 +996,7 @@ function showCPreviewSvg(svgMarkup) {
   cPreviewApi?.setSvg(svgMarkup);
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-async function runConvertSvgToC({ showSuccess = true } = {}) {
+async function runConvertSvgToC() {
   const source = svgTextarea?.value ?? "";
   if (!source.trim()) {
     clearCOutput();
@@ -1087,15 +1067,9 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner("C array ready.");
-  }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvertCToC({ showSuccess = true } = {}) {
+function runConvertCToC() {
   const source = sourceTextarea?.value ?? "";
   if (!source.trim()) {
     clearCOutput();
@@ -1181,18 +1155,12 @@ function runConvertCToC({ showSuccess = true } = {}) {
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner("C array ready.");
-  }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvert(options = {}) {
-  if (isSvgToC()) void runConvertSvgToC(options);
-  else if (isCToC()) runConvertCToC(options);
-  else runConvertCToSvg(options);
+function runConvert() {
+  if (isSvgToC()) void runConvertSvgToC();
+  else if (isCToC()) runConvertCToC();
+  else runConvertCToSvg();
 }
 
 try {
@@ -1399,7 +1367,7 @@ try {
     }
 
     if (fromPaste) {
-      runConvert({ showSuccess: true });
+      runConvert();
       return;
     }
     scheduleConvert();
@@ -1424,7 +1392,7 @@ try {
     }
 
     if (fromPaste) {
-      runConvert({ showSuccess: true });
+      runConvert();
       return;
     }
     scheduleConvert();
