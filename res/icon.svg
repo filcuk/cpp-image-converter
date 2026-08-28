@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="315"
-   height="315"
-   viewBox="0 0 315 315"
+   width="320"
+   height="320"
+   viewBox="0 0 320 320"
    version="1.1"
    id="svg1"
    inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
@@ -28,8 +28,8 @@
      inkscape:document-units="px"
      showgrid="true"
      inkscape:zoom="2.2734375"
-     inkscape:cx="66.419244"
-     inkscape:cy="152.6323"
+     inkscape:cx="37.828179"
+     inkscape:cy="155.27148"
      inkscape:window-width="2512"
      inkscape:window-height="1417"
      inkscape:window-x="2600"
@@ -40,8 +40,8 @@
        type="axonomgrid"
        id="grid1"
        units="px"
-       originx="19.879778"
-       originy="182.49982"
+       originx="-8.5417213"
+       originy="184.99966"
        spacingx="3.7795276"
        spacingy="5"
        empcolor="#0099e5"
@@ -61,7 +61,7 @@
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="bg"
-     transform="translate(-236.12022,-73.500193)"
+     transform="translate(-264.54172,-71.000348)"
      style="display:inline">
     <rect
        style="display:none;fill:#1a1a1a;fill-opacity:1;stroke:none;stroke-width:1.52303;stroke-linecap:round;stroke-linejoin:round;paint-order:markers fill stroke"
@@ -76,14 +76,14 @@
      inkscape:label="main"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-236.12022,-73.500193)">
+     transform="translate(-264.54172,-71.000348)">
     <g
        id="g12"
        inkscape:label="i"
-       transform="translate(61.843,1.93e-4)">
+       transform="translate(92.7645,3.48e-4)">
       <path
          id="path5"
-         style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
+         style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
          d="m 320.95191,218.5 21.65063,-12.5 21.65064,12.5 v 75 L 342.60254,306 320.95191,293.5 Z m 0,-50 21.65063,-12.5 21.65064,12.5 v 25 L 342.60254,206 c 0,0 -21.65063,-12.5 -21.65063,-12.5 z"
          inkscape:label="stroke" />
       <path
@@ -105,9 +105,9 @@
     <g
        id="g11"
        inkscape:label="c"
-       transform="translate(61.843,1.93e-4)">
+       transform="translate(92.7645,3.48e-4)">
       <path
-         style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:15;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
+         style="fill:none;fill-opacity:1;stroke:#ffffff;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
          d="M 342.60254,131 256,181 v 100 l 86.60254,50 86.60254,-50 21.65064,12.5 v 25 L 342.60254,381 212.69872,306 V 156 l 129.90382,-75 108.25318,62.5 v 25 L 429.20508,181 Z"
          id="path6"
          sodipodi:nodetypes="ccccccccccccccc"
