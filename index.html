@@ -224,105 +224,115 @@
 
         <div class="section-panel">
           <div class="converter-options">
-            <div class="converter-format">
-              <span class="field-label" id="format-label">Input type</span>
-              <div class="dropdown" id="format-dropdown">
-                <button
-                  type="button"
-                  class="btn dropdown-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="format-dropdown-menu"
-                  aria-labelledby="format-label"
-                >
-                  <span class="dropdown-trigger-label" id="format-dropdown-label"
-                    >Auto</span
-                  >
-                  <span class="combo-btn-chevron" aria-hidden="true"></span>
-                </button>
-                <ul
-                  id="format-dropdown-menu"
-                  class="dropdown-menu converter-format-menu hidden"
-                  role="menu"
-                  hidden
-                >
-                  <li role="none">
+            <div class="converter-format-options-row">
+              <div class="field converter-format">
+                <span class="field-label" id="format-label">Input type</span>
+                <div class="converter-format-control">
+                  <div class="dropdown" id="format-dropdown">
                     <button
                       type="button"
-                      class="dropdown-menu-item is-selected"
-                      role="menuitem"
-                      data-value="auto"
+                      class="btn dropdown-trigger"
+                      aria-haspopup="menu"
+                      aria-expanded="false"
+                      aria-controls="format-dropdown-menu"
+                      aria-labelledby="format-label"
                     >
-                      Auto
+                      <span class="dropdown-trigger-label" id="format-dropdown-label"
+                        >Auto</span
+                      >
+                      <span class="combo-btn-chevron" aria-hidden="true"></span>
                     </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div
-              class="converter-format converter-c-to-c-only hidden"
-              id="output-format-wrap"
-              hidden
-            >
-              <span class="field-label" id="output-format-label">Output type</span>
-              <div class="dropdown" id="output-format-dropdown">
-                <button
-                  type="button"
-                  class="btn dropdown-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="output-format-dropdown-menu"
-                  aria-labelledby="output-format-label"
-                >
-                  <span
-                    class="dropdown-trigger-label"
-                    id="output-format-dropdown-label"
-                    >ARGB32 (LE RGBA) · uint32_t</span
+                    <ul
+                      id="format-dropdown-menu"
+                      class="dropdown-menu converter-format-menu hidden"
+                      role="menu"
+                      hidden
+                    >
+                      <li role="none">
+                        <button
+                          type="button"
+                          class="dropdown-menu-item is-selected"
+                          role="menuitem"
+                          data-value="auto"
+                        >
+                          Auto
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                  <output
+                    class="btn converter-format-type"
+                    id="format-type-label"
+                    aria-label="C element type"
+                    >Auto</output
                   >
-                  <span class="combo-btn-chevron" aria-hidden="true"></span>
-                </button>
-                <ul
-                  id="output-format-dropdown-menu"
-                  class="dropdown-menu converter-format-menu hidden"
-                  role="menu"
-                  hidden
-                ></ul>
-              </div>
-            </div>
-
-            <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
-              <span class="field-label" id="bit-order-label">Bit order</span>
-              <div
-                class="segmented-control"
-                id="bit-order-control"
-                data-segmented-control-default="msb"
-              >
-                <div
-                  class="segmented-control-list"
-                  role="radiogroup"
-                  aria-labelledby="bit-order-label"
-                >
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="true"
-                    data-segmented-control-value="msb"
-                  >
-                    MSB first
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="lsb"
-                  >
-                    LSB first
-                  </button>
                 </div>
-                <input type="hidden" class="segmented-control-value" value="msb" />
+              </div>
+
+              <div
+                class="field converter-format converter-c-to-c-only hidden"
+                id="output-format-wrap"
+                hidden
+              >
+                <span class="field-label" id="output-format-label">Output type</span>
+                <div class="dropdown" id="output-format-dropdown">
+                  <button
+                    type="button"
+                    class="btn dropdown-trigger"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-controls="output-format-dropdown-menu"
+                    aria-labelledby="output-format-label"
+                  >
+                    <span
+                      class="dropdown-trigger-label"
+                      id="output-format-dropdown-label"
+                      >ARGB32 (LE RGBA) · uint32_t</span
+                    >
+                    <span class="combo-btn-chevron" aria-hidden="true"></span>
+                  </button>
+                  <ul
+                    id="output-format-dropdown-menu"
+                    class="dropdown-menu converter-format-menu hidden"
+                    role="menu"
+                    hidden
+                  ></ul>
+                </div>
+              </div>
+
+              <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
+                <span class="field-label" id="bit-order-label">Bit order</span>
+                <div
+                  class="segmented-control"
+                  id="bit-order-control"
+                  data-segmented-control-default="msb"
+                >
+                  <div
+                    class="segmented-control-list"
+                    role="radiogroup"
+                    aria-labelledby="bit-order-label"
+                  >
+                    <button
+                      type="button"
+                      class="segmented-control-item"
+                      role="radio"
+                      aria-checked="true"
+                      data-segmented-control-value="msb"
+                    >
+                      MSB first
+                    </button>
+                    <button
+                      type="button"
+                      class="segmented-control-item"
+                      role="radio"
+                      aria-checked="false"
+                      data-segmented-control-value="lsb"
+                    >
+                      LSB first
+                    </button>
+                  </div>
+                  <input type="hidden" class="segmented-control-value" value="msb" />
+                </div>
               </div>
             </div>
 

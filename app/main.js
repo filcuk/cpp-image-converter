@@ -25,6 +25,7 @@ import { countSvgFrames } from "./converter/svg-to-pixels.js";
 import {
   FORMAT_CATALOGUE,
   FORMAT_GROUP_LABELS,
+  elementTypeForFormat,
   formatLabel as formatIdLabel,
   formatLabelWithType,
   formatNeedsBitOrder,
@@ -67,6 +68,7 @@ const loadExampleBtn = document.getElementById("load-example-btn");
 const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
 const overwriteDialogEl = document.getElementById("overwrite-dialog");
 const confirmOverwriteBtn = document.getElementById("confirm-overwrite-btn");
+const formatTypeLabelEl = document.getElementById("format-type-label");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
@@ -282,7 +284,10 @@ function setFormatSelection(value, label) {
       label ||
       (selectedFormat === "auto"
         ? "Auto"
-        : formatLabelWithType(selectedFormat));
+        : formatIdLabel(selectedFormat));
+  }
+  if (formatTypeLabelEl) {
+    formatTypeLabelEl.textContent = elementTypeForFormat(selectedFormat) ?? "Auto";
   }
   const menu = document.getElementById("format-dropdown-menu");
   menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
@@ -315,9 +320,9 @@ function setOutputFormatSelection(value, label) {
 
 /**
  * @param {HTMLElement | null} menu
- * @param {{ includeAuto?: boolean, selectedId: string }} options
+ * @param {{ includeAuto?: boolean, includeType?: boolean, selectedId: string }} options
  */
-function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
+function fillFormatMenu(menu, { includeAuto = true, includeType = true, selectedId }) {
   if (!menu) return;
   menu.replaceChildren();
   /** @type {string | null} */
@@ -344,7 +349,11 @@ function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
     btn.setAttribute("role", "menuitem");
     btn.dataset.value = format.id;
     btn.textContent =
-      format.id === "auto" ? format.label : formatLabelWithType(format.id);
+      format.id === "auto"
+        ? format.label
+        : includeType
+          ? formatLabelWithType(format.id)
+          : formatIdLabel(format.id);
     if (format.id === selectedId) {
       btn.classList.add("is-selected");
     }
@@ -354,11 +363,12 @@ function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
 }
 
 /**
- * Populate format menus from the catalogue (labels include C element types).
+ * Populate format menus from the catalogue.
  */
 function populateFormatMenus() {
   fillFormatMenu(document.getElementById("format-dropdown-menu"), {
     includeAuto: true,
+    includeType: false,
     selectedId: selectedFormat,
   });
   fillFormatMenu(document.getElementById("output-format-dropdown-menu"), {
@@ -1196,6 +1206,8 @@ try {
   });
 
   initDropdown(document.getElementById("format-dropdown"), {
+    gridMin: 0,
+    gridCols: 2,
     onSelect: ({ value, label }) => {
       setFormatSelection(value || "auto", label);
       onOptionChange();
