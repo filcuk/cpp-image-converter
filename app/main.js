@@ -8,6 +8,8 @@ import { initDropdown } from "./components/dropdown.js";
 import { initStepper } from "./components/stepper.js";
 import { initToggle } from "./components/toggle.js";
 import { initColorInput } from "./components/color-input.js";
+import { initImagePreview } from "./components/image-preview.js";
+import { initExpandableSurfaces } from "./components/expandable-surface.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
@@ -61,7 +63,6 @@ const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
-const previewEmptyEl = document.getElementById("svg-preview-empty");
 const metaEl = document.getElementById("converter-meta");
 const cOutputTextarea = document.getElementById("c-output-textarea");
 const cPreviewEl = document.getElementById("c-preview");
@@ -83,6 +84,10 @@ const outputFormatWrapEl = document.getElementById("output-format-wrap");
 const outputFormatDropdownLabelEl = document.getElementById(
   "output-format-dropdown-label"
 );
+
+const previewApi = initImagePreview(previewEl);
+const cPreviewApi = initImagePreview(cPreviewEl);
+initExpandableSurfaces(document);
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -574,16 +579,14 @@ function syncCopyEnabled() {
 
 function clearPreview() {
   latestSvg = null;
-  previewEl?.querySelector("svg")?.remove();
-  setHidden(previewEmptyEl, false);
+  previewApi?.clear();
   setHidden(metaEl, true);
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
   syncCopyEnabled();
 }
 
 function clearCPreview() {
-  cPreviewEl?.querySelector("svg")?.remove();
-  setHidden(cPreviewEmptyEl, false);
+  cPreviewApi?.clear();
 }
 
 function clearCOutput() {
@@ -894,14 +897,13 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
   latestSvg = result.svg;
   showWarnings(result.warnings);
 
-  setHidden(previewEmptyEl, true);
-  previewEl?.querySelector("svg")?.remove();
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(result.svg, "image/svg+xml");
-  const svgNode = doc.documentElement;
-  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
-    previewEl?.append(document.importNode(svgNode, true));
+  if (previewEl) {
+    previewEl.dataset.imagePreviewDownloadName = downloadFilename;
+  }
+  if (!previewApi?.setSvg(result.svg)) {
+    showError("Preview failed: generated SVG could not be displayed.");
+    clearPreview();
+    return;
   }
 
   const formatLabel = formatIdLabel(result.format);
@@ -938,13 +940,7 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
 function showCPreviewSvg(svgMarkup) {
   clearCPreview();
   if (!svgMarkup) return;
-  setHidden(cPreviewEmptyEl, true);
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgMarkup, "image/svg+xml");
-  const svgNode = doc.documentElement;
-  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
-    cPreviewEl?.append(document.importNode(svgNode, true));
-  }
+  cPreviewApi?.setSvg(svgMarkup);
 }
 
 /**

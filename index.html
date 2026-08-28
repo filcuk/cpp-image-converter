@@ -736,11 +736,20 @@
         <h2 id="output-heading">Output</h2>
         <div id="svg-output-panel">
           <div
-            class="converter-preview"
+            class="image-preview converter-preview"
             id="svg-preview"
             aria-live="polite"
+            data-image-preview-pixelated
+            data-image-preview-maximize
+            data-image-preview-expand-on-click
+            data-image-preview-download
+            data-image-preview-dimensions
+            data-image-preview-frames
+            data-image-preview-duration
+            data-image-preview-meta="hover"
+            data-expandable-surface-label="SVG preview"
           >
-            <p class="converter-preview__empty" id="svg-preview-empty">
+            <p class="image-preview__empty converter-preview__empty" id="svg-preview-empty">
               Load array to see a preview
             </p>
           </div>
@@ -761,12 +770,20 @@
           </label>
           <div class="field converter-source-field">
             <div
-              class="converter-preview"
+              class="image-preview converter-preview"
               id="c-preview"
               aria-live="polite"
               aria-label="Preview"
+              data-image-preview-pixelated
+              data-image-preview-maximize
+              data-image-preview-expand-on-click
+              data-image-preview-dimensions
+              data-image-preview-frames
+              data-image-preview-duration
+              data-image-preview-meta="hover"
+              data-expandable-surface-label="Converted image preview"
             >
-              <p class="converter-preview__empty" id="c-preview-empty">
+              <p class="image-preview__empty converter-preview__empty" id="c-preview-empty">
                 Convert SVG to see a preview
               </p>
             </div>
