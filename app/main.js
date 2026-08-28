@@ -7,7 +7,7 @@ import { initSegmentedControl } from "./components/segmented-control.js";
 import { initDropdown } from "./components/dropdown.js";
 import { initStepper } from "./components/stepper.js";
 import { initToggle } from "./components/toggle.js";
-import { initColorPicker } from "./components/color-picker.js";
+import { initColorInput } from "./components/color-input.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
@@ -153,9 +153,9 @@ let frameFpsStepper = null;
 let overrideToggle = null;
 /** @type {ReturnType<typeof initToggle>} */
 let minifyToggle = null;
-/** @type {ReturnType<typeof initColorPicker>} */
+/** @type {ReturnType<typeof initColorInput>} */
 let fillPicker = null;
-/** @type {ReturnType<typeof initColorPicker>} */
+/** @type {ReturnType<typeof initColorInput>} */
 let backgroundPicker = null;
 /** Last conversion reported transparent pixels in the source frames */
 let lastSourceHasTransparency = false;
@@ -1188,11 +1188,11 @@ try {
     onChange: onOptionChange,
   });
 
-  fillPicker = initColorPicker(document.getElementById("fill-color-picker"), {
+  fillPicker = initColorInput(document.getElementById("fill-color-picker"), {
     onChange: onOptionChange,
   });
 
-  backgroundPicker = initColorPicker(backgroundColorPickerEl, {
+  backgroundPicker = initColorInput(backgroundColorPickerEl, {
     onChange: onOptionChange,
   });
 

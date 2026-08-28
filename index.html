@@ -574,22 +574,48 @@
               </div>
 
               <div
-                class="color-picker converter-fill-wrap is-disabled"
+                class="color-input converter-fill-wrap is-disabled"
                 id="fill-color-picker"
-                data-color-picker-default="#FFFFFF"
+                data-color-input-default="#FFFFFF"
+                data-color-input-open="picker"
               >
                 <label class="field-label" for="fill-color-input">Fill colour</label>
-                <div class="color-picker-control">
+                <div class="color-input-control">
+                  <span class="color-input-swatch" aria-hidden="true"></span>
                   <input
                     type="text"
                     id="fill-color-input"
-                    class="input color-picker-input"
+                    class="input color-input-field"
                     autocomplete="off"
                     spellcheck="false"
                     aria-label="Fill hex colour"
                   />
-                  <span class="color-picker-swatch" aria-hidden="true"></span>
-                  <input type="hidden" class="color-picker-value" />
+                  <input type="hidden" class="color-input-value" />
+                </div>
+                <div
+                  class="color-picker"
+                  id="fill-color-spectrum"
+                  data-color-picker-default="#FFFFFF"
+                  data-color-picker-format="hsv"
+                >
+                  <button
+                    type="button"
+                    class="btn color-picker-trigger"
+                    aria-expanded="false"
+                    aria-label="Open fill colour picker"
+                  >
+                    Colour picker
+                  </button>
+                  <div
+                    class="color-picker-popup hidden"
+                    role="dialog"
+                    aria-label="Fill colour picker"
+                    hidden
+                  >
+                    <div class="color-picker-shell">
+                      <div class="color-picker-panel"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -634,25 +660,51 @@
               </label>
 
               <div
-                class="color-picker hidden"
+                class="color-input hidden"
                 id="background-color-picker"
-                data-color-picker-default="#000000"
+                data-color-input-default="#000000"
+                data-color-input-open="picker"
                 hidden
               >
                 <label class="field-label" for="background-color-input"
                   >Background</label
                 >
-                <div class="color-picker-control">
+                <div class="color-input-control">
+                  <span class="color-input-swatch" aria-hidden="true"></span>
                   <input
                     type="text"
                     id="background-color-input"
-                    class="input color-picker-input"
+                    class="input color-input-field"
                     autocomplete="off"
                     spellcheck="false"
                     aria-label="Background colour for transparent pixels"
                   />
-                  <span class="color-picker-swatch" aria-hidden="true"></span>
-                  <input type="hidden" class="color-picker-value" />
+                  <input type="hidden" class="color-input-value" />
+                </div>
+                <div
+                  class="color-picker"
+                  id="background-color-spectrum"
+                  data-color-picker-default="#000000"
+                  data-color-picker-format="hsv"
+                >
+                  <button
+                    type="button"
+                    class="btn color-picker-trigger"
+                    aria-expanded="false"
+                    aria-label="Open background colour picker"
+                  >
+                    Colour picker
+                  </button>
+                  <div
+                    class="color-picker-popup hidden"
+                    role="dialog"
+                    aria-label="Background colour picker"
+                    hidden
+                  >
+                    <div class="color-picker-shell">
+                      <div class="color-picker-panel"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
