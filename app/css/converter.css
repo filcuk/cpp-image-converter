@@ -281,6 +281,33 @@ html[data-converter-direction="c-to-c"]
   z-index: 1;
 }
 
+/* Let the highlight layer follow the editor when scrolling through long input. */
+.converter-array-code-block.code-block--edit
+  .code-block-body
+  .code-block-editor-stack
+  pre[class*="language-"].line-numbers {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.converter-array-code-block.code-block--edit
+  .code-block-body
+  .code-block-editor-stack
+  pre[class*="language-"].line-numbers
+  > code {
+  overflow: visible;
+}
+
+.converter-array-code-block.code-block--edit
+  .code-block-body
+  .code-block-editor-stack
+  pre[class*="language-"].line-numbers::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 .converter-array-code-block .token.comment {
   color: var(--muted);
 }
