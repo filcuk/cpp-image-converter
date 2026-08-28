@@ -50,8 +50,8 @@
     </header>
 
     <main id="main">
-      <section id="direction" aria-labelledby="direction-heading">
-        <h2 id="direction-heading" class="visually-hidden">Direction</h2>
+      <section class="content-section" id="direction" aria-labelledby="direction-heading">
+        <h2 id="direction-heading" class="section-title">Conversion</h2>
         <div
           class="segmented-control"
           id="direction-control"
@@ -94,8 +94,8 @@
         </div>
       </section>
 
-      <section id="input" aria-labelledby="input-heading">
-        <h2 id="input-heading">Input</h2>
+      <section class="content-section" id="input" aria-labelledby="input-heading">
+        <h2 id="input-heading" class="section-title">Input</h2>
 
         <div class="converter-input-banners" id="converter-banners">
           <div
@@ -209,8 +209,8 @@
         </div>
       </section>
 
-      <section id="options" aria-labelledby="options-heading">
-        <h2 id="options-heading">Options</h2>
+      <section class="content-section" id="options" aria-labelledby="options-heading">
+        <h2 id="options-heading" class="section-title">Options</h2>
 
         <div class="converter-options-banners" id="converter-options-banners">
           <div
@@ -712,7 +712,7 @@
 
           <hr class="section-panel__divider" />
 
-          <div class="converter-actions">
+          <div class="toolbar">
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
               Download
             </button>
@@ -738,8 +738,8 @@
         </div>
       </section>
 
-      <section id="output" aria-labelledby="output-heading">
-        <h2 id="output-heading">Output</h2>
+      <section class="content-section" id="output" aria-labelledby="output-heading">
+        <h2 id="output-heading" class="section-title">Output</h2>
         <div id="svg-output-panel">
           <div
             class="image-preview converter-preview"
@@ -759,7 +759,7 @@
               Load array to see a preview
             </p>
           </div>
-          <p class="converter-meta" id="converter-meta" hidden></p>
+          <p class="panel-hint" id="converter-meta" hidden></p>
         </div>
         <div class="hidden" id="c-output-panel" hidden>
           <label class="field converter-source-field" for="c-output-textarea">
@@ -794,7 +794,7 @@
               </p>
             </div>
           </div>
-          <p class="converter-meta" id="c-converter-meta" hidden></p>
+          <p class="panel-hint" id="c-converter-meta" hidden></p>
         </div>
       </section>
     </main>

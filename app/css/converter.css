@@ -12,26 +12,6 @@
   border: 0;
 }
 
-#direction {
-  margin-bottom: 0rem;
-}
-
-#direction .segmented-control {
-  max-width: 28rem;
-}
-
-#direction .segmented-control-item[aria-checked="true"],
-#bit-order-control .segmented-control-item[aria-checked="true"] {
-  background: var(--accent);
-  color: #ffffff;
-  box-shadow: none;
-}
-
-:root[data-theme="dark"] #direction .segmented-control-item[aria-checked="true"],
-:root[data-theme="dark"] #bit-order-control .segmented-control-item[aria-checked="true"] {
-  color: #0d1117;
-}
-
 /*
  * First-paint layout from html[data-converter-direction] (set in <head> before CSS).
  * Avoids flashing the HTML default (C → SVG) while main.js loads.
@@ -39,7 +19,6 @@
 html[data-converter-direction] #direction .segmented-control-item[aria-checked="true"] {
   background: transparent;
   color: inherit;
-  box-shadow: none;
 }
 
 html[data-converter-direction="c-to-svg"]
@@ -52,20 +31,7 @@ html[data-converter-direction="c-to-c"]
   #direction
   .segmented-control-item[data-segmented-control-value="c-to-c"] {
   background: var(--accent);
-  color: #ffffff;
-  box-shadow: none;
-}
-
-:root[data-theme="dark"][data-converter-direction="c-to-svg"]
-  #direction
-  .segmented-control-item[data-segmented-control-value="c-to-svg"],
-:root[data-theme="dark"][data-converter-direction="svg-to-c"]
-  #direction
-  .segmented-control-item[data-segmented-control-value="svg-to-c"],
-:root[data-theme="dark"][data-converter-direction="c-to-c"]
-  #direction
-  .segmented-control-item[data-segmented-control-value="c-to-c"] {
-  color: #0d1117;
+  color: var(--accent-fg);
 }
 
 html[data-converter-direction="svg-to-c"] #c-input-panel,
@@ -98,12 +64,6 @@ html[data-converter-direction="c-to-c"] .converter-writes-c-only.hidden {
 
 html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   display: block !important;
-}
-
-.converter-meta {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
-  color: var(--muted);
 }
 
 .converter-options {
@@ -167,14 +127,6 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   padding-bottom: 0.35rem;
 }
 
-.converter-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-/* Tabs default to 32rem in the design system; converter input needs page width */
 .converter-input {
   display: flex;
   flex-direction: column;
