@@ -80,7 +80,9 @@ const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
 const cPreviewEmptyEl = document.getElementById("c-preview-empty");
 const cInputPanel = document.getElementById("c-input-panel");
+const sourceDropzoneEl = document.getElementById("source-dropzone");
 const svgInputPanel = document.getElementById("svg-input-panel");
+const svgDropzoneEl = document.getElementById("svg-dropzone");
 const svgOutputPanel = document.getElementById("svg-output-panel");
 const cOutputPanel = document.getElementById("c-output-panel");
 let frameStepperEl = document.getElementById("frame-stepper");
@@ -413,6 +415,8 @@ function setDirection(next) {
   setHidden(downloadSvgBtn, writesC());
   setHidden(downloadCBtn, !writesC());
   setHidden(outputFormatWrapEl, !cToC);
+  syncSourceActionVisibility();
+  syncSvgActionVisibility();
   syncCopyEnabled();
 
   // Input width/height only for C sources; output scale is available in every mode
@@ -761,6 +765,7 @@ function readFileText(file) {
 function syncSourceActionVisibility() {
   const hasSource = Boolean(sourceCodeBlock?.getSource());
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
+  setHidden(sourceDropzoneEl, hasSource);
 }
 
 function setSourceCode(next) {
@@ -794,6 +799,7 @@ function moveSvgActionsToCodeToolbar() {
 function syncSvgActionVisibility() {
   const hasSvg = Boolean(svgSourceCodeBlock?.getSource());
   if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
+  setHidden(svgDropzoneEl, hasSvg);
 }
 
 function setSvgSourceCode(next) {
@@ -1329,7 +1335,7 @@ try {
     load?.();
   });
 
-  sourceDropzone = initFileDropzone(document.getElementById("source-dropzone"), {
+  sourceDropzone = initFileDropzone(sourceDropzoneEl, {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
@@ -1357,7 +1363,7 @@ try {
     onError: ({ message }) => showError(message || "File upload failed."),
   });
 
-  svgDropzone = initFileDropzone(document.getElementById("svg-dropzone"), {
+  svgDropzone = initFileDropzone(svgDropzoneEl, {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
