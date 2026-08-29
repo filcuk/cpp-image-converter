@@ -241,6 +241,30 @@ test("decodePixels RGB888", () => {
   assert.deepEqual(pixels[1], { r: 0, g: 255, b: 0, a: 255 });
 });
 
+test("RGB565A8 uses planar colour then alpha layout", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const red = { r: 255, g: 0, b: 0, a: 128 };
+  const green = { r: 0, g: 255, b: 0, a: 255 };
+  const encoded = encodePixels({
+    format: "rgb565a8",
+    pixels: [red, green],
+    width: 2,
+    height: 1,
+  });
+
+  assert.deepEqual(encoded.values, [0x00, 0xf8, 0xe0, 0x07, 0x80, 0xff]);
+  const { pixels } = decodePixels({
+    format: "rgb565a8",
+    values: encoded.values,
+    width: 2,
+    height: 1,
+  });
+  assert.deepEqual(pixels, [
+    { r: 255, g: 0, b: 0, a: 128 },
+    { r: 0, g: 255, b: 0, a: 255 },
+  ]);
+});
+
 test("decodePixels indexed I1 with palette", () => {
   const { pixels, warnings } = decodePixels({
     format: "i1",

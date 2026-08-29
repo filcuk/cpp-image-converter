@@ -252,7 +252,7 @@ export function decodeRgb888(values, width, height, order = "rgb") {
 }
 
 /**
- * Interleaved: RGB565 little-endian word as two bytes, then A8.
+ * Planar: RGB565 little-endian colour bytes followed by the A8 plane.
  * @param {number[]} values
  * @param {number} width
  * @param {number} height
@@ -260,13 +260,14 @@ export function decodeRgb888(values, width, height, order = "rgb") {
  */
 export function decodeRgb565a8(values, width, height) {
   const pixelCount = width * height;
+  const colorByteCount = pixelCount * 2;
   /** @type {(Rgba | null)[]} */
   const pixels = new Array(pixelCount).fill(null);
   for (let i = 0; i < pixelCount; i++) {
-    const o = i * 3;
-    const lo = values[o];
-    const hi = values[o + 1];
-    const a = values[o + 2];
+    const colorOffset = i * 2;
+    const lo = values[colorOffset];
+    const hi = values[colorOffset + 1];
+    const a = values[colorByteCount + i];
     if (lo === undefined || hi === undefined || a === undefined) continue;
     const color = decodeRgb565((lo & 0xff) | ((hi & 0xff) << 8));
     pixels[i] = rgbaOrNull(color.r, color.g, color.b, a & 0xff);

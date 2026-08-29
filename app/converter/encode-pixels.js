@@ -290,13 +290,21 @@ export function encodePixels({
 
   if (format === "rgb565a8") {
     /** @type {number[]} */
-    const values = [];
+    const colorBytes = [];
+    /** @type {number[]} */
+    const alphaBytes = [];
     for (let i = 0; i < pixelCount; i++) {
       const p = solidOrTransparent(pixels[i]);
       const word = encodeRgb565Word(p.r, p.g, p.b);
-      values.push(word & 0xff, (word >>> 8) & 0xff, p.a & 0xff);
+      colorBytes.push(word & 0xff, (word >>> 8) & 0xff);
+      alphaBytes.push(p.a & 0xff);
     }
-    return { values, palette: null, elementType: "uint8_t", warnings };
+    return {
+      values: [...colorBytes, ...alphaBytes],
+      palette: null,
+      elementType: "uint8_t",
+      warnings,
+    };
   }
 
   if (format === "argb8565") {
