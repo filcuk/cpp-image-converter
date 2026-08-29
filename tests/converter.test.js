@@ -89,6 +89,22 @@ static const uint8_t image_data[1][6] = {
   assert.deepEqual(parsed.values, [255, 0, 0, 0, 128, 0]);
 });
 
+test("parseCArray accepts common declaration attributes", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+LV_ATTRIBUTE_MEM_ALIGN static const uint8_t image_data[2][1] PROGMEM __attribute__((aligned(4))) = {
+  { 0x01 },
+  { 0x02 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.equal(parsed.arrayName, "image_data");
+  assert.equal(parsed.elementType, "uint8_t");
+  assert.equal(parsed.frameCount, 2);
+  assert.deepEqual(parsed.values, [1, 2]);
+});
+
 test("parseCArray infers frame count from the data array dimension", () => {
   const source = `
 #define FRAME_WIDTH 1

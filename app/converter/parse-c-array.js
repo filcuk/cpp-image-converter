@@ -32,8 +32,10 @@ const DEFINE_FRAME_COUNT_RE =
 const DEFINE_COLOR_COUNT_RE =
   /#\s*define\s+\w*COLOR_COUNT\w*\s+(\d+)/i;
 
+// Accept common storage/attribute tokens around the declarator without
+// attempting to parse arbitrary C++ declaration syntax.
 const ARRAY_DECL_RE =
-  /(?:static\s+)?(?:const\s+)?((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*((?:\[[^\]]*\])+)\s*=/gi;
+  /(?:(?:static|const|volatile)\s+|[A-Za-z_]\w*\s+|__attribute__\s*\(\([\s\S]*?\)\)\s+)*((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*((?:\[[^\]]*\])+)(?:\s+(?:[A-Za-z_]\w*|__attribute__\s*\(\([\s\S]*?\)\)))*\s*=/gi;
 
 /**
  * Find the matching closing brace for an opening `{` at `openIndex`.

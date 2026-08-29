@@ -59,7 +59,7 @@ Then open `http://localhost:3000`.
 - Auto-detection can identify non-indexed `uint8_t` streams from dimensions and byte count. A three-byte stream could be RGB888, BGR888, RGB565A8, or ARGB8565, so Auto selects RGB888 and warns; choose the format manually when the channel layout matters.
 - RGB565A8 uses the LVGL layout: all little-endian RGB565 colour bytes followed by the alpha-byte plane. ARGB8565 uses one alpha byte followed by little-endian RGB565 bytes per pixel.
 - Palette entries use the Piskel-compatible little-endian RGBA word format `0xAABBGGRR`, the same representation used by ARGB32 (LE RGBA).
-- Typed array declarations with storage attributes such as `PROGMEM` between the array dimensions and `=` are not auto-detected. Remove the attribute around the declaration before importing, or provide a plain supported declaration.
+- Common storage/attribute tokens such as `PROGMEM`, `LV_ATTRIBUTE_*`, and `__attribute__((...))` are ignored around supported typed array declarations. Complex preprocessor-generated declarations may still require a plain declaration.
 
 ## Documentation
 
