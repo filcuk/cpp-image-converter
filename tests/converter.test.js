@@ -354,6 +354,7 @@ test("decodePixels indexed I1 with palette", () => {
 test("pixelColorKey supports override fill", () => {
   const pixel = { r: 1, g: 2, b: 3, a: 255 };
   assert.equal(pixelColorKey(pixel, null), "#010203");
+  assert.equal(pixelColorKey({ ...pixel, a: 128 }, null), "#01020380");
   assert.equal(pixelColorKey(pixel, "#AABBCC"), "#AABBCC");
   assert.equal(pixelColorKey(null, "#AABBCC"), null);
 });
@@ -435,6 +436,17 @@ static const uint32_t data[1] = { 0xffff0000 };
   assert.match(classic.svg, /fill="#FF0000"/);
   const piskel = convertCToSvg({ source, format: "argb32" });
   assert.match(piskel.svg, /fill="#0000FF"/);
+});
+
+test("convertCToSvg preserves partial alpha in SVG colour", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1] = { 0x800000ff };
+`;
+  const result = convertCToSvg({ source, format: "argb32", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.match(result.svg, /fill="#FF000080"/);
 });
 
 test("opacityKeyframes cycles frames", async () => {

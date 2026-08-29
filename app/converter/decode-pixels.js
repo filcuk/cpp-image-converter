@@ -508,7 +508,7 @@ export function decodePixels({
 }
 
 /**
- * Colour key for merging / grouping: `#RRGGBB` or null.
+ * Colour key for merging / grouping: `#RRGGBB`, `#RRGGBBAA`, or null.
  * @param {Rgba | null} pixel
  * @param {string | null} overrideFill `#RRGGBB` or null
  * @returns {string | null}
@@ -519,5 +519,7 @@ export function pixelColorKey(pixel, overrideFill = null) {
   const r = pixel.r.toString(16).padStart(2, "0");
   const g = pixel.g.toString(16).padStart(2, "0");
   const b = pixel.b.toString(16).padStart(2, "0");
-  return `#${r}${g}${b}`.toUpperCase();
+  const alpha = Math.max(0, Math.min(255, Math.round(pixel.a)));
+  const alphaHex = alpha < 255 ? alpha.toString(16).padStart(2, "0") : "";
+  return `#${r}${g}${b}${alphaHex}`.toUpperCase();
 }
