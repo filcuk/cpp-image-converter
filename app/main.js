@@ -73,6 +73,7 @@ const formatTypeLabelEl = document.getElementById("format-type-label");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
+const outputFileSizeEl = document.getElementById("output-file-size");
 const previewEl = document.getElementById("svg-preview");
 const svgOutputCodeBlockEl = document.getElementById("svg-output-code-block");
 const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
@@ -630,8 +631,39 @@ function syncCopyEnabled() {
   if (copyOutputBtn) copyOutputBtn.disabled = !hasOutput;
 }
 
+/**
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * @param {string | null} content
+ */
+function syncOutputFileSize(content) {
+  if (!outputFileSizeEl) return;
+  if (!content) {
+    outputFileSizeEl.textContent = "";
+    setHidden(outputFileSizeEl, true);
+    return;
+  }
+  outputFileSizeEl.textContent = `Output size: ${formatFileSize(
+    new Blob([content]).size
+  )}`;
+  setHidden(outputFileSizeEl, false);
+}
+
 function clearPreview() {
   latestSvg = null;
+  syncOutputFileSize(null);
   previewApi?.setMetaExtra("");
   previewApi?.clear();
   svgOutputCodeBlock?.setSource("");
@@ -645,6 +677,7 @@ function clearCPreview() {
 
 function clearCOutput() {
   latestC = null;
+  syncOutputFileSize(null);
   cOutputCodeBlock?.setSource("");
   clearCPreview();
   if (downloadCBtn) downloadCBtn.disabled = true;
@@ -1008,6 +1041,7 @@ function runConvertCToSvg() {
   }
 
   latestSvg = result.svg;
+  syncOutputFileSize(result.svg);
   showWarnings(result.warnings);
 
   if (previewEl) {
@@ -1091,6 +1125,7 @@ async function runConvertSvgToC() {
   }
 
   latestC = result.source;
+  syncOutputFileSize(result.source);
   cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
@@ -1163,6 +1198,7 @@ function runConvertCToC() {
   }
 
   latestC = result.source;
+  syncOutputFileSize(result.source);
   cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);

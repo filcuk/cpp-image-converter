@@ -254,6 +254,15 @@ html[data-converter-direction="c-to-c"]
   min-width: 0;
 }
 
+.converter-output-size {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .converter-source-field {
   max-width: none;
   width: 100%;
