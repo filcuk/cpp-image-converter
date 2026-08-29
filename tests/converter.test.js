@@ -73,6 +73,32 @@ test("parseNumericLiterals reads hex and binary", () => {
   assert.deepEqual(parseNumericLiterals("0xff, 0b1010, 3"), [255, 10, 3]);
 });
 
+test("parseCArray keeps decimal literals alongside hex and binary", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint8_t image_data[1][6] = {
+  { 0xff, 0, 0, 0b00000000, 128, 0 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.deepEqual(parsed.values, [255, 0, 0, 0, 128, 0]);
+});
+
+test("parseCArray infers frame count from the data array dimension", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t image_data[2][1] = {
+  { 0xff0000ff },
+  { 0xff00ff00 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.equal(parsed.frameCount, 2);
+  assert.deepEqual(parsed.values, [0xff0000ff, 0xff00ff00]);
+});
+
 test("sliceFrameValues returns the requested frame", () => {
   assert.deepEqual(sliceFrameValues([1, 2, 3, 4], 1, 2), [3, 4]);
 });

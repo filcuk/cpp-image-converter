@@ -7,6 +7,7 @@
  * @property {string} elementType
  * @property {string} arrayName
  * @property {number[]} values
+ * @property {number | null} frameCountHint
  */
 
 /**
@@ -32,7 +33,7 @@ const DEFINE_COLOR_COUNT_RE =
   /#\s*define\s+\w*COLOR_COUNT\w*\s+(\d+)/i;
 
 const ARRAY_DECL_RE =
-  /(?:static\s+)?(?:const\s+)?((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*(?:\[[^\]]*\])+\s*=/gi;
+  /(?:static\s+)?(?:const\s+)?((?:unsigned\s+)?(?:long|int|short|char)|u?int(?:_fast|_least)?(?:8|16|32|64)_t|uint8|uint16|uint32|byte)\s+(\w+)\s*((?:\[[^\]]*\])+)\s*=/gi;
 
 /**
  * Find the matching closing brace for an opening `{` at `openIndex`.
@@ -104,16 +105,6 @@ export function parseNumericLiterals(body) {
  * @returns {number[]}
  */
 function extractArrayValues(body) {
-  const hexOrBin = [...body.matchAll(/0x[0-9a-fA-F]+|0b[01]+/gi)];
-  if (hexOrBin.length > 0) {
-    return hexOrBin.map((m) => {
-      const token = m[0];
-      if (token.toLowerCase().startsWith("0b")) {
-        return Number.parseInt(token.slice(2), 2);
-      }
-      return Number.parseInt(token, 16);
-    });
-  }
   return parseNumericLiterals(body);
 }
 
@@ -136,6 +127,8 @@ function findTypedArrays(text) {
   while ((match = ARRAY_DECL_RE.exec(text)) !== null) {
     const elementType = match[1].replace(/\s+/g, " ").trim();
     const arrayName = match[2];
+    const dimensions = match[3];
+    const firstDimension = dimensions.match(/^\[\s*(\d+)\s*\]/);
     const afterDecl = text.slice(match.index + match[0].length);
     const openIdx = afterDecl.indexOf("{");
     if (openIdx === -1) continue;
@@ -147,6 +140,9 @@ function findTypedArrays(text) {
       elementType,
       arrayName,
       values: extractArrayValues(body),
+      frameCountHint: firstDimension
+        ? Number.parseInt(firstDimension[1], 10)
+        : null,
     });
     ARRAY_DECL_RE.lastIndex = closeIdx + 1;
   }
@@ -230,6 +226,9 @@ export function parseCArray(source) {
     result.elementType = data.elementType;
     result.arrayName = data.arrayName;
     result.values = data.values;
+    if (data.frameCountHint !== null) {
+      result.frameCount = Math.max(result.frameCount, data.frameCountHint);
+    }
 
     if (paletteArr && paletteArr.values.length > 0) {
       let paletteValues = paletteArr.values;
