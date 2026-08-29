@@ -72,6 +72,14 @@ html[data-converter-direction="c-to-c"] .converter-c-to-c-only.hidden {
   gap: 1rem;
 }
 
+.converter-options-divider {
+  align-self: stretch;
+  margin: 0;
+  margin-inline: calc(-1 * var(--panel-padding, 1rem));
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
 .converter-format-options-row {
   display: flex;
   flex-wrap: wrap;

@@ -86,6 +86,7 @@ let frameStepperEl = document.getElementById("frame-stepper");
 const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
 const backgroundColorPickerEl = document.getElementById("background-color-picker");
+const backgroundOptionsRowEl = document.getElementById("svg-to-c-options-row");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
 const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
 const formatLabelEl = document.getElementById("format-label");
@@ -260,6 +261,7 @@ function syncBackgroundMatteVisibility() {
     lastSourceHasTransparency &&
     !formatPreservesAlpha(effectiveOutputFormat());
   setHidden(backgroundColorPickerEl, !show);
+  setHidden(backgroundOptionsRowEl, !show);
 }
 
 /**
