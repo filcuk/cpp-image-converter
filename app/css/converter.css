@@ -209,9 +209,9 @@ html[data-converter-direction="c-to-c"]
 }
 
 .converter-animate-row > .toggle {
-  flex: 0 1 auto;
-  min-width: auto;
-  max-width: none;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 14rem;
 }
 
 .converter-input {
@@ -226,6 +226,24 @@ html[data-converter-direction="c-to-c"]
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.converter-output-array-name {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 1 24rem;
+  width: 24rem;
+}
+
+.converter-output-array-name .field-label {
+  flex-shrink: 0;
+}
+
+.converter-output-array-name .input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
 
 .converter-source-field {

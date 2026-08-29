@@ -639,26 +639,6 @@
                 </div>
               </div>
 
-              <div class="toggle" id="minify-toggle" data-toggle-default="false">
-                <button
-                  type="button"
-                  class="toggle-btn"
-                  role="switch"
-                  aria-checked="false"
-                >
-                  <span class="toggle-track" aria-hidden="true">
-                    <span class="toggle-thumb">
-                      <span
-                        data-icon="check"
-                        data-icon-class="toggle-thumb-icon"
-                        aria-hidden="true"
-                      ></span>
-                    </span>
-                  </span>
-                  <span class="toggle-label">Minimised</span>
-                </button>
-                <input type="hidden" class="toggle-value" />
-              </div>
             </div>
 
             <div
@@ -666,19 +646,6 @@
               id="svg-to-c-options-row"
               hidden
             >
-              <label class="field" for="array-name-input">
-                <span class="field-label">Array name</span>
-                <input
-                  type="text"
-                  id="array-name-input"
-                  class="input"
-                  value="image"
-                  autocomplete="off"
-                  spellcheck="false"
-                  aria-label="C array name prefix"
-                />
-              </label>
-
               <div
                 class="color-input hidden"
                 id="background-color-picker"
@@ -758,6 +725,46 @@
             >
               <span class="btn-label-flash__label">Copy code</span>
             </button>
+            <label
+              class="field converter-output-array-name converter-writes-c-only hidden"
+              for="array-name-input"
+              hidden
+            >
+              <span class="field-label">Array name</span>
+              <input
+                type="text"
+                id="array-name-input"
+                class="input"
+                value="image"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="C array name prefix"
+              />
+            </label>
+            <div
+              class="toggle converter-c-to-svg-only"
+              id="minify-toggle"
+              data-toggle-default="false"
+            >
+              <button
+                type="button"
+                class="toggle-btn"
+                role="switch"
+                aria-checked="false"
+              >
+                <span class="toggle-track" aria-hidden="true">
+                  <span class="toggle-thumb">
+                    <span
+                      data-icon="check"
+                      data-icon-class="toggle-thumb-icon"
+                      aria-hidden="true"
+                    ></span>
+                  </span>
+                </span>
+                <span class="toggle-label">Minimised</span>
+              </button>
+              <input type="hidden" class="toggle-value" />
+            </div>
           </div>
           <div class="converter-output-panel" id="svg-output-panel">
             <div
