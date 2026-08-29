@@ -218,6 +218,31 @@ test("decode1Bit LSB-first", () => {
   assert.ok(pixels[7]);
 });
 
+test("encode1Bit thresholds fully opaque pixels by luminance", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const black = { r: 0, g: 0, b: 0, a: 255 };
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const encoded = encodePixels({
+    format: "1bit",
+    pixels: [black, white, black, white],
+    width: 4,
+    height: 1,
+  });
+  assert.deepEqual(encoded.values, [0b10100000]);
+});
+
+test("encode1Bit preserves visible silhouettes when transparency exists", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const encoded = encodePixels({
+    format: "1bit",
+    pixels: [white, null, white, null],
+    width: 4,
+    height: 1,
+  });
+  assert.deepEqual(encoded.values, [0b10100000]);
+});
+
 test("decodePixels ARGB32 frame", () => {
   const { pixels } = decodePixels({
     format: "argb32",

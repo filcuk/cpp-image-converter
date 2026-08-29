@@ -342,8 +342,16 @@ export function encodePixels({
   }
 
   if (format === "1bit") {
+    const hasTransparency = pixels.some((p) => !p || p.a < 255);
+    const isOn = hasTransparency
+      ? (p) => Boolean(p && p.a > 0)
+      : (p) => {
+          if (!p) return false;
+          const luma = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
+          return luma < 128;
+        };
     return {
-      values: encode1Bit(pixels, width, height, order, (p) => Boolean(p && p.a > 0)),
+      values: encode1Bit(pixels, width, height, order, isOn),
       palette: null,
       elementType: "uint8_t",
       warnings,
