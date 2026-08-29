@@ -116,6 +116,78 @@ function detectIndexedFormat(hints) {
   return "i8";
 }
 
+const UINT8_FORMAT_CANDIDATES = [
+  "1bit",
+  "p2",
+  "p4",
+  "l8",
+  "al88",
+  "rgb888",
+  "bgr888",
+  "rgb565a8",
+  "argb8565",
+];
+const THREE_BYTE_UINT8_FORMATS = ["rgb888", "bgr888", "rgb565a8", "argb8565"];
+
+function findUint8FormatMatches(hints) {
+  const width = hints.width ?? null;
+  const height = hints.height ?? null;
+  const valueCount = hints.valueCount ?? null;
+  const frameCount = Math.max(1, hints.frameCount ?? 1);
+
+  if (
+    width === null ||
+    height === null ||
+    width <= 0 ||
+    height <= 0 ||
+    valueCount === null ||
+    valueCount <= 0
+  ) {
+    return [];
+  }
+
+  const perFrame = Math.floor(valueCount / frameCount);
+  return UINT8_FORMAT_CANDIDATES.filter(
+    (id) => frameValueCount(id, width, height) === perFrame
+  );
+}
+
+/**
+ * Pick a non-indexed uint8 format from the byte count when dimensions are known.
+ * Three-byte formats are indistinguishable from size alone, so RGB888 is the
+ * default and the other layouts remain available through manual selection.
+ * @param {FormatDetectHints} hints
+ * @returns {string | null}
+ */
+function detectUint8Format(hints) {
+  const matches = findUint8FormatMatches(hints);
+
+  if (matches.length === 1) return matches[0];
+
+  if (matches.some((id) => THREE_BYTE_UINT8_FORMATS.includes(id))) {
+    return "rgb888";
+  }
+
+  // Small widths can make packed formats and L8 share a row size. Preserve
+  // the historical 1-bit default when the byte count is ambiguous.
+  return matches[0] ?? null;
+}
+
+/**
+ * @param {FormatDetectHints} hints
+ * @returns {string | null}
+ */
+function detectUint8FormatWarning(hints) {
+  const matches = findUint8FormatMatches(hints);
+  if (
+    matches.length > 1 &&
+    matches.some((id) => THREE_BYTE_UINT8_FORMATS.includes(id))
+  ) {
+    return "Auto-selected RGB888; BGR888, RGB565A8, and ARGB8565 have the same byte count and require manual selection.";
+  }
+  return null;
+}
+
 /**
  * Auto-detect format from element type plus optional palette / size hints.
  * @param {FormatDetectHints | string | null | undefined} hintsOrType
@@ -135,6 +207,10 @@ export function detectFormat(hintsOrType) {
     return detectIndexedFormat(hints);
   }
 
+  if (isUint8ElementType(hints.elementType)) {
+    return detectUint8Format(hints) ?? detectFormatFromType(hints.elementType);
+  }
+
   return detectFormatFromType(hints.elementType);
 }
 
@@ -143,12 +219,19 @@ export function detectFormat(hintsOrType) {
  *
  * @param {string} selected
  * @param {FormatDetectHints | string | null | undefined} hintsOrType
- * @returns {{ format: string, detected: string | null }}
+ * @returns {{ format: string, detected: string | null, warning?: string }}
  */
 export function resolveFormat(selected, hintsOrType) {
   const detected = detectFormat(hintsOrType);
+  const warning =
+    (!selected || selected === "auto") &&
+    hintsOrType &&
+    typeof hintsOrType === "object"
+      ? detectUint8FormatWarning(hintsOrType)
+      : null;
   if (selected && selected !== "auto" && isManualFormat(selected)) {
     return { format: selected, detected };
   }
-  return { format: detected ?? "argb32", detected };
+  const result = { format: detected ?? "argb32", detected };
+  return warning ? { ...result, warning } : result;
 }

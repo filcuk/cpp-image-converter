@@ -34,8 +34,17 @@
 
 import { parseBooleanAttr, setHidden, getFocusableElements, FOCUSABLE_SELECTOR } from "../utils/dom.js";
 import { createIcon } from "../utils/icons.js";
+import { initToggle } from "./toggle.js";
 import { initPopupMenu } from "../utils/menu.js";
 import { onDocumentClickOutside, onDocumentEscape } from "../utils/document-listeners.js";
+import { copyText, readText, armPasteCapture } from "../utils/clipboard.js";
+import {
+  prepareButtonLabelFlash,
+  setButtonLabelFlash,
+  flashButtonLabel,
+  cancelButtonLabelFlash,
+  BUTTON_LABEL_FLASH_LABEL_CLASS,
+} from "../utils/button-label.js";
 import { closeTooltip } from "./tooltip.js";
 
 /** @typedef {"text" | "number" | "logical"} ColumnType */
@@ -86,6 +95,15 @@ export function defaultValueForType(type) {
   if (type === "logical") return false;
   if (type === "number") return null;
   return "";
+}
+
+/**
+ * Is this a value a user could be part-way through typing in a number cell?
+ * Accepts in-progress drafts such as `-`, `1,`, `1.`, and `1e-`.
+ * @param {string} value
+ */
+export function isNumberDraft(value) {
+  return /^[-+]?[\d,]*(?:\.\d*)?(?:[eE][-+]?\d*)?$/.test(value);
 }
 
 /**
@@ -232,50 +250,6 @@ export function formatClipboardTable(columns, rows) {
 }
 
 /**
- * Copy text to the clipboard (Clipboard API, with execCommand fallback).
- * @param {string} text
- * @returns {Promise<boolean>}
- */
-async function copyTextToClipboard(text) {
-  if (navigator.clipboard?.writeText && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // Fall through to execCommand.
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.top = "0";
-  textarea.style.left = "0";
-  textarea.style.width = "1px";
-  textarea.style.height = "1px";
-  textarea.style.padding = "0";
-  textarea.style.border = "none";
-  textarea.style.outline = "none";
-  textarea.style.boxShadow = "none";
-  textarea.style.background = "transparent";
-  textarea.style.opacity = "0";
-  document.body.append(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
-  let ok = false;
-  try {
-    ok = document.execCommand("copy");
-  } catch {
-    ok = false;
-  }
-  textarea.remove();
-  return ok;
-}
-
-/**
  * True when clipboard text looks like a multi-cell table (TSV / multi-line).
  * @param {string} text
  */
@@ -326,38 +300,6 @@ export function splitClipboardMatrix(matrix, { firstRowIsHeader = false } = {}) 
   };
 }
 
-/**
- * Read plain text from the clipboard (Clipboard API).
- * Returns `null` when unavailable or denied (caller may fall back to a paste event).
- * @returns {Promise<string | null>}
- */
-async function readTextFromClipboard() {
-  if (!window.isSecureContext || !navigator.clipboard) return null;
-
-  if (typeof navigator.clipboard.readText === "function") {
-    try {
-      return await navigator.clipboard.readText();
-    } catch {
-      // NotAllowedError / permission — try read() or paste-event fallback.
-    }
-  }
-
-  if (typeof navigator.clipboard.read === "function") {
-    try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        if (!item.types.includes("text/plain")) continue;
-        const blob = await item.getType("text/plain");
-        return await blob.text();
-      }
-      return "";
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
 
 function resolveDisabled(rootEl, disabledOption) {
   if (typeof disabledOption === "boolean") return disabledOption;
@@ -489,11 +431,11 @@ export function initTabularInput(
 
   const copyBtn = document.createElement("button");
   copyBtn.type = "button";
-  copyBtn.className = "btn tabular-input-copy";
+  copyBtn.className = "btn btn-label-flash tabular-input-copy";
   copyBtn.setAttribute("aria-label", "Copy table");
-  copyBtn.dataset.tooltip = "Copy for Excel";
+  copyBtn.dataset.tooltip = "Copy in tabular format";
   const copyLabelEl = document.createElement("span");
-  copyLabelEl.className = "tabular-input-action-label";
+  copyLabelEl.className = BUTTON_LABEL_FLASH_LABEL_CLASS;
   copyLabelEl.textContent = "Copy";
   copyBtn.append(
     createIcon("copy", { className: "btn-icon-svg" }),
@@ -502,11 +444,11 @@ export function initTabularInput(
 
   const pasteBtn = document.createElement("button");
   pasteBtn.type = "button";
-  pasteBtn.className = "btn tabular-input-paste";
+  pasteBtn.className = "btn btn-label-flash tabular-input-paste";
   pasteBtn.setAttribute("aria-label", "Paste table");
   pasteBtn.dataset.tooltip = "Replace table from clipboard";
   const pasteLabelEl = document.createElement("span");
-  pasteLabelEl.className = "tabular-input-action-label";
+  pasteLabelEl.className = BUTTON_LABEL_FLASH_LABEL_CLASS;
   pasteLabelEl.textContent = "Paste";
   pasteBtn.append(
     createIcon("paste", { className: "btn-icon-svg" }),
@@ -515,17 +457,31 @@ export function initTabularInput(
 
   const pasteHeadersBtn = document.createElement("button");
   pasteHeadersBtn.type = "button";
-  pasteHeadersBtn.className = "btn tabular-input-paste-headers";
+  pasteHeadersBtn.className = "btn btn-label-flash tabular-input-paste-headers";
   pasteHeadersBtn.setAttribute("aria-label", "Paste with headers");
   pasteHeadersBtn.dataset.tooltip =
     "Replace table from clipboard; first row becomes column headers";
   const pasteHeadersLabelEl = document.createElement("span");
-  pasteHeadersLabelEl.className = "tabular-input-action-label";
+  pasteHeadersLabelEl.className = BUTTON_LABEL_FLASH_LABEL_CLASS;
   pasteHeadersLabelEl.textContent = "Paste with Headers";
   pasteHeadersBtn.append(
     createIcon("paste-special", { className: "btn-icon-svg" }),
     pasteHeadersLabelEl
   );
+
+  prepareButtonLabelFlash(copyBtn, {
+    idle: "Copy",
+  });
+  prepareButtonLabelFlash(pasteBtn, {
+    idle: "Paste",
+    success: "Pasted",
+    measureLabels: ["Ctrl+V"],
+  });
+  prepareButtonLabelFlash(pasteHeadersBtn, {
+    idle: "Paste with Headers",
+    success: "Pasted",
+    measureLabels: ["Ctrl+V"],
+  });
 
   const addRowBtn = document.createElement("button");
   addRowBtn.type = "button";
@@ -536,7 +492,7 @@ export function initTabularInput(
 
   const footerActions = document.createElement("div");
   footerActions.className = "tabular-input-footer-actions";
-  footerActions.append(addRowBtn, breakoutBtn, copyBtn, pasteBtn, pasteHeadersBtn);
+  footerActions.append(breakoutBtn, copyBtn, pasteBtn, pasteHeadersBtn);
 
   const addColBtn = document.createElement("button");
   addColBtn.type = "button";
@@ -547,7 +503,7 @@ export function initTabularInput(
 
   const resetBtn = document.createElement("button");
   resetBtn.type = "button";
-  resetBtn.className = "btn btn-icon tabular-input-reset";
+  resetBtn.className = "btn btn-danger btn-icon tabular-input-reset";
   resetBtn.setAttribute("aria-label", "Reset table");
   resetBtn.dataset.tooltip = "Reset table";
   resetBtn.setAttribute("aria-haspopup", "dialog");
@@ -788,20 +744,12 @@ export function initTabularInput(
     });
   }
 
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let copyResetTimer = null;
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let pasteResetTimer = null;
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let pasteHeadersResetTimer = null;
-
   /**
    * Active “press Ctrl+V” capture when Clipboard API read is unavailable.
    * @type {{
    *   button: HTMLButtonElement,
    *   reset: () => void,
-   *   resolve: (text: string | null) => void,
-   *   cleanup: () => void,
+   *   capture: ReturnType<typeof armPasteCapture>,
    * } | null}
    */
   let pasteCaptureSession = null;
@@ -919,30 +867,51 @@ export function initTabularInput(
     const value = row.cells[column.id];
 
     if (column.type === "logical") {
-      const label = document.createElement("label");
-      label.className = "checkbox tabular-input-logical";
+      const toggleEl = document.createElement("div");
+      toggleEl.className = "toggle toggle--slim tabular-input-logical";
 
-      const input = document.createElement("input");
-      input.type = "checkbox";
-      input.className = "checkbox-input";
-      input.checked = Boolean(value);
-      input.disabled = isDisabled;
-      input.setAttribute(
+      const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
+      toggleBtn.className = "toggle-btn";
+      toggleBtn.setAttribute("role", "switch");
+      toggleBtn.setAttribute(
+        "aria-checked",
+        value ? "true" : "false"
+      );
+      toggleBtn.setAttribute(
         "aria-label",
         `${column.label}, row ${rowIndex + 1}`
       );
-      input.dataset.tabularInputCell = "";
-      input.dataset.rowId = row.id;
-      input.dataset.columnId = column.id;
+      toggleBtn.dataset.tabularInputCell = "";
+      toggleBtn.dataset.rowId = row.id;
+      toggleBtn.dataset.columnId = column.id;
 
-      input.addEventListener("change", () => {
-        if (isDisabled) return;
-        row.cells[column.id] = input.checked;
-        emit("input");
+      const track = document.createElement("span");
+      track.className = "toggle-track";
+      track.setAttribute("aria-hidden", "true");
+      const thumb = document.createElement("span");
+      thumb.className = "toggle-thumb";
+      track.append(thumb);
+      toggleBtn.append(track);
+
+      const hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.className = "toggle-value";
+      hiddenInput.value = value ? "true" : "false";
+
+      toggleEl.append(toggleBtn, hiddenInput);
+
+      initToggle(toggleEl, {
+        defaultChecked: Boolean(value),
+        disabled: isDisabled,
+        onChange: ({ checked, source }) => {
+          if (isDisabled || source === "init") return;
+          row.cells[column.id] = checked;
+          emit("input");
+        },
       });
 
-      label.append(input);
-      return label;
+      return toggleEl;
     }
 
     const input = document.createElement("input");
@@ -953,23 +922,35 @@ export function initTabularInput(
     input.dataset.columnId = column.id;
     input.setAttribute("aria-label", `${column.label}, row ${rowIndex + 1}`);
 
+    // Number cells stay type="text" so arrow keys can walk the caret through
+    // digits; type="number" hides the caret position from scripts.
+    input.type = "text";
+    input.value = value === null || value === undefined ? "" : String(value);
     if (column.type === "number") {
-      input.type = "number";
       input.inputMode = "decimal";
-      input.value = value === null || value === undefined ? "" : String(value);
       input.classList.add("tabular-input-cell--number");
-    } else {
-      input.type = "text";
-      input.value = value === null || value === undefined ? "" : String(value);
     }
+
+    let numberDraft = input.value;
 
     input.addEventListener("input", () => {
       if (isDisabled) return;
       if (column.type === "number") {
+        if (!isNumberDraft(input.value)) {
+          const shift = input.value.length - numberDraft.length;
+          const caret = Math.min(
+            Math.max((input.selectionStart ?? input.value.length) - shift, 0),
+            numberDraft.length
+          );
+          input.value = numberDraft;
+          input.setSelectionRange(caret, caret);
+          return;
+        }
+        numberDraft = input.value;
         if (input.value.trim() === "") {
           row.cells[column.id] = null;
         } else {
-          const parsed = Number(input.value);
+          const parsed = Number(input.value.replace(/,/g, ""));
           if (Number.isFinite(parsed)) {
             row.cells[column.id] = parsed;
           }
@@ -986,6 +967,7 @@ export function initTabularInput(
       const previous = row.cells[column.id];
       row.cells[column.id] = next;
       input.value = next === null ? "" : String(next);
+      numberDraft = input.value;
       if (previous !== next) emit("input");
     });
 
@@ -1022,7 +1004,7 @@ export function initTabularInput(
     labelInput.dataset.tabularInputRename = "";
     labelInput.dataset.columnId = column.id;
     if (!isDisabled) {
-      labelInput.dataset.tooltip = "Click to edit";
+      labelInput.dataset.tooltip = "Select to edit";
     }
 
     const field = document.createElement("div");
@@ -1052,7 +1034,7 @@ export function initTabularInput(
     labelInput.addEventListener("blur", () => {
       field.classList.remove("is-editing");
       if (!isDisabled) {
-        labelInput.dataset.tooltip = "Click to edit";
+        labelInput.dataset.tooltip = "Select to edit";
       }
       if (isDisabled) return;
       const previous = renameDrafts.get(column.id) ?? column.label;
@@ -1297,8 +1279,6 @@ export function initTabularInput(
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "btn btn-icon tabular-input-remove-row";
-    removeBtn.tabIndex = -1;
-    removeBtn.dataset.tabularInputChrome = "remove-row";
     removeBtn.disabled = isDisabled;
     removeBtn.setAttribute("aria-label", `Delete row ${rowIndex + 1}`);
     removeBtn.dataset.tooltip = "Remove row";
@@ -1323,6 +1303,7 @@ export function initTabularInput(
 
     const lead = document.createElement("td");
     lead.className = "tabular-input-row-move-col";
+    lead.append(addRowBtn);
 
     const cell = document.createElement("td");
     cell.className = "tabular-input-add-row-cell";
@@ -1330,6 +1311,17 @@ export function initTabularInput(
     cell.append(footerActions);
 
     tr.append(lead, cell, createTrailingSpacerCell());
+    return tr;
+  }
+
+  function createHeaderGapRow() {
+    const tr = document.createElement("tr");
+    tr.className = "tabular-input-header-gap";
+    tr.setAttribute("aria-hidden", "true");
+
+    const td = document.createElement("td");
+    td.colSpan = Math.max(columns.length, 1) + 2;
+    tr.append(td);
     return tr;
   }
 
@@ -1348,6 +1340,8 @@ export function initTabularInput(
     }
     headerRow.append(createTrailingHeader());
     theadEl.append(headerRow);
+
+    tbodyEl.append(createHeaderGapRow());
 
     rows.forEach((row, rowIndex) => {
       const tr = document.createElement("tr");
@@ -1372,6 +1366,50 @@ export function initTabularInput(
     scheduleBreakoutSync();
   }
 
+  /**
+   * Focus the rename field for a column (selects label text for quick edit).
+   * @param {string} columnId
+   */
+  function focusColumnRename(columnId) {
+    const input = theadEl.querySelector(
+      `.tabular-input-col-label[data-column-id="${CSS.escape(columnId)}"]`
+    );
+    if (!(input instanceof HTMLInputElement)) return;
+    input.focus();
+    input.select();
+    input.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  /**
+   * Focus the first body cell of a row.
+   * @param {string} rowId
+   */
+  function focusRowFirstCell(rowId) {
+    const firstCol = columns[0];
+    if (!firstCol) return;
+    const cell = tbodyEl.querySelector(
+      `[data-tabular-input-cell][data-row-id="${CSS.escape(rowId)}"][data-column-id="${CSS.escape(firstCol.id)}"]`
+    );
+    if (!(cell instanceof HTMLElement)) return;
+    cell.focus();
+    cell.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  /**
+   * Focus the delete-row button for a row by index.
+   * @param {number} rowIndex
+   */
+  function focusRowDelete(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= rows.length) return;
+    const row = rows[rowIndex];
+    const btn = tbodyEl.querySelector(
+      `tr[data-row-id="${CSS.escape(row.id)}"] .tabular-input-remove-row`
+    );
+    if (!(btn instanceof HTMLElement)) return;
+    btn.focus();
+    btn.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
   function addRow({ emitEvent = true, source = "add-row" } = {}) {
     if (isDisabled) return null;
     const row = {
@@ -1382,6 +1420,7 @@ export function initTabularInput(
     };
     rows.push(row);
     render();
+    focusRowFirstCell(row.id);
     if (emitEvent) {
       emit(source);
       announce("Row added");
@@ -1391,10 +1430,15 @@ export function initTabularInput(
 
   function removeRow(rowId, { emitEvent = true, source = "remove-row" } = {}) {
     if (isDisabled) return;
-    const next = rows.filter((row) => row.id !== rowId);
-    if (next.length === rows.length) return;
-    rows = next;
+    const index = rows.findIndex((row) => row.id === rowId);
+    if (index < 0) return;
+    rows = rows.filter((row) => row.id !== rowId);
     render();
+    // Keep focus on the delete control at this index (next row slid up),
+    // or the new last row if the deleted row was last.
+    if (rows.length) {
+      focusRowDelete(Math.min(index, rows.length - 1));
+    }
     if (emitEvent) {
       emit(source);
       announce("Row deleted");
@@ -1451,6 +1495,7 @@ export function initTabularInput(
       row.cells[column.id] = defaultValueForType(column.type);
     }
     render();
+    focusColumnRename(column.id);
     if (emitEvent) {
       emit(source);
       announce(`Column ${column.label} added`);
@@ -1705,11 +1750,8 @@ export function initTabularInput(
           !el.disabled &&
           isVisibleFocusable(el)
       );
-    // After data: all remove-row controls, then all move-row controls.
-    return [
-      ...filterChrome('[data-tabular-input-chrome="remove-row"]'),
-      ...filterChrome('[data-tabular-input-chrome="move-row"]'),
-    ];
+    // After data (incl. per-row delete): move-row controls only.
+    return filterChrome('[data-tabular-input-chrome="move-row"]');
   }
 
   function getDocumentTabbables() {
@@ -1793,15 +1835,17 @@ export function initTabularInput(
       : active.closest("[data-tabular-input-cell]");
     if (!(cell instanceof HTMLElement)) return;
 
-    if (
-      active instanceof HTMLInputElement &&
-      (active.type === "text" || active.type === "number")
-    ) {
-      const start = active.selectionStart ?? 0;
-      const end = active.selectionEnd ?? 0;
-      const len = active.value.length;
-      if (event.key === "ArrowLeft" && (start !== 0 || end !== 0)) return;
-      if (event.key === "ArrowRight" && (start !== len || end !== len)) return;
+    // Left/right move the caret until it reaches an edge, then move cells.
+    if (active instanceof HTMLInputElement && active.type === "text") {
+      const start = active.selectionStart;
+      const end = active.selectionEnd;
+      if (typeof start === "number" && typeof end === "number") {
+        const len = active.value.length;
+        if (event.key === "ArrowLeft" && (start !== 0 || end !== 0)) return;
+        if (event.key === "ArrowRight" && (start !== len || end !== len)) {
+          return;
+        }
+      }
     }
 
     const grid = getCellGrid();
@@ -1843,11 +1887,12 @@ export function initTabularInput(
       next.type !== "checkbox" &&
       typeof next.setSelectionRange === "function"
     ) {
-      const len = next.value.length;
+      // Left → start (so further Left can leave); right/up/down → end.
+      const pos = event.key === "ArrowLeft" ? 0 : next.value.length;
       try {
-        next.setSelectionRange(len, len);
+        next.setSelectionRange(pos, pos);
       } catch {
-        /* number inputs may not support setSelectionRange in all browsers */
+        /* some input types may not support setSelectionRange */
       }
     }
   }
@@ -1875,93 +1920,52 @@ export function initTabularInput(
     syncBreakoutLayout();
   }
 
-  function setActionButtonLabel(button, text) {
-    const labelEl = button.querySelector(".tabular-input-action-label");
-    if (labelEl) labelEl.textContent = text;
-  }
-
   function resetCopyButtonLabel() {
-    setActionButtonLabel(copyBtn, "Copy");
+    setButtonLabelFlash(copyBtn, "Copy");
     copyBtn.setAttribute("aria-label", "Copy table");
-    copyBtn.dataset.tooltip = "Copy for Excel";
+    copyBtn.dataset.tooltip = "Copy in tabular format";
+    delete copyBtn.dataset.tooltipTone;
   }
 
   function resetPasteButtonLabel() {
-    setActionButtonLabel(pasteBtn, "Paste");
+    setButtonLabelFlash(pasteBtn, "Paste");
     pasteBtn.setAttribute("aria-label", "Paste table");
     pasteBtn.dataset.tooltip = "Replace table from clipboard";
+    delete pasteBtn.dataset.tooltipTone;
   }
 
   function resetPasteHeadersButtonLabel() {
-    setActionButtonLabel(pasteHeadersBtn, "Paste with Headers");
+    setButtonLabelFlash(pasteHeadersBtn, "Paste with Headers");
     pasteHeadersBtn.setAttribute("aria-label", "Paste with headers");
     pasteHeadersBtn.dataset.tooltip =
       "Replace table from clipboard; first row becomes column headers";
-  }
-
-  /**
-   * Flash a temporary label on a clipboard action button.
-   * @param {HTMLButtonElement} button
-   * @param {{ success: string, fail: string, reset: () => void, getTimer: () => ReturnType<typeof setTimeout> | null, setTimer: (id: ReturnType<typeof setTimeout> | null) => void }} opts
-   * @param {boolean} ok
-   */
-  function flashActionButton(button, opts, ok) {
-    const prev = opts.getTimer();
-    if (prev !== null) {
-      clearTimeout(prev);
-      opts.setTimer(null);
-    }
-    if (ok) {
-      setActionButtonLabel(button, opts.success);
-      button.setAttribute("aria-label", opts.success);
-    } else {
-      setActionButtonLabel(button, opts.fail);
-      button.setAttribute("aria-label", opts.fail);
-    }
-    opts.setTimer(
-      setTimeout(() => {
-        opts.setTimer(null);
-        opts.reset();
-      }, 1500)
-    );
+    delete pasteHeadersBtn.dataset.tooltipTone;
   }
 
   async function onCopyClick() {
     if (isDisabled) return;
     closeTooltip();
     const text = formatClipboardTable(columns, rows);
-    const ok = await copyTextToClipboard(text);
-    flashActionButton(
-      copyBtn,
-      {
-        success: "Copied",
-        fail: "Failed",
-        reset: resetCopyButtonLabel,
-        getTimer: () => copyResetTimer,
-        setTimer: (id) => {
-          copyResetTimer = id;
-        },
-      },
-      ok
-    );
+    const ok = await copyText(text);
+    flashButtonLabel(copyBtn, ok, { reset: resetCopyButtonLabel });
     if (ok) announce("Table copied");
   }
 
   /**
-   * @param {{ firstRowIsHeader: boolean, button: HTMLButtonElement, reset: () => void, getTimer: () => ReturnType<typeof setTimeout> | null, setTimer: (id: ReturnType<typeof setTimeout> | null) => void, announceOk: string }} opts
+   * @param {{ firstRowIsHeader: boolean, button: HTMLButtonElement, reset: () => void, announceOk: string }} opts
    */
   async function onPasteReplaceClick(opts) {
     if (isDisabled) return;
 
     // Second click while armed cancels.
     if (pasteCaptureSession?.button === opts.button) {
-      endPasteCapture(null);
+      endPasteCapture();
       announce("Paste cancelled");
       return;
     }
 
     // Start read while the click's user activation is still fresh.
-    const readPromise = readTextFromClipboard();
+    const readPromise = readText();
     closeTooltip();
 
     let text = await readPromise;
@@ -1979,30 +1983,21 @@ export function initTabularInput(
       emit("paste");
       announce(opts.announceOk);
     }
-    flashActionButton(
-      opts.button,
-      {
-        success: "Pasted",
-        fail: "Failed",
-        reset: opts.reset,
-        getTimer: opts.getTimer,
-        setTimer: opts.setTimer,
-      },
-      ok
-    );
+    flashButtonLabel(opts.button, ok, {
+      success: "Pasted",
+      reset: opts.reset,
+    });
   }
 
   /**
-   * End an armed paste-capture session.
-   * @param {string | null} text
+   * End an armed paste-capture session (cancels the shared capture).
    */
-  function endPasteCapture(text) {
+  function endPasteCapture() {
     const session = pasteCaptureSession;
     if (!session) return;
     pasteCaptureSession = null;
-    session.cleanup();
+    session.capture.cancel();
     session.reset();
-    session.resolve(text);
   }
 
   /**
@@ -2013,47 +2008,23 @@ export function initTabularInput(
    * @returns {Promise<string | null>}
    */
   function waitForPasteViaShortcut(button, reset) {
-    endPasteCapture(null);
+    endPasteCapture();
 
-    return new Promise((resolve) => {
-      setActionButtonLabel(button, "Ctrl+V");
-      button.setAttribute("aria-label", "Press Control V to paste");
-      button.dataset.tooltip = "Press Ctrl+V to paste";
-      announce("Press Control V to paste");
+    setButtonLabelFlash(button, "Ctrl+V");
+    button.setAttribute("aria-label", "Press Control V to paste");
+    button.dataset.tooltip = "Press Ctrl+V to paste";
+    button.dataset.tooltipTone = "error";
+    announce("Press Control V to paste");
 
-      /** @param {ClipboardEvent} event */
-      function onPaste(event) {
-        const next = event.clipboardData?.getData("text/plain") ?? "";
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        endPasteCapture(next);
+    const capture = armPasteCapture({ timeoutMs: 15000 });
+    pasteCaptureSession = { button, reset, capture };
+
+    return capture.promise.then((text) => {
+      if (pasteCaptureSession?.capture === capture) {
+        pasteCaptureSession = null;
+        reset();
       }
-
-      const removeEscape = onDocumentEscape(() => {
-        endPasteCapture(null);
-        announce("Paste cancelled");
-        return true;
-      }, { priority: 60 });
-
-      const timer = setTimeout(() => {
-        endPasteCapture(null);
-        announce("Paste timed out");
-      }, 15000);
-
-      function cleanup() {
-        clearTimeout(timer);
-        document.removeEventListener("paste", onPaste, true);
-        removeEscape();
-      }
-
-      pasteCaptureSession = {
-        button,
-        reset,
-        resolve,
-        cleanup,
-      };
-
-      document.addEventListener("paste", onPaste, true);
+      return text;
     });
   }
 
@@ -2062,10 +2033,6 @@ export function initTabularInput(
       firstRowIsHeader: false,
       button: pasteBtn,
       reset: resetPasteButtonLabel,
-      getTimer: () => pasteResetTimer,
-      setTimer: (id) => {
-        pasteResetTimer = id;
-      },
       announceOk: "Table replaced from clipboard",
     });
   }
@@ -2075,10 +2042,6 @@ export function initTabularInput(
       firstRowIsHeader: true,
       button: pasteHeadersBtn,
       reset: resetPasteHeadersButtonLabel,
-      getTimer: () => pasteHeadersResetTimer,
-      setTimer: (id) => {
-        pasteHeadersResetTimer = id;
-      },
       announceOk: "Table replaced from clipboard with headers",
     });
   }
@@ -2182,19 +2145,10 @@ export function initTabularInput(
         cancelAnimationFrame(breakoutSyncFrame);
         breakoutSyncFrame = null;
       }
-      if (copyResetTimer !== null) {
-        clearTimeout(copyResetTimer);
-        copyResetTimer = null;
-      }
-      if (pasteResetTimer !== null) {
-        clearTimeout(pasteResetTimer);
-        pasteResetTimer = null;
-      }
-      if (pasteHeadersResetTimer !== null) {
-        clearTimeout(pasteHeadersResetTimer);
-        pasteHeadersResetTimer = null;
-      }
-      endPasteCapture(null);
+      cancelButtonLabelFlash(copyBtn);
+      cancelButtonLabelFlash(pasteBtn);
+      cancelButtonLabelFlash(pasteHeadersBtn);
+      endPasteCapture();
       breakoutResizeObserver?.disconnect();
       addRowBtn.removeEventListener("click", onAddRowClick);
       addColBtn.removeEventListener("click", onAddColClick);

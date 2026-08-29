@@ -12,7 +12,11 @@ import {
   oneBitStride,
   pixelColorKey,
 } from "../app/converter/decode-pixels.js";
-import { frameValueCount, formatNeedsBitOrder } from "../app/converter/formats.js";
+import {
+  MANUAL_FORMAT_IDS,
+  frameValueCount,
+  formatNeedsBitOrder,
+} from "../app/converter/formats.js";
 import { mergeRects } from "../app/converter/merge-rects.js";
 import { toSvg } from "../app/converter/to-svg.js";
 import { convertCToSvg } from "../app/converter/convert.js";
@@ -73,6 +77,48 @@ test("parseNumericLiterals reads hex and binary", () => {
   assert.deepEqual(parseNumericLiterals("0xff, 0b1010, 3"), [255, 10, 3]);
 });
 
+test("parseCArray keeps decimal literals alongside hex and binary", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint8_t image_data[1][6] = {
+  { 0xff, 0, 0, 0b00000000, 128, 0 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.deepEqual(parsed.values, [255, 0, 0, 0, 128, 0]);
+});
+
+test("parseCArray accepts common declaration attributes", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+LV_ATTRIBUTE_MEM_ALIGN static const uint8_t image_data[2][1] PROGMEM __attribute__((aligned(4))) = {
+  { 0x01 },
+  { 0x02 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.equal(parsed.arrayName, "image_data");
+  assert.equal(parsed.elementType, "uint8_t");
+  assert.equal(parsed.frameCount, 2);
+  assert.deepEqual(parsed.values, [1, 2]);
+});
+
+test("parseCArray infers frame count from the data array dimension", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t image_data[2][1] = {
+  { 0xff0000ff },
+  { 0xff00ff00 }
+};
+`;
+  const parsed = parseCArray(source);
+  assert.equal(parsed.frameCount, 2);
+  assert.deepEqual(parsed.values, [0xff0000ff, 0xff00ff00]);
+});
+
 test("sliceFrameValues returns the requested frame", () => {
   assert.deepEqual(sliceFrameValues([1, 2, 3, 4], 1, 2), [3, 4]);
 });
@@ -127,6 +173,53 @@ test("auto-detects indexed I1 when palette and packed bit stride", () => {
     colorCount: 2,
   });
   assert.deepEqual(detected, { format: "i1", detected: "i1" });
+});
+
+test("auto-detects non-indexed uint8 formats from frame size", () => {
+  const cases = [
+    { width: 8, height: 1, valueCount: 2, expected: "p2" },
+    { width: 8, height: 1, valueCount: 4, expected: "p4" },
+    { width: 3, height: 1, valueCount: 3, expected: "l8" },
+    { width: 2, height: 1, valueCount: 4, expected: "al88" },
+    { width: 2, height: 1, valueCount: 6, expected: "rgb888" },
+  ];
+
+  for (const { width, height, valueCount, expected } of cases) {
+    const expectedResult = {
+      format: expected,
+      detected: expected,
+      ...(expected === "rgb888"
+        ? {
+            warning:
+              "Auto-selected RGB888; BGR888, RGB565A8, and ARGB8565 have the same byte count and require manual selection.",
+          }
+        : {}),
+    };
+    assert.deepEqual(
+      resolveFormat("auto", {
+        elementType: "uint8_t",
+        width,
+        height,
+        valueCount,
+        frameCount: 1,
+      }),
+      expectedResult
+    );
+  }
+});
+
+test("convertCToSvg reports ambiguous three-byte uint8 auto-detection", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint8_t image_data[1][6] = {
+  { 0xff, 0, 0, 0, 0xff, 0 }
+};
+`;
+  const result = convertCToSvg({ source, format: "auto", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.equal(result.format, "rgb888");
+  assert.match(result.warnings.join(" "), /Auto-selected RGB888/);
 });
 
 test("convertCToSvg auto uses I8 for paletted uint8 image", () => {
@@ -192,6 +285,31 @@ test("decode1Bit LSB-first", () => {
   assert.ok(pixels[7]);
 });
 
+test("encode1Bit thresholds fully opaque pixels by luminance", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const black = { r: 0, g: 0, b: 0, a: 255 };
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const encoded = encodePixels({
+    format: "1bit",
+    pixels: [black, white, black, white],
+    width: 4,
+    height: 1,
+  });
+  assert.deepEqual(encoded.values, [0b10100000]);
+});
+
+test("encode1Bit preserves visible silhouettes when transparency exists", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const encoded = encodePixels({
+    format: "1bit",
+    pixels: [white, null, white, null],
+    width: 4,
+    height: 1,
+  });
+  assert.deepEqual(encoded.values, [0b10100000]);
+});
+
 test("decodePixels ARGB32 frame", () => {
   const { pixels } = decodePixels({
     format: "argb32",
@@ -215,6 +333,42 @@ test("decodePixels RGB888", () => {
   assert.deepEqual(pixels[1], { r: 0, g: 255, b: 0, a: 255 });
 });
 
+test("decodePixels warns before falling back for an unsupported format", () => {
+  const { pixels, warnings } = decodePixels({
+    format: "not-a-format",
+    values: [0xf800],
+    width: 1,
+    height: 1,
+  });
+  assert.deepEqual(pixels[0], { r: 255, g: 0, b: 0, a: 255 });
+  assert.match(warnings.join(" "), /Unsupported decode format/);
+  assert.match(warnings.join(" "), /falling back to RGB565/);
+});
+
+test("RGB565A8 uses planar colour then alpha layout", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const red = { r: 255, g: 0, b: 0, a: 128 };
+  const green = { r: 0, g: 255, b: 0, a: 255 };
+  const encoded = encodePixels({
+    format: "rgb565a8",
+    pixels: [red, green],
+    width: 2,
+    height: 1,
+  });
+
+  assert.deepEqual(encoded.values, [0x00, 0xf8, 0xe0, 0x07, 0x80, 0xff]);
+  const { pixels } = decodePixels({
+    format: "rgb565a8",
+    values: encoded.values,
+    width: 2,
+    height: 1,
+  });
+  assert.deepEqual(pixels, [
+    { r: 255, g: 0, b: 0, a: 128 },
+    { r: 0, g: 255, b: 0, a: 255 },
+  ]);
+});
+
 test("decodePixels indexed I1 with palette", () => {
   const { pixels, warnings } = decodePixels({
     format: "i1",
@@ -232,6 +386,7 @@ test("decodePixels indexed I1 with palette", () => {
 test("pixelColorKey supports override fill", () => {
   const pixel = { r: 1, g: 2, b: 3, a: 255 };
   assert.equal(pixelColorKey(pixel, null), "#010203");
+  assert.equal(pixelColorKey({ ...pixel, a: 128 }, null), "#01020380");
   assert.equal(pixelColorKey(pixel, "#AABBCC"), "#AABBCC");
   assert.equal(pixelColorKey(null, "#AABBCC"), null);
 });
@@ -313,6 +468,164 @@ static const uint32_t data[1] = { 0xffff0000 };
   assert.match(classic.svg, /fill="#FF0000"/);
   const piskel = convertCToSvg({ source, format: "argb32" });
   assert.match(piskel.svg, /fill="#0000FF"/);
+});
+
+test("convertCToSvg preserves partial alpha in SVG colour", () => {
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1] = { 0x800000ff };
+`;
+  const result = convertCToSvg({ source, format: "argb32", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.match(result.svg, /fill="#FF000080"/);
+});
+
+test("all manual formats encode and decode their supported pixel layout", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const red = { r: 255, g: 0, b: 0, a: 255 };
+  const green = { r: 0, g: 255, b: 0, a: 255 };
+  const blue = { r: 0, g: 0, b: 255, a: 255 };
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const black = { r: 0, g: 0, b: 0, a: 255 };
+  const grayRamp4 = [
+    { r: 0, g: 0, b: 0, a: 255 },
+    { r: 85, g: 85, b: 85, a: 255 },
+    { r: 170, g: 170, b: 170, a: 255 },
+    { r: 255, g: 255, b: 255, a: 255 },
+  ];
+  const grayRamp16 = [
+    { r: 0, g: 0, b: 0, a: 255 },
+    { r: 17, g: 17, b: 17, a: 255 },
+    { r: 34, g: 34, b: 34, a: 255 },
+    { r: 51, g: 51, b: 51, a: 255 },
+  ];
+  const commonPixels = [red, green, blue, white];
+  const cases = new Map([
+    ["argb32", { pixels: commonPixels, width: 4, height: 1 }],
+    ["argb32-classic", { pixels: commonPixels, width: 4, height: 1 }],
+    ["xrgb8888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["bgr888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb565", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb565-swap", { pixels: commonPixels, width: 4, height: 1 }],
+    [
+      "rgb565a8",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "argb8565",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "1bit",
+      {
+        pixels: [black, white, black, white],
+        expected: [black, null, black, null],
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    ["l8", { pixels: [black, white], width: 2, height: 1 }],
+    [
+      "al88",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        expected: [
+          { r: 76, g: 76, b: 76, a: 128 },
+          { r: 150, g: 150, b: 150, a: 255 },
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "p2",
+      { pixels: grayRamp4, width: 4, height: 1, bitOrder: "lsb" },
+    ],
+    [
+      "p4",
+      { pixels: grayRamp16, width: 4, height: 1, bitOrder: "lsb" },
+    ],
+    [
+      "i1",
+      {
+        pixels: [red, green],
+        width: 2,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    [
+      "i2",
+      {
+        pixels: commonPixels,
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    [
+      "i4",
+      {
+        pixels: commonPixels,
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    ["i8", { pixels: commonPixels, width: 4, height: 1 }],
+  ]);
+
+  assert.deepEqual(
+    [...cases.keys()].sort(),
+    [...MANUAL_FORMAT_IDS].sort()
+  );
+
+  for (const format of MANUAL_FORMAT_IDS) {
+    const { pixels, expected = pixels, width, height, bitOrder = "msb" } =
+      cases.get(format);
+    const encoded = encodePixels({
+      format,
+      pixels,
+      width,
+      height,
+      bitOrder,
+    });
+    assert.equal(
+      encoded.values.length,
+      frameValueCount(format, width, height),
+      `${format} encoded length`
+    );
+    const decoded = decodePixels({
+      format,
+      values: encoded.values,
+      width,
+      height,
+      bitOrder,
+      palette: encoded.palette,
+    });
+    assert.deepEqual(decoded.warnings, [], `${format} warnings`);
+    assert.deepEqual(decoded.pixels, expected, `${format} pixels`);
+  }
 });
 
 test("opacityKeyframes cycles frames", async () => {
@@ -454,6 +767,25 @@ test("svgToPixels reads style=fill colours", async () => {
   assert.match(backG.source, /0xff00ff00/i);
 });
 
+test("sanitizeSvgReferences removes external resource references", async () => {
+  const { sanitizeSvgReferences } = await import(
+    "../app/converter/svg-to-pixels.js"
+  );
+  const source = `<svg viewBox="0 0 2 1">
+    <defs><linearGradient id="local-gradient"/></defs>
+    <use href="#local-symbol"/>
+    <image href="https://example.com/image.png"/>
+    <image xlink:href="//example.com/other.png"/>
+    <rect style="fill:url(#local-gradient); background:url('https://example.com/bg.png')" width="1" height="1"/>
+  </svg>`;
+  const sanitized = sanitizeSvgReferences(source);
+  assert.match(sanitized, /href="#local-symbol"/);
+  assert.match(sanitized, /url\(#local-gradient\)/);
+  assert.doesNotMatch(sanitized, /example\.com/);
+  assert.doesNotMatch(sanitized, /xlink:href/);
+  assert.match(sanitized, /background:none/);
+});
+
 test("prepareFrameGroupMarkup forces opacity and drops animate", async () => {
   const { prepareFrameGroupMarkup } = await import(
     "../app/converter/svg-to-pixels.js"
@@ -591,6 +923,20 @@ test("svg to c preview respects frameDurationMs", async () => {
   assert.match(result.previewSvg, /dur="0\.1s"/);
 });
 
+test("svg to c override fill replaces visible pixels", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1"><rect width="1" height="1" fill="#FF0000"/></svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    overrideFill: true,
+    fillColor: "#112233",
+  });
+  assert.equal(result.error, null);
+  assert.match(result.source, /0xff332211/i);
+  assert.doesNotMatch(result.source, /0xffff0000/i);
+});
+
 test("formatPreservesAlpha distinguishes opaque formats", async () => {
   const { formatPreservesAlpha } = await import("../app/converter/formats.js");
   assert.equal(formatPreservesAlpha("argb32"), true);
@@ -696,6 +1042,25 @@ static const uint32_t data[1][1] = { { 0xff0000ff } };
   assert.equal(result.elementType, "uint16_t");
   assert.match(result.source, /static const uint16_t pix_data/);
   assert.match(result.source, /0xf800/i);
+});
+
+test("convertCToC override fill replaces visible pixels", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][1] = { { 0xffff0000 } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "argb32",
+    overrideFill: true,
+    fillColor: "#112233",
+  });
+  assert.equal(result.error, null);
+  assert.match(result.source, /0xff332211/i);
+  assert.doesNotMatch(result.source, /0xffff0000/i);
 });
 
 test("convertCToC can export a single selected frame", async () => {

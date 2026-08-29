@@ -56,6 +56,43 @@ export function parseCssColor(raw) {
   return null;
 }
 
+const RESOURCE_ATTR_RE =
+  /\s(?:href|xlink:href|src|srcset)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>"']+)/gi;
+const URL_FUNCTION_RE =
+  /url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi;
+
+/**
+ * Keep only same-document fragment references in resource-bearing SVG
+ * attributes and CSS URL functions. This prevents the browser's SVG image
+ * decoder from fetching external resources while preserving local gradients,
+ * symbols, masks, and filters.
+ * @param {string} markup
+ * @returns {string}
+ */
+export function sanitizeSvgReferences(markup) {
+  if (typeof markup !== "string") return "";
+
+  let sanitized = markup.replace(RESOURCE_ATTR_RE, (attribute) => {
+    const match = attribute.match(
+      /^\s(?:href|xlink:href|src|srcset)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/i
+    );
+    const value = match?.[1] ?? match?.[2] ?? match?.[3] ?? "";
+    return value.trim().startsWith("#") ? attribute : "";
+  });
+
+  sanitized = sanitized.replace(
+    /@import\s+(?:"[^"]*"|'[^']*'|url\([^)]*\))[^;]*;?/gi,
+    ""
+  );
+  return sanitized.replace(
+    URL_FUNCTION_RE,
+    (full, doubleQuoted, singleQuoted, unquoted) => {
+      const value = doubleQuoted ?? singleQuoted ?? unquoted ?? "";
+      return value.trim().startsWith("#") ? full : "none";
+    }
+  );
+}
+
 /**
  * @param {string} attrs
  * @param {string} name
@@ -321,7 +358,8 @@ export async function rasterizeSvgDocumentWithCanvas(svgDocument, width, height)
     throw new Error("Canvas SVG rasterisation requires a browser.");
   }
 
-  const blob = new Blob([ensureSvgXmlns(svgDocument)], {
+  const safeSvgDocument = sanitizeSvgReferences(svgDocument);
+  const blob = new Blob([ensureSvgXmlns(safeSvgDocument)], {
     type: "image/svg+xml;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);
@@ -392,9 +430,11 @@ export function svgToPixels(source) {
     };
   }
 
-  const cleaned = source
-    .replace(/<\?xml[\s\S]*?\?>/i, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
+  const cleaned = sanitizeSvgReferences(
+    source
+      .replace(/<\?xml[\s\S]*?\?>/i, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+  );
 
   if (!/<svg\b/i.test(cleaned)) {
     return {
@@ -492,9 +532,11 @@ export async function svgToPixelsAsync(source) {
     };
   }
 
-  const cleaned = source
-    .replace(/<\?xml[\s\S]*?\?>/i, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
+  const cleaned = sanitizeSvgReferences(
+    source
+      .replace(/<\?xml[\s\S]*?\?>/i, "")
+      .replace(/<!--[\s\S]*?-->/g, "")
+  );
 
   if (!/<svg\b/i.test(cleaned)) {
     return {

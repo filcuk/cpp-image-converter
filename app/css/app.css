@@ -1,0 +1,11 @@
+@import url("../prism.css");
+@import url("converter.css");
+
+:root {
+  --accent: #ad568c;
+  --accent-fg: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --accent: #d6a4bf;
+}

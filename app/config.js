@@ -16,11 +16,10 @@ export const APP_CONFIG = {
   alsoSeeUrl:
     "https://raw.githubusercontent.com/filcuk/shared/refs/heads/main/apps/links.json",
   /**
-   * Optional topic whitelist (case-insensitive). Omit / `null` / `false` → all topics.
-   * Empty array → hide named topics (ungrouped flat links still show).
-   * Ungrouped flat links are never filtered by this list.
+   * Remote topic filter (case-insensitive). `["*"]` includes all topics and
+   * ungrouped links; `[]` hides all entries; `""` includes ungrouped links.
    */
-  alsoSeeTopics: null,
+  alsoSeeTopics: ["*"],
   /**
    * Local related apps (fallback when `alsoSeeUrl` is empty or fetch fails).
    * Set to `[]` or `false` to hide the control when there is no remote list.

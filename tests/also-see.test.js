@@ -30,7 +30,8 @@ test("normalizeAlsoSee excludes the current appUrl from flat links", () => {
         url: "https://pqms.gh.fitec.dev/",
       },
     ],
-    "https://filcuk.github.io/microapp-template"
+    "https://filcuk.github.io/microapp-template",
+    ["*"]
   );
 
   assert.equal(sections.length, 1);
@@ -69,7 +70,8 @@ test("normalizeAlsoSee keeps topic sections and drops empty ones after appUrl fi
         url: "https://github.com/filcuk",
       },
     ],
-    "https://filcuk.github.io/pbi-tabulator/"
+    "https://filcuk.github.io/pbi-tabulator/",
+    ["*"]
   );
 
   assert.equal(sections.length, 2);
@@ -102,10 +104,8 @@ test("normalizeAlsoSee filters topics by whitelist (case-insensitive)", () => {
     ["power bi"]
   );
 
-  assert.equal(sections.length, 2);
+  assert.equal(sections.length, 1);
   assert.equal(sections[0].topic, "Power BI");
-  assert.equal(sections[1].topic, null);
-  assert.equal(sections[1].items[0].label, "Profile");
 });
 
 test("normalizeAlsoSee empty topic whitelist keeps only flat links", () => {
@@ -124,9 +124,7 @@ test("normalizeAlsoSee empty topic whitelist keeps only flat links", () => {
     []
   );
 
-  assert.equal(sections.length, 1);
-  assert.equal(sections[0].topic, null);
-  assert.equal(sections[0].items[0].label, "Profile");
+  assert.equal(sections.length, 0);
 });
 
 test("renderAlsoSeeMarkup emits group headers for topics", () => {
@@ -188,18 +186,22 @@ test("renderAlsoSeeMarkup adds a separator before ungrouped links", () => {
 
   assert.match(
     markup,
-    /dropdown-menu-group">Database[\s\S]*dropdown-menu-separator[\s\S]*Profile/
+    /dropdown-menu-group">Database[\s\S]*footer-also-see-section-break[\s\S]*Profile/
   );
 });
 
 test("normalizeAlsoSee keeps a single icon without inventing a theme pair", () => {
-  const sections = normalizeAlsoSee([
-    {
-      label: "Legacy",
-      url: "https://example.com/legacy",
-      icon: "https://example.com/icon.svg",
-    },
-  ]);
+  const sections = normalizeAlsoSee(
+    [
+      {
+        label: "Legacy",
+        url: "https://example.com/legacy",
+        icon: "https://example.com/icon.svg",
+      },
+    ],
+    "",
+    ["*"]
+  );
 
   assert.equal(sections[0].items[0].icon, "https://example.com/icon.svg");
   assert.equal(sections[0].items[0].iconLight, "");
@@ -207,15 +209,19 @@ test("normalizeAlsoSee keeps a single icon without inventing a theme pair", () =
 });
 
 test("normalizeAlsoSee prefers iconLight/iconDark theme pair", () => {
-  const sections = normalizeAlsoSee([
-    {
-      label: "Modern",
-      url: "https://example.com/modern",
-      icon: "https://example.com/ignored.svg",
-      iconLight: "https://example.com/app-light.svg",
-      iconDark: "https://example.com/app-dark.svg",
-    },
-  ]);
+  const sections = normalizeAlsoSee(
+    [
+      {
+        label: "Modern",
+        url: "https://example.com/modern",
+        icon: "https://example.com/ignored.svg",
+        iconLight: "https://example.com/app-light.svg",
+        iconDark: "https://example.com/app-dark.svg",
+      },
+    ],
+    "",
+    ["*"]
+  );
 
   const item = sections[0].items[0];
   assert.equal(item.icon, "");

@@ -46,12 +46,21 @@
         />
         <h1>C++ Image Converter</h1>
       </div>
-      <p class="tagline">Convert between C/C++ image arrays and SVG locally in the browser.</p>
+      <p class="tagline">
+        Conversion you can <em>C</em> — converting image arrays to and from SVG.
+        <button
+          type="button"
+          class="btn btn-link tagline-link"
+          id="about-open-btn"
+          aria-label="What is C++ Image Converter?"
+          >What?</button
+        >
+      </p>
     </header>
 
     <main id="main">
-      <section id="direction" aria-labelledby="direction-heading">
-        <h2 id="direction-heading" class="visually-hidden">Direction</h2>
+      <section class="content-section" id="direction" aria-labelledby="direction-heading">
+        <h2 id="direction-heading" class="section-title">Conversion</h2>
         <div
           class="segmented-control"
           id="direction-control"
@@ -94,8 +103,9 @@
         </div>
       </section>
 
-      <section id="input" aria-labelledby="input-heading">
-        <h2 id="input-heading">Input</h2>
+      <div id="input-section">
+        <section class="content-section" id="input" aria-labelledby="input-heading">
+          <h2 id="input-heading" class="section-title">Input</h2>
 
         <div class="converter-input-banners" id="converter-banners">
           <div
@@ -129,88 +139,91 @@
         </div>
 
         <div class="converter-input" id="c-input-panel">
-          <div class="file-dropzone" id="source-dropzone">
-            <div class="file-dropzone-target">
-              <input
-                type="file"
-                class="file-dropzone-input"
-                aria-label="Upload a .c or .h file"
-              />
-              <div class="file-dropzone-prompt" aria-hidden="true">
-                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-                <span class="file-dropzone-text">
-                  <span class="file-dropzone-primary">Drop a .c or .h file here</span>
-                  <span class="file-dropzone-secondary">or click to browse</span>
-                </span>
-              </div>
-            </div>
+          <div class="file-dropzone" id="source-dropzone" data-file-accept=".c,.h,.txt">
+            <input
+              type="file"
+              class="file-dropzone-input"
+              aria-label="Upload a file"
+              hidden
+            />
+            <button type="button" class="file-dropzone-prompt">
+              <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+              <span class="file-dropzone-text">
+                <span class="file-dropzone-primary">Drop a file here</span>
+                <span class="file-dropzone-secondary">or click to browse</span>
+              </span>
+            </button>
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
-          <label class="field converter-source-field" for="source-textarea">
-            <textarea
-              id="source-textarea"
-              class="textarea converter-source-textarea"
-              rows="16"
-              spellcheck="false"
-              wrap="off"
-              placeholder="Enter a .c / .h array"
-            ></textarea>
-          </label>
-
-          <div class="toolbar converter-source-actions">
-            <button type="button" class="btn" id="clear-source-btn" disabled>
-              Clear
-            </button>
-            <button type="button" class="btn" id="load-example-btn">
-              Load Example
-            </button>
+          <div class="field converter-source-field">
+            <div
+              class="code-block code-block--full converter-array-code-block"
+              id="source-code-block"
+              data-code-mode="edit"
+              data-code-toolbar-actions="paste"
+              data-code-editor-label="C or C++ array source"
+              data-expandable-surface
+              data-expandable-surface-label="C / C++ array source"
+            >
+              <div class="code-block-body" data-expandable-surface-trigger>
+                <pre class="language-cpp"><code class="language-cpp"></code></pre>
+              </div>
+              <button type="button" class="btn" id="clear-source-btn" disabled>
+                Clear
+              </button>
+              <button type="button" class="btn" id="load-example-btn">
+                Load Example
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="converter-input hidden" id="svg-input-panel" hidden>
-          <div class="file-dropzone" id="svg-dropzone">
-            <div class="file-dropzone-target">
-              <input
-                type="file"
-                class="file-dropzone-input"
-                aria-label="Upload an SVG file"
-              />
-              <div class="file-dropzone-prompt" aria-hidden="true">
-                <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
-                <span class="file-dropzone-text">
-                  <span class="file-dropzone-primary">Drop an .svg file here</span>
-                  <span class="file-dropzone-secondary">or click to browse</span>
-                </span>
-              </div>
-            </div>
+          <div class="file-dropzone" id="svg-dropzone" data-file-accept=".svg">
+            <input
+              type="file"
+              class="file-dropzone-input"
+              aria-label="Upload an SVG file"
+              hidden
+            />
+            <button type="button" class="file-dropzone-prompt">
+              <span data-icon="upload" data-icon-class="file-dropzone-icon"></span>
+              <span class="file-dropzone-text">
+                <span class="file-dropzone-primary">Drop a .svg file here</span>
+                <span class="file-dropzone-secondary">or click to browse</span>
+              </span>
+            </button>
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
-          <label class="field converter-source-field" for="svg-textarea">
-            <textarea
-              id="svg-textarea"
-              class="textarea converter-source-textarea"
-              rows="16"
-              spellcheck="false"
-              wrap="off"
-              placeholder="Enter SVG markup"
-            ></textarea>
-          </label>
-
-          <div class="toolbar converter-source-actions">
-            <button type="button" class="btn" id="clear-svg-btn" disabled>
-              Clear
-            </button>
-            <button type="button" class="btn" id="load-example-svg-btn">
-              Load Example
-            </button>
+          <div class="field converter-source-field">
+            <div
+              class="code-block code-block--full converter-array-code-block"
+              id="svg-source-code-block"
+              data-code-mode="edit"
+              data-code-toolbar-actions="paste"
+              data-code-editor-label="SVG markup source"
+              data-expandable-surface
+              data-expandable-surface-label="SVG markup source"
+            >
+              <div class="code-block-body" data-expandable-surface-trigger>
+                <pre class="language-markup"><code class="language-markup"></code></pre>
+              </div>
+              <button type="button" class="btn" id="clear-svg-btn" disabled>
+                Clear
+              </button>
+              <button type="button" class="btn" id="load-example-svg-btn">
+                Load Example
+              </button>
+            </div>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
 
-      <section id="options" aria-labelledby="options-heading">
-        <h2 id="options-heading">Options</h2>
+      <section class="content-section" id="options" aria-labelledby="options-heading">
+        <h2 id="options-heading" class="section-title">Options</h2>
 
         <div class="converter-options-banners" id="converter-options-banners">
           <div
@@ -226,105 +239,123 @@
 
         <div class="section-panel">
           <div class="converter-options">
-            <div class="converter-format">
-              <span class="field-label" id="format-label">Input type</span>
-              <div class="dropdown" id="format-dropdown">
-                <button
-                  type="button"
-                  class="btn dropdown-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="format-dropdown-menu"
-                  aria-labelledby="format-label"
-                >
-                  <span class="dropdown-trigger-label" id="format-dropdown-label"
-                    >Auto</span
-                  >
-                  <span class="combo-btn-chevron" aria-hidden="true"></span>
-                </button>
-                <ul
-                  id="format-dropdown-menu"
-                  class="dropdown-menu converter-format-menu hidden"
-                  role="menu"
-                  hidden
-                >
-                  <li role="none">
+            <div class="converter-format-options-row">
+              <div class="field converter-format">
+                <span class="field-label" id="format-label">Input type</span>
+                <div class="converter-format-control">
+                  <div class="dropdown" id="format-dropdown">
                     <button
                       type="button"
-                      class="dropdown-menu-item is-selected"
-                      role="menuitem"
-                      data-value="auto"
+                      class="btn dropdown-trigger"
+                      aria-haspopup="menu"
+                      aria-expanded="false"
+                      aria-controls="format-dropdown-menu"
+                      aria-labelledby="format-label"
                     >
-                      Auto
+                      <span class="dropdown-trigger-label" id="format-dropdown-label"
+                        >Auto</span
+                      >
+                      <span class="combo-btn-chevron" aria-hidden="true"></span>
                     </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div
-              class="converter-format converter-c-to-c-only hidden"
-              id="output-format-wrap"
-              hidden
-            >
-              <span class="field-label" id="output-format-label">Output type</span>
-              <div class="dropdown" id="output-format-dropdown">
-                <button
-                  type="button"
-                  class="btn dropdown-trigger"
-                  aria-haspopup="menu"
-                  aria-expanded="false"
-                  aria-controls="output-format-dropdown-menu"
-                  aria-labelledby="output-format-label"
-                >
-                  <span
-                    class="dropdown-trigger-label"
-                    id="output-format-dropdown-label"
-                    >ARGB32 (LE RGBA) · uint32_t</span
+                    <ul
+                      id="format-dropdown-menu"
+                      class="dropdown-menu converter-format-menu hidden"
+                      role="menu"
+                      hidden
+                    >
+                      <li role="none">
+                        <button
+                          type="button"
+                          class="dropdown-menu-item is-selected"
+                          role="menuitem"
+                          data-value="auto"
+                        >
+                          Auto
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                  <output
+                    class="btn converter-format-type"
+                    id="format-type-label"
+                    aria-label="C element type"
+                    >Auto</output
                   >
-                  <span class="combo-btn-chevron" aria-hidden="true"></span>
-                </button>
-                <ul
-                  id="output-format-dropdown-menu"
-                  class="dropdown-menu converter-format-menu hidden"
-                  role="menu"
-                  hidden
-                ></ul>
-              </div>
-            </div>
-
-            <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
-              <span class="field-label" id="bit-order-label">Bit order</span>
-              <div
-                class="segmented-control"
-                id="bit-order-control"
-                data-segmented-control-default="msb"
-              >
-                <div
-                  class="segmented-control-list"
-                  role="radiogroup"
-                  aria-labelledby="bit-order-label"
-                >
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="true"
-                    data-segmented-control-value="msb"
-                  >
-                    MSB first
-                  </button>
-                  <button
-                    type="button"
-                    class="segmented-control-item"
-                    role="radio"
-                    aria-checked="false"
-                    data-segmented-control-value="lsb"
-                  >
-                    LSB first
-                  </button>
                 </div>
-                <input type="hidden" class="segmented-control-value" value="msb" />
+              </div>
+
+              <div
+                class="field converter-format converter-c-to-c-only hidden"
+                id="output-format-wrap"
+                hidden
+              >
+                <span class="field-label" id="output-format-label">Output type</span>
+                <div class="converter-format-control">
+                  <div class="dropdown" id="output-format-dropdown">
+                    <button
+                      type="button"
+                      class="btn dropdown-trigger"
+                      aria-haspopup="menu"
+                      aria-expanded="false"
+                      aria-controls="output-format-dropdown-menu"
+                      aria-labelledby="output-format-label"
+                    >
+                      <span
+                        class="dropdown-trigger-label"
+                        id="output-format-dropdown-label"
+                        >ARGB32 (LE RGBA)</span
+                      >
+                      <span class="combo-btn-chevron" aria-hidden="true"></span>
+                    </button>
+                    <ul
+                      id="output-format-dropdown-menu"
+                      class="dropdown-menu converter-format-menu hidden"
+                      role="menu"
+                      hidden
+                    ></ul>
+                  </div>
+                  <output
+                    class="btn converter-format-type"
+                    id="output-format-type-label"
+                    aria-label="C element type"
+                    >uint32_t</output
+                  >
+                </div>
+              </div>
+
+              <div class="converter-bit-order hidden" id="bit-order-wrap" hidden>
+                <span class="field-label" id="bit-order-label">Bit order</span>
+                <div
+                  class="segmented-control"
+                  id="bit-order-control"
+                  data-segmented-control-default="msb"
+                >
+                  <div
+                    class="segmented-control-list"
+                    role="radiogroup"
+                    aria-labelledby="bit-order-label"
+                  >
+                    <button
+                      type="button"
+                      class="segmented-control-item"
+                      role="radio"
+                      aria-checked="true"
+                      data-segmented-control-value="msb"
+                    >
+                      MSB first
+                    </button>
+                    <button
+                      type="button"
+                      class="segmented-control-item"
+                      role="radio"
+                      aria-checked="false"
+                      data-segmented-control-value="lsb"
+                    >
+                      LSB first
+                    </button>
+                  </div>
+                  <input type="hidden" class="segmented-control-value" value="msb" />
+                </div>
               </div>
             </div>
 
@@ -446,6 +477,8 @@
               </div>
             </div>
 
+            <hr class="converter-options-divider" />
+
             <div
               class="converter-options__row converter-animate-row hidden"
               id="animate-options-wrap"
@@ -551,7 +584,7 @@
               </div>
             </div>
 
-            <div class="converter-options__row converter-c-to-svg-only" id="fill-options-row">
+            <div class="converter-options__row" id="fill-options-row">
               <div class="toggle" id="override-fill-toggle" data-toggle-default="false">
                 <button
                   type="button"
@@ -574,95 +607,121 @@
               </div>
 
               <div
-                class="color-picker converter-fill-wrap is-disabled"
+                class="color-input converter-fill-wrap"
                 id="fill-color-picker"
-                data-color-picker-default="#FFFFFF"
+                data-color-input-default="#FFFFFF"
+                data-color-input-open="picker"
               >
                 <label class="field-label" for="fill-color-input">Fill colour</label>
-                <div class="color-picker-control">
+                <div class="color-input-control">
+                  <span class="color-input-swatch" aria-hidden="true"></span>
                   <input
                     type="text"
                     id="fill-color-input"
-                    class="input color-picker-input"
+                    class="input color-input-field"
                     autocomplete="off"
                     spellcheck="false"
                     aria-label="Fill hex colour"
                   />
-                  <span class="color-picker-swatch" aria-hidden="true"></span>
-                  <input type="hidden" class="color-picker-value" />
+                  <input type="hidden" class="color-input-value" />
+                </div>
+                <div
+                  class="color-picker"
+                  id="fill-color-spectrum"
+                  data-color-picker-default="#FFFFFF"
+                  data-color-picker-format="hsv"
+                >
+                  <button
+                    type="button"
+                    class="btn color-picker-trigger"
+                    aria-expanded="false"
+                    aria-label="Open fill colour picker"
+                  >
+                    Colour picker
+                  </button>
+                  <div
+                    class="color-picker-popup hidden"
+                    role="dialog"
+                    aria-label="Fill colour picker"
+                    hidden
+                  >
+                    <div class="color-picker-shell">
+                      <div class="color-picker-panel"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div class="toggle" id="minify-toggle" data-toggle-default="false">
-                <button
-                  type="button"
-                  class="toggle-btn"
-                  role="switch"
-                  aria-checked="false"
-                >
-                  <span class="toggle-track" aria-hidden="true">
-                    <span class="toggle-thumb">
-                      <span
-                        data-icon="check"
-                        data-icon-class="toggle-thumb-icon"
-                        aria-hidden="true"
-                      ></span>
-                    </span>
-                  </span>
-                  <span class="toggle-label">Minimised</span>
-                </button>
-                <input type="hidden" class="toggle-value" />
-              </div>
             </div>
 
             <div
-              class="converter-options__row converter-writes-c-only hidden"
+              class="converter-options__row hidden"
               id="svg-to-c-options-row"
               hidden
             >
-              <label class="field" for="array-name-input">
-                <span class="field-label">Array name</span>
-                <input
-                  type="text"
-                  id="array-name-input"
-                  class="input"
-                  value="image"
-                  autocomplete="off"
-                  spellcheck="false"
-                  aria-label="C array name prefix"
-                />
-              </label>
-
               <div
-                class="color-picker hidden"
+                class="color-input hidden"
                 id="background-color-picker"
-                data-color-picker-default="#000000"
+                data-color-input-default="#000000"
+                data-color-input-open="picker"
                 hidden
               >
                 <label class="field-label" for="background-color-input"
                   >Background</label
                 >
-                <div class="color-picker-control">
+                <div class="color-input-control">
+                  <span class="color-input-swatch" aria-hidden="true"></span>
                   <input
                     type="text"
                     id="background-color-input"
-                    class="input color-picker-input"
+                    class="input color-input-field"
                     autocomplete="off"
                     spellcheck="false"
                     aria-label="Background colour for transparent pixels"
                   />
-                  <span class="color-picker-swatch" aria-hidden="true"></span>
-                  <input type="hidden" class="color-picker-value" />
+                  <input type="hidden" class="color-input-value" />
+                </div>
+                <div
+                  class="color-picker"
+                  id="background-color-spectrum"
+                  data-color-picker-default="#000000"
+                  data-color-picker-format="hsv"
+                >
+                  <button
+                    type="button"
+                    class="btn color-picker-trigger"
+                    aria-expanded="false"
+                    aria-label="Open background colour picker"
+                  >
+                    Colour picker
+                  </button>
+                  <div
+                    class="color-picker-popup hidden"
+                    role="dialog"
+                    aria-label="Background colour picker"
+                    hidden
+                  >
+                    <div class="color-picker-shell">
+                      <div class="color-picker-panel"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <hr class="section-panel__divider" />
+        </div>
+      </section>
 
-          <div class="converter-actions">
+      <section class="content-section" id="output" aria-labelledby="output-heading">
+        <h2 id="output-heading" class="section-title">Output</h2>
+        <div
+          class="section-panel converter-output-section spinner-host"
+          id="output-spinner-host"
+        >
+          <div class="toolbar converter-output-toolbar">
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
-              Download
+              Download file
             </button>
             <button
               type="button"
@@ -671,59 +730,259 @@
               disabled
               hidden
             >
-              Download
+              Download file
             </button>
-            <button type="button" class="btn" id="copy-output-btn" disabled>
-              Copy
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section id="output" aria-labelledby="output-heading">
-        <h2 id="output-heading">Output</h2>
-        <div id="svg-output-panel">
-          <div
-            class="converter-preview"
-            id="svg-preview"
-            aria-live="polite"
-          >
-            <p class="converter-preview__empty" id="svg-preview-empty">
-              Load array to see a preview
-            </p>
-          </div>
-          <p class="converter-meta" id="converter-meta" hidden></p>
-        </div>
-        <div class="hidden" id="c-output-panel" hidden>
-          <label class="field converter-source-field" for="c-output-textarea">
-            <textarea
-              id="c-output-textarea"
-              class="textarea converter-source-textarea"
-              rows="18"
-              spellcheck="false"
-              wrap="off"
-              readonly
-              placeholder="C array output"
-              aria-label="Generated C source"
-            ></textarea>
-          </label>
-          <div class="field converter-source-field">
-            <div
-              class="converter-preview"
-              id="c-preview"
-              aria-live="polite"
-              aria-label="Preview"
+            <button
+              type="button"
+              class="btn"
+              id="copy-output-btn"
+              aria-label="Copy code"
+              disabled
             >
-              <p class="converter-preview__empty" id="c-preview-empty">
-                Convert SVG to see a preview
+              <span class="btn-label-flash__label">Copy code</span>
+            </button>
+            <label
+              class="field converter-output-array-name converter-writes-c-only hidden"
+              for="array-name-input"
+              hidden
+            >
+              <span class="field-label">Array name</span>
+              <input
+                type="text"
+                id="array-name-input"
+                class="input"
+                value="image"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="C array name prefix"
+              />
+            </label>
+            <div
+              class="toggle converter-c-to-svg-only"
+              id="minify-toggle"
+              data-toggle-default="false"
+            >
+              <button
+                type="button"
+                class="toggle-btn"
+                role="switch"
+                aria-checked="false"
+              >
+                <span class="toggle-track" aria-hidden="true">
+                  <span class="toggle-thumb">
+                    <span
+                      data-icon="check"
+                      data-icon-class="toggle-thumb-icon"
+                      aria-hidden="true"
+                    ></span>
+                  </span>
+                </span>
+                <span class="toggle-label">Minimised</span>
+              </button>
+              <input type="hidden" class="toggle-value" />
+            </div>
+            <span
+              class="converter-output-size"
+              id="output-file-size"
+              aria-live="polite"
+              hidden
+            ></span>
+          </div>
+          <div class="converter-output-panel" id="svg-output-panel">
+            <div
+              class="image-preview converter-preview"
+              id="svg-preview"
+              aria-live="polite"
+              data-image-preview-pixelated
+              data-image-preview-maximize
+              data-image-preview-expand-on-click
+              data-image-preview-download
+              data-image-preview-dimensions
+              data-image-preview-frames
+              data-image-preview-duration
+              data-image-preview-meta="hover"
+              data-expandable-surface-label="SVG preview"
+            >
+              <p class="image-preview__empty converter-preview__empty" id="svg-preview-empty">
+                Load input to see a preview
               </p>
             </div>
+            <div class="field converter-source-field">
+              <div
+                class="code-block code-block--full converter-array-code-block"
+                id="svg-output-code-block"
+                data-code-mode="select"
+                data-code-toolbar-actions="none"
+                data-expandable-surface
+                data-expandable-surface-label="Generated SVG"
+              >
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <pre class="language-markup"><code class="language-markup"></code></pre>
+                </div>
+              </div>
+            </div>
           </div>
-          <p class="converter-meta" id="c-converter-meta" hidden></p>
+          <div class="converter-output-panel hidden" id="c-output-panel" hidden>
+            <div class="field converter-source-field">
+              <div
+                class="image-preview converter-preview"
+                id="c-preview"
+                aria-live="polite"
+                aria-label="Preview"
+                data-image-preview-pixelated
+                data-image-preview-maximize
+                data-image-preview-expand-on-click
+                data-image-preview-dimensions
+                data-image-preview-frames
+                data-image-preview-duration
+                data-image-preview-meta="hover"
+                data-expandable-surface-label="Converted image preview"
+              >
+                <p class="image-preview__empty converter-preview__empty" id="c-preview-empty">
+                  Load input to see a preview
+                </p>
+              </div>
+            </div>
+            <div class="field converter-source-field">
+              <div
+                class="code-block code-block--full converter-array-code-block"
+                id="c-output-code-block"
+                data-code-mode="select"
+                data-code-toolbar-actions="none"
+                data-expandable-surface
+                data-expandable-surface-label="Generated C / C++ array"
+              >
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <pre class="language-cpp"><code class="language-cpp"></code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="spinner-overlay hidden" hidden>
+            <div
+              class="spinner"
+              role="status"
+              aria-live="polite"
+              aria-busy="false"
+              aria-label="Updating output"
+            >
+              <span class="spinner-indicator" aria-hidden="true"></span>
+              <span class="spinner-label">Updating output…</span>
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
+    <div
+      class="modal hidden"
+      id="about-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="about-dialog-title"
+      hidden
+    >
+      <div class="modal-backdrop" data-dialog-close></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="about-dialog-title">What is this?</h2>
+          <button type="button" class="modal-close" data-dialog-close aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            C++ Image Converter turns C and C++ image arrays into SVG, or SVG
+            images back into C arrays, entirely in your browser.
+          </p>
+          <p>
+            Supports a vast selection of array formats, transparency, scaling
+            and animation.
+          </p>
+          <div class="about-extra-content">
+            <div
+              class="about-extra-block"
+              data-about-stage
+              data-about-next-label="Uhh…"
+            >
+              <p>
+                In short: choose a direction, supply an image, tune the
+                settings, then copy or download the generated code.
+              </p>
+            </div>
+            <div
+              class="about-extra-block"
+              data-about-stage
+              data-about-next-label="I don't get it"
+            >
+              <p>
+                Pretty image. Need change. Can do it? Put in, get out. Easy.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-about-confused>Huh?</button>
+          <a
+            class="btn hidden"
+            data-about-final
+            href="https://pbskids.org/games/play/hair-salon/8806"
+            target="_blank"
+            rel="noopener noreferrer"
+            hidden
+            >I don't get it</a
+          >
+          <div class="modal-footer-actions">
+            <button type="button" class="btn" id="about-guided-tour">Guided tour</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-dialog-close
+              data-dialog-default
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal hidden"
+      id="overwrite-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="overwrite-dialog-title"
+      hidden
+    >
+      <div class="modal-backdrop" data-dialog-close></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="overwrite-dialog-title">Overwrite input?</h2>
+          <button type="button" class="modal-close" data-dialog-close aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="overwrite-dialog-message">
+            Do you want to replace the current input?
+          </p>
+        </div>
+        <div class="modal-footer">
+          <span></span>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn" data-dialog-close>Cancel</button>
+            <button type="button" class="btn btn-primary" id="confirm-overwrite-btn">
+              Load Example
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script defer src="app/vendor/prism/prism.min.js"></script>
+    <script defer src="app/vendor/prism/prism-c.min.js"></script>
+    <script defer src="app/vendor/prism/prism-cpp.min.js"></script>
     <script type="module" src="app/main.js"></script>
   </body>
 </html>

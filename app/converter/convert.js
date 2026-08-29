@@ -103,7 +103,7 @@ export function convertCToSvg({
   frameDurationMs = 100,
 }) {
   const parsed = parseCArray(source);
-  const { format, detected } = resolveFormat(formatSelection, {
+  const { format, detected, warning: detectionWarning } = resolveFormat(formatSelection, {
     elementType: parsed.elementType,
     palette: parsed.palette,
     width: widthOverride ?? parsed.width,
@@ -128,7 +128,10 @@ export function convertCToSvg({
     rectCount: 0,
     animated: false,
     elementType: parsed.elementType,
-    warnings: [...parsed.warnings],
+    warnings: [
+      ...parsed.warnings,
+      ...(detectionWarning ? [detectionWarning] : []),
+    ],
     error: null,
   };
 

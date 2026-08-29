@@ -1,6 +1,12 @@
-# C++ Image Converter
+<!-- markdownlint-disable MD033 -->
+<h1><img src="app/res/app.svg" alt="" width="48" height="48" style="vertical-align: middle; margin-right: 0.5rem;" /> C++ Image Converter</h1>
+<!-- markdownlint-enable MD033 -->
 
 Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbouring same-colour pixels are merged into larger rectangles for easier editing. Runs entirely client-side — suitable for GitHub Pages.
+
+App link: [filcuk.github.io/cpp-image-converter](https://filcuk.github.io/cpp-image-converter/)
+
+![Page screenshot](/res/readme/screenshot-1.jpg)
 
 ## Features
 
@@ -16,6 +22,13 @@ Browser microapp that converts **between C/C++ image arrays and SVG**. Neighbour
 - **Multi-frame** — frame picker, or **Animate frames** (+ FPS) in every direction (SMIL SVG out, or multi-frame C arrays with animated preview)
 - **Options** — input width/height (when not in source defines), output scale, override fill, minimised SVG, array name
 
+### Format notes
+
+- Auto-detection can identify non-indexed `uint8_t` streams from dimensions and byte count. A three-byte stream could be RGB888, BGR888, RGB565A8, or ARGB8565, so Auto selects RGB888 and warns; choose the format manually when the channel layout matters.
+- RGB565A8 uses the LVGL layout: all little-endian RGB565 colour bytes followed by the alpha-byte plane. ARGB8565 uses one alpha byte followed by little-endian RGB565 bytes per pixel.
+- Palette entries use the Piskel-compatible little-endian RGBA word format `0xAABBGGRR`, the same representation used by ARGB32 (LE RGBA).
+- Common storage/attribute tokens such as `PROGMEM`, `LV_ATTRIBUTE_*`, and `__attribute__((...))` are ignored around supported typed array declarations. Complex preprocessor-generated declarations may still require a plain declaration.
+
 ## Quick start
 
 ```bash
@@ -24,35 +37,6 @@ npm run lint
 npm test
 npx serve .
 ```
-
-Then open `http://localhost:3000`.
-
-## Usage
-
-### C → SVG
-
-1. Choose **C → SVG**
-2. Paste array source or upload a `.c` / `.h` / `.txt` file
-3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 LE RGBA, `uint16_t` → RGB565, `uint8_t` → 1-bit) and **input** size when defines are missing
-4. Optionally set **output scale**, override fill, or animate multi-frame sources
-5. Preview and download the `.svg`
-
-### SVG → C
-
-1. Choose **SVG → C**
-2. Paste SVG or upload an `.svg` (paths and shapes are rasterised in the browser)
-3. Pick output format (including **Indexed I1–I8** for palette + packed indices), **output scale**, and array name
-4. For multi-frame SVG (`frame-N` groups): keep **Animate frames** (all frames + FPS preview) or pick a single frame
-5. Download the `.c` file
-
-### C → C
-
-1. Choose **C → C**
-2. Paste or upload a `.c` / `.h` / `.txt` array
-3. Confirm **input C type** (Auto or manual) and choose **output C type** — any supported format (`uint32_t` ARGB32, `uint16_t` RGB565, `uint8_t` indexed/packed, etc.)
-4. Set **input** width/height if the source has no size defines; use **output scale** to resize (nearest-neighbour)
-5. For multi-frame sources: keep **Animate frames** (all frames + FPS preview) or pick a single frame
-6. Download the converted `.c` file
 
 ## Documentation
 

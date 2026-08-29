@@ -6,11 +6,13 @@ import { createIcon } from "../utils/icons.js";
  * Markup:
  *   <div class="file-download">
  *     <ul class="file-download-list">
- *       <li class="file-download-item" data-file-download-name="notes.txt">
- *         <span class="file-download-item-name">notes.txt</span>
- *         <span class="file-download-item-meta">Plain text</span>
- *         <button type="button" class="file-download-action btn btn-icon" aria-label="Download notes.txt"
- *           data-icon="upload" data-icon-class="file-download-action-icon"></button>
+ *       <li>
+ *         <button type="button" class="file-download-item btn" data-file-download-name="notes.txt"
+ *           aria-label="Download notes.txt">
+ *           <span class="file-download-item-name">notes<span class="file-download-item-ext">.txt</span></span>
+ *           <span class="file-download-item-meta">Plain text</span>
+ *           <span data-icon="download" data-icon-class="btn-icon-svg"></span>
+ *         </button>
  *       </li>
  *     </ul>
  *   </div>
@@ -93,25 +95,46 @@ function formatItemMeta(byteLength) {
   return byteLength ? formatFileSize(byteLength) : "";
 }
 
+function splitFilename(filename) {
+  const lastDot = filename.lastIndexOf(".");
+  if (lastDot <= 0) return { stem: filename, ext: "" };
+  return {
+    stem: filename.slice(0, lastDot),
+    ext: filename.slice(lastDot),
+  };
+}
+
 function updateItemMeta(itemEl, { filename, byteLength }) {
   const nameEl = itemEl.querySelector(".file-download-item-name");
   const metaEl = itemEl.querySelector(".file-download-item-meta");
 
-  if (nameEl) nameEl.textContent = filename;
+  if (nameEl) {
+    const { stem, ext } = splitFilename(filename);
+    nameEl.replaceChildren();
+    nameEl.append(stem);
+    if (ext) {
+      const extEl = document.createElement("span");
+      extEl.className = "file-download-item-ext";
+      extEl.textContent = ext;
+      nameEl.append(extEl);
+    }
+  }
   if (metaEl) metaEl.textContent = formatItemMeta(byteLength);
 }
 
-function ensureDownloadActionButton(itemEl, filename) {
-  let action = itemEl.querySelector(".file-download-action");
-  if (action) return action;
+function ensureDownloadItem(itemEl, filename) {
+  itemEl.type = "button";
+  itemEl.classList.add("btn");
+  itemEl.setAttribute("aria-label", `Download ${filename}`);
 
-  action = document.createElement("button");
-  action.type = "button";
-  action.className = "file-download-action btn btn-icon";
-  action.setAttribute("aria-label", `Download ${filename}`);
-  action.append(createIcon("upload", { className: "file-download-action-icon" }));
-  itemEl.append(action);
-  return action;
+  const hasIcon =
+    itemEl.querySelector(".btn-icon-svg") ||
+    itemEl.querySelector('[data-icon="download"]');
+  if (!hasIcon) {
+    itemEl.append(createIcon("download", { className: "btn-icon-svg" }));
+  }
+
+  return itemEl;
 }
 
 function bindDownloadAction(actionEl, handler) {
@@ -157,8 +180,7 @@ export function initFileDownload(
       getContent: fromOptions.getContent ?? getContent,
     };
 
-    const action = ensureDownloadActionButton(itemEl, fileConfig.filename);
-    action.setAttribute("aria-label", `Download ${fileConfig.filename}`);
+    ensureDownloadItem(itemEl, fileConfig.filename);
 
     void resolveContent(fileConfig.getContent, fileConfig.content).then((resolved) => {
       updateItemMeta(itemEl, {
@@ -168,7 +190,7 @@ export function initFileDownload(
     });
 
     cleanups.push(
-      bindDownloadAction(action, () => {
+      bindDownloadAction(itemEl, () => {
         void runDownload(fileConfig, itemEl);
       })
     );

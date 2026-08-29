@@ -154,6 +154,13 @@ export function initSlider(
     rangeInput.setAttribute("aria-valuenow", String(currentValue));
   }
 
+  function syncProgress(value = currentValue) {
+    const span = config.max - config.min;
+    const pct = span <= 0 ? 100 : ((value - config.min) / span) * 100;
+    const clamped = Math.min(100, Math.max(0, pct));
+    rangeInput.style.setProperty("--slider-progress", `${clamped}%`);
+  }
+
   function buildPayload(source) {
     return {
       sliderEl,
@@ -173,6 +180,7 @@ export function initSlider(
       hiddenInput.value = String(currentValue);
     }
     syncAria();
+    syncProgress();
 
     if (emit) {
       onChange?.(buildPayload(source));
@@ -216,6 +224,7 @@ export function initSlider(
     valueInput.value = formatDisplayValue(currentValue, config);
     if (hiddenInput) hiddenInput.value = String(currentValue);
     syncAria();
+    syncProgress();
     onInput?.(buildPayload("range"));
     onChange?.(buildPayload("range"));
   });
@@ -235,6 +244,7 @@ export function initSlider(
     const preview = snapToStep(parsed, config.min, config.max, config.step);
     rangeInput.value = String(preview);
     syncAria();
+    syncProgress(preview);
     onInput?.({
       ...buildPayload("input"),
       value: preview,
@@ -263,6 +273,7 @@ export function initSlider(
       valueInput.removeAttribute("aria-invalid");
       rangeInput.value = String(currentValue);
       syncAria();
+      syncProgress();
       valueInput.blur();
     }
   });
@@ -283,8 +294,8 @@ export function initSlider(
     getValue() {
       return currentValue;
     },
-    setValue(nextValue) {
-      setValue(nextValue);
+    setValue(nextValue, options = {}) {
+      setValue(nextValue, options);
     },
     getConfig() {
       return { ...config };

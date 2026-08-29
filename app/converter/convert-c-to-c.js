@@ -15,6 +15,7 @@ import { resizePixels } from "./resize-pixels.js";
 import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { toCArray } from "./to-c-array.js";
 import {
+  overrideFramesFill,
   prepareFramesForOpaqueFormat,
   warningsForCollapsedFrames,
 } from "./matte-pixels.js";
@@ -38,6 +39,8 @@ function scaledSize(size, scale) {
  * @property {number | null} [height] Input height when source defines are missing
  * @property {number} [scale] Output scale factor (nearest-neighbour resize)
  * @property {string} [arrayName]
+ * @property {boolean} [overrideFill] Replace non-transparent pixels with fillColor
+ * @property {string} [fillColor] `#RRGGBB`
  * @property {number} [frameIndex] Used when animateFrames is false
  * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
  * @property {number} [frameDurationMs] Preview animation frame duration
@@ -80,6 +83,8 @@ export function convertCToC({
   height: heightOverride = null,
   scale = 1,
   arrayName = "image",
+  overrideFill = false,
+  fillColor = "#FFFFFF",
   frameIndex = 0,
   animateFrames = true,
   frameDurationMs = 100,
@@ -88,7 +93,11 @@ export function convertCToC({
   const parsed = parseCArray(source);
   const decodeWidth = parsed.width ?? widthOverride;
   const decodeHeight = parsed.height ?? heightOverride;
-  const { format: inputFormat, detected } = resolveFormat(inputSelection, {
+  const {
+    format: inputFormat,
+    detected,
+    warning: detectionWarning,
+  } = resolveFormat(inputSelection, {
     elementType: parsed.elementType,
     palette: parsed.palette,
     width: decodeWidth,
@@ -128,7 +137,10 @@ export function convertCToC({
     detectedFormat: detected,
     outputFormat,
     elementType: "uint8_t",
-    warnings: [...parsed.warnings],
+    warnings: [
+      ...parsed.warnings,
+      ...(detectionWarning ? [detectionWarning] : []),
+    ],
     error: null,
   };
 
@@ -214,8 +226,11 @@ export function convertCToC({
     return result;
   }
 
+  const fillFrames = overrideFill
+    ? overrideFramesFill(frames, fillColor ?? "#FFFFFF")
+    : frames;
   const prepared = prepareFramesForOpaqueFormat({
-    frames,
+    frames: fillFrames,
     format: outputFormat,
     backgroundColor,
   });

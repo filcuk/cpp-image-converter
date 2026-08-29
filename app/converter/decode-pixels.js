@@ -4,6 +4,7 @@
 
 import {
   frameValueCount,
+  getFormatInfo,
   indexedBitsPerPixel,
   packedGrayBitsPerPixel,
   packedStride,
@@ -252,7 +253,7 @@ export function decodeRgb888(values, width, height, order = "rgb") {
 }
 
 /**
- * Interleaved: RGB565 little-endian word as two bytes, then A8.
+ * Planar: RGB565 little-endian colour bytes followed by the A8 plane.
  * @param {number[]} values
  * @param {number} width
  * @param {number} height
@@ -260,13 +261,14 @@ export function decodeRgb888(values, width, height, order = "rgb") {
  */
 export function decodeRgb565a8(values, width, height) {
   const pixelCount = width * height;
+  const colorByteCount = pixelCount * 2;
   /** @type {(Rgba | null)[]} */
   const pixels = new Array(pixelCount).fill(null);
   for (let i = 0; i < pixelCount; i++) {
-    const o = i * 3;
-    const lo = values[o];
-    const hi = values[o + 1];
-    const a = values[o + 2];
+    const colorOffset = i * 2;
+    const lo = values[colorOffset];
+    const hi = values[colorOffset + 1];
+    const a = values[colorByteCount + i];
     if (lo === undefined || hi === undefined || a === undefined) continue;
     const color = decodeRgb565((lo & 0xff) | ((hi & 0xff) << 8));
     pixels[i] = rgbaOrNull(color.r, color.g, color.b, a & 0xff);
@@ -483,6 +485,12 @@ export function decodePixels({
     };
   }
 
+  if (!getFormatInfo(format)) {
+    warnings.push(
+      `Unsupported decode format “${format}”; falling back to RGB565.`
+    );
+  }
+
   /** @type {(Rgba | null)[]} */
   const pixels = new Array(pixelCount).fill(null);
 
@@ -507,7 +515,7 @@ export function decodePixels({
 }
 
 /**
- * Colour key for merging / grouping: `#RRGGBB` or null.
+ * Colour key for merging / grouping: `#RRGGBB`, `#RRGGBBAA`, or null.
  * @param {Rgba | null} pixel
  * @param {string | null} overrideFill `#RRGGBB` or null
  * @returns {string | null}
@@ -518,5 +526,7 @@ export function pixelColorKey(pixel, overrideFill = null) {
   const r = pixel.r.toString(16).padStart(2, "0");
   const g = pixel.g.toString(16).padStart(2, "0");
   const b = pixel.b.toString(16).padStart(2, "0");
-  return `#${r}${g}${b}`.toUpperCase();
+  const alpha = Math.max(0, Math.min(255, Math.round(pixel.a)));
+  const alphaHex = alpha < 255 ? alpha.toString(16).padStart(2, "0") : "";
+  return `#${r}${g}${b}${alphaHex}`.toUpperCase();
 }

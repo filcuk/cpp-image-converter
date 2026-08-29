@@ -8,15 +8,9 @@
  * (needed for correct favicon before modules load — see `theme-init.js`).
  */
 export const APP_ICON_SRC = {
-  icon: "app/res/app.svg",
-  light: "",
-  dark: "",
-};
-
-/** Signature mark — footer brand link. */
-export const SIG_ICON_SRC = {
-  light: "app/res/sig-light.svg",
-  dark: "app/res/sig-dark.svg",
+  icon: "",
+  light: "app/res/app-light.svg",
+  dark: "app/res/app-dark.svg",
 };
 
 /**
@@ -72,14 +66,6 @@ export function appIconSrc(theme = document.documentElement.dataset.theme) {
   const resolved = resolveAppIconSources(currentAppIconConfig());
   if (resolved.mode === "single") return resolved.icon;
   return theme === "dark" ? resolved.dark : resolved.light;
-}
-
-/**
- * @param {"light" | "dark" | string | undefined} theme
- * @returns {string}
- */
-export function sigIconSrc(theme = document.documentElement.dataset.theme) {
-  return theme === "dark" ? SIG_ICON_SRC.dark : SIG_ICON_SRC.light;
 }
 
 /** Update favicon and any `[data-brand-icon]` image or link. */

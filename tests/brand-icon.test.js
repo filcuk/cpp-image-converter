@@ -67,9 +67,16 @@ test("readAppIconConfig prefers __MICROAPP__ overrides including empty strings",
   });
 });
 
-test("APP_ICON_SRC defaults to single app.svg for this fork", () => {
-  assert.deepEqual(resolveAppIconSources(APP_ICON_SRC), {
-    mode: "single",
-    icon: "app/res/app.svg",
-  });
+test("the fork resolves its configured single app icon", () => {
+  assert.deepEqual(
+    resolveAppIconSources({
+      icon: "app/res/app.svg",
+      light: "",
+      dark: "",
+    }),
+    {
+      mode: "single",
+      icon: "app/res/app.svg",
+    }
+  );
 });

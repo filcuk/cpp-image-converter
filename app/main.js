@@ -1,13 +1,26 @@
 import { initShell } from "./shell/shell.js";
 import { setHidden } from "./utils/dom.js";
-import { copyTextToClipboard } from "./utils/clipboard.js";
+import { copyText } from "./utils/clipboard.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
+import { initSpinner } from "./components/spinner.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
 import { initDropdown } from "./components/dropdown.js";
 import { initStepper } from "./components/stepper.js";
 import { initToggle } from "./components/toggle.js";
-import { initColorPicker } from "./components/color-picker.js";
+import { initColorInput } from "./components/color-input.js";
+import { initImagePreview } from "./components/image-preview.js";
+import { initExpandableSurfaces } from "./components/expandable-surface.js";
+import { initCodeBlock } from "./components/code-block.js";
+import { initDialog } from "./components/dialog.js";
+import { initAboutDialog } from "./components/about-dialog.js";
+import { initPopover } from "./components/popover.js";
+import { initTutorial } from "./components/tutorial.js";
+import {
+  prepareButtonLabelFlash,
+  setButtonLabelFlash,
+  flashButtonLabel,
+} from "./utils/button-label.js";
 import { showBanner, hideBanner } from "./components/banner.js";
 import { convertCToSvg } from "./converter/convert.js";
 import { convertSvgToCAsync } from "./converter/convert-svg-to-c.js";
@@ -17,6 +30,7 @@ import { countSvgFrames } from "./converter/svg-to-pixels.js";
 import {
   FORMAT_CATALOGUE,
   FORMAT_GROUP_LABELS,
+  elementTypeForFormat,
   formatLabel as formatIdLabel,
   formatLabelWithType,
   formatNeedsBitOrder,
@@ -25,9 +39,11 @@ import {
 import { EXAMPLE_SOURCE } from "./examples/example-heart.js";
 import { EXAMPLE_SVG } from "./examples/example-svg.js";
 
-initShell({ pageNav: false });
+initShell({ pageNav: false, headingLinks: false });
 
 const DIRECTION_STORAGE_KEY = "cpp-image-converter-direction";
+const SOURCE_CODE_STORAGE_KEY = "cpp-image-converter-source-code";
+const SVG_SOURCE_CODE_STORAGE_KEY = "cpp-image-converter-svg-source-code";
 /** @type {ReadonlySet<"c-to-svg" | "svg-to-c" | "c-to-c">} */
 const DIRECTIONS = new Set(["c-to-svg", "svg-to-c", "c-to-c"]);
 
@@ -50,32 +66,68 @@ function persistDirection(value) {
   document.documentElement.dataset.converterDirection = value;
 }
 
-const sourceTextarea = document.getElementById("source-textarea");
-const svgTextarea = document.getElementById("svg-textarea");
+/**
+ * @param {string} key
+ * @returns {string}
+ */
+function loadStoredCode(key) {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {string} value
+ */
+function persistCode(key, value) {
+  try {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage restrictions, such as private browsing or quota errors.
+  }
+}
+
+const sourceCodeBlockEl = document.getElementById("source-code-block");
+const svgSourceCodeBlockEl = document.getElementById("svg-source-code-block");
 const arrayNameInput = document.getElementById("array-name-input");
 const clearSourceBtn = document.getElementById("clear-source-btn");
 const clearSvgBtn = document.getElementById("clear-svg-btn");
 const loadExampleBtn = document.getElementById("load-example-btn");
 const loadExampleSvgBtn = document.getElementById("load-example-svg-btn");
+const overwriteDialogEl = document.getElementById("overwrite-dialog");
+const confirmOverwriteBtn = document.getElementById("confirm-overwrite-btn");
+const formatTypeLabelEl = document.getElementById("format-type-label");
 const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
+const outputFileSizeEl = document.getElementById("output-file-size");
 const previewEl = document.getElementById("svg-preview");
-const previewEmptyEl = document.getElementById("svg-preview-empty");
-const metaEl = document.getElementById("converter-meta");
-const cOutputTextarea = document.getElementById("c-output-textarea");
+const outputSpinnerHostEl = document.getElementById("output-spinner-host");
+const svgOutputCodeBlockEl = document.getElementById("svg-output-code-block");
+const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
 const cPreviewEmptyEl = document.getElementById("c-preview-empty");
-const cMetaEl = document.getElementById("c-converter-meta");
 const cInputPanel = document.getElementById("c-input-panel");
+const sourceDropzoneEl = document.getElementById("source-dropzone");
 const svgInputPanel = document.getElementById("svg-input-panel");
+const svgDropzoneEl = document.getElementById("svg-dropzone");
+const aboutOpenBtn = document.getElementById("about-open-btn");
+const aboutDialogEl = document.getElementById("about-dialog");
+const aboutGuidedTourBtn = document.getElementById("about-guided-tour");
 const svgOutputPanel = document.getElementById("svg-output-panel");
 const cOutputPanel = document.getElementById("c-output-panel");
-const frameStepperEl = document.getElementById("frame-stepper");
+let frameStepperEl = document.getElementById("frame-stepper");
 const frameFpsStepperEl = document.getElementById("frame-fps-stepper");
 const animateOptionsWrapEl = document.getElementById("animate-options-wrap");
-const fillWrapEl = document.getElementById("fill-color-picker");
 const backgroundColorPickerEl = document.getElementById("background-color-picker");
+const backgroundOptionsRowEl = document.getElementById("svg-to-c-options-row");
 const bitOrderWrapEl = document.getElementById("bit-order-wrap");
 const formatDropdownLabelEl = document.getElementById("format-dropdown-label");
 const formatLabelEl = document.getElementById("format-label");
@@ -83,6 +135,22 @@ const outputFormatWrapEl = document.getElementById("output-format-wrap");
 const outputFormatDropdownLabelEl = document.getElementById(
   "output-format-dropdown-label"
 );
+const outputFormatTypeLabelEl = document.getElementById("output-format-type-label");
+
+const previewApi = initImagePreview(previewEl);
+const cPreviewApi = initImagePreview(cPreviewEl);
+const outputSpinner = initSpinner(outputSpinnerHostEl, {
+  visible: false,
+  label: "Updating output…",
+});
+/** @type {ReturnType<typeof initCodeBlock>} */
+let sourceCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let cOutputCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let svgOutputCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let svgSourceCodeBlock = null;
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -93,7 +161,6 @@ const optionsWarningBody = document.getElementById(
   "converter-options-warning-body"
 );
 const successBanner = document.getElementById("converter-success");
-const successBody = document.getElementById("converter-success-body");
 
 /** Warnings about output format / palette limits (shown under Options). */
 function isOptionsWarning(message) {
@@ -125,8 +192,10 @@ let direction = "c-to-svg";
 /** Skip stepper-driven reconvert while syncing size from source defines */
 let applyingMetadata = false;
 let convertTimer = 0;
-/** Paste fires before the textarea value updates; `input` always sees the new text. */
-let sourceChangeFromPaste = false;
+let syncConvertTimer = 0;
+let previewSpinnerTimer = 0;
+let previewUpdateToken = 0;
+let pendingPreviewFinish = null;
 let svgChangeFromPaste = false;
 
 /** @type {string} */
@@ -137,6 +206,8 @@ let selectedOutputFormat = "argb32";
 let directionControl = null;
 /** @type {ReturnType<typeof initSegmentedControl>} */
 let bitOrderControl = null;
+/** @type {ReturnType<typeof initDialog>} */
+let overwriteDialog = null;
 /** @type {ReturnType<typeof initStepper>} */
 let widthStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -145,6 +216,7 @@ let heightStepper = null;
 let scaleStepper = null;
 /** @type {ReturnType<typeof initStepper>} */
 let frameStepper = null;
+let frameStepperMax = null;
 /** @type {ReturnType<typeof initToggle>} */
 let animateFramesToggle = null;
 /** @type {ReturnType<typeof initStepper>} */
@@ -153,9 +225,9 @@ let frameFpsStepper = null;
 let overrideToggle = null;
 /** @type {ReturnType<typeof initToggle>} */
 let minifyToggle = null;
-/** @type {ReturnType<typeof initColorPicker>} */
+/** @type {ReturnType<typeof initColorInput>} */
 let fillPicker = null;
-/** @type {ReturnType<typeof initColorPicker>} */
+/** @type {ReturnType<typeof initColorInput>} */
 let backgroundPicker = null;
 /** Last conversion reported transparent pixels in the source frames */
 let lastSourceHasTransparency = false;
@@ -166,9 +238,40 @@ let svgDropzone = null;
 /** True while textarea content came from a loaded file */
 let sourceFromFile = false;
 let svgFromFile = false;
+let pendingExampleLoad = null;
 /** Skip clearing the textarea when we clear the dropzone ourselves */
 let ignoringDropzoneClear = false;
 let ignoringSvgDropzoneClear = false;
+let sourceCodeObserverReady = false;
+let svgSourceCodeObserverReady = false;
+let suppressSourceCodeMutation = false;
+let suppressSvgSourceCodeMutation = false;
+const ABOUT_HINT_STORAGE_KEY = "cpp-image-converter-about-hint-seen";
+let aboutHintPopover = null;
+
+function hasSeenAboutHint() {
+  try {
+    return localStorage.getItem(ABOUT_HINT_STORAGE_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markAboutHintSeen() {
+  try {
+    localStorage.setItem(ABOUT_HINT_STORAGE_KEY, "1");
+  } catch {
+    // Ignore storage restrictions, such as private browsing or quota errors.
+  }
+}
+
+function dismissAboutHint() {
+  if (!aboutHintPopover) return;
+  const popover = aboutHintPopover;
+  aboutHintPopover = null;
+  markAboutHintSeen();
+  popover.destroy();
+}
 
 function isSvgToC() {
   return direction === "svg-to-c";
@@ -182,6 +285,55 @@ function writesC() {
   return isSvgToC() || isCToC();
 }
 
+const PREVIEW_SPINNER_DELAY_MS = 150;
+const CONVERSION_DEBOUNCE_MS = 100;
+
+/**
+ * @param {boolean} busy
+ */
+function setOutputSpinnerBusy(busy) {
+  if (busy) outputSpinner?.show();
+  else outputSpinner?.hide();
+}
+
+/**
+ * Show the active preview spinner only when conversion work lasts longer than
+ * the threshold. The token prevents an older async conversion from hiding a
+ * newer conversion's spinner.
+ *
+ * @returns {() => void}
+ */
+function beginPreviewUpdate() {
+  const token = ++previewUpdateToken;
+  window.clearTimeout(syncConvertTimer);
+  window.clearTimeout(previewSpinnerTimer);
+  setOutputSpinnerBusy(false);
+  if (downloadSvgBtn) downloadSvgBtn.disabled = true;
+  if (downloadCBtn) downloadCBtn.disabled = true;
+  if (copyOutputBtn) copyOutputBtn.disabled = true;
+
+  previewSpinnerTimer = window.setTimeout(() => {
+    if (token === previewUpdateToken) setOutputSpinnerBusy(true);
+  }, PREVIEW_SPINNER_DELAY_MS);
+
+  return () => {
+    if (token !== previewUpdateToken) return;
+    window.clearTimeout(previewSpinnerTimer);
+    previewSpinnerTimer = 0;
+    setOutputSpinnerBusy(false);
+    syncCopyEnabled();
+  };
+}
+
+function cancelPreviewUpdate() {
+  previewUpdateToken += 1;
+  pendingPreviewFinish = null;
+  window.clearTimeout(syncConvertTimer);
+  window.clearTimeout(previewSpinnerTimer);
+  previewSpinnerTimer = 0;
+  setOutputSpinnerBusy(false);
+}
+
 /**
  * @param {number} fps
  * @returns {number}
@@ -193,11 +345,15 @@ function fpsToFrameDurationMs(fps) {
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
-  const source = isSvgToC() ? svgTextarea?.value : sourceTextarea?.value;
+  cancelPreviewUpdate();
+  const source = isSvgToC()
+    ? svgSourceCodeBlock?.getSource()
+    : sourceCodeBlock?.getSource();
   if (!source?.trim()) return;
+  pendingPreviewFinish = beginPreviewUpdate();
   convertTimer = window.setTimeout(() => {
-    runConvert({ showSuccess: false });
-  }, 200);
+    runConvert();
+  }, CONVERSION_DEBOUNCE_MS);
 }
 
 function onOptionChange() {
@@ -206,7 +362,6 @@ function onOptionChange() {
 }
 
 function syncFillEnabled(enabled) {
-  fillWrapEl?.classList.toggle("is-disabled", !enabled);
   fillPicker?.setDisabled(!enabled);
 }
 
@@ -232,6 +387,7 @@ function syncBackgroundMatteVisibility() {
     lastSourceHasTransparency &&
     !formatPreservesAlpha(effectiveOutputFormat());
   setHidden(backgroundColorPickerEl, !show);
+  setHidden(backgroundOptionsRowEl, !show);
 }
 
 /**
@@ -267,7 +423,10 @@ function setFormatSelection(value, label) {
       label ||
       (selectedFormat === "auto"
         ? "Auto"
-        : formatLabelWithType(selectedFormat));
+        : formatIdLabel(selectedFormat));
+  }
+  if (formatTypeLabelEl) {
+    formatTypeLabelEl.textContent = elementTypeForFormat(selectedFormat) ?? "Auto";
   }
   const menu = document.getElementById("format-dropdown-menu");
   menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
@@ -285,7 +444,11 @@ function setOutputFormatSelection(value, label) {
   selectedOutputFormat = value || "argb32";
   if (outputFormatDropdownLabelEl) {
     outputFormatDropdownLabelEl.textContent =
-      label || formatLabelWithType(selectedOutputFormat);
+      label || formatIdLabel(selectedOutputFormat);
+  }
+  if (outputFormatTypeLabelEl) {
+    outputFormatTypeLabelEl.textContent =
+      elementTypeForFormat(selectedOutputFormat) ?? "—";
   }
   const menu = document.getElementById("output-format-dropdown-menu");
   menu?.querySelectorAll(".dropdown-menu-item").forEach((item) => {
@@ -300,9 +463,9 @@ function setOutputFormatSelection(value, label) {
 
 /**
  * @param {HTMLElement | null} menu
- * @param {{ includeAuto?: boolean, selectedId: string }} options
+ * @param {{ includeAuto?: boolean, includeType?: boolean, selectedId: string }} options
  */
-function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
+function fillFormatMenu(menu, { includeAuto = true, includeType = true, selectedId }) {
   if (!menu) return;
   menu.replaceChildren();
   /** @type {string | null} */
@@ -329,7 +492,11 @@ function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
     btn.setAttribute("role", "menuitem");
     btn.dataset.value = format.id;
     btn.textContent =
-      format.id === "auto" ? format.label : formatLabelWithType(format.id);
+      format.id === "auto"
+        ? format.label
+        : includeType
+          ? formatLabelWithType(format.id)
+          : formatIdLabel(format.id);
     if (format.id === selectedId) {
       btn.classList.add("is-selected");
     }
@@ -339,15 +506,17 @@ function fillFormatMenu(menu, { includeAuto = true, selectedId }) {
 }
 
 /**
- * Populate format menus from the catalogue (labels include C element types).
+ * Populate format menus from the catalogue.
  */
 function populateFormatMenus() {
   fillFormatMenu(document.getElementById("format-dropdown-menu"), {
     includeAuto: true,
+    includeType: false,
     selectedId: selectedFormat,
   });
   fillFormatMenu(document.getElementById("output-format-dropdown-menu"), {
     includeAuto: false,
+    includeType: false,
     selectedId: selectedOutputFormat,
   });
 }
@@ -369,6 +538,8 @@ function setDirection(next) {
   setHidden(downloadSvgBtn, writesC());
   setHidden(downloadCBtn, !writesC());
   setHidden(outputFormatWrapEl, !cToC);
+  syncSourceActionVisibility();
+  syncSvgActionVisibility();
   syncCopyEnabled();
 
   // Input width/height only for C sources; output scale is available in every mode
@@ -410,8 +581,8 @@ function setDirection(next) {
   hideWarningBanners();
 
   // Fresh inputs/outputs whenever the direction changes
-  clearSourceInputs();
-  clearSvgInputs();
+  clearSourceInputs({ persist: false });
+  clearSvgInputs({ persist: false });
   applyingMetadata = true;
   try {
     scaleStepper?.setValue(1);
@@ -419,9 +590,7 @@ function setDirection(next) {
     applyingMetadata = false;
   }
   if (cPreviewEmptyEl) {
-    cPreviewEmptyEl.textContent = cToC
-      ? "Converted preview will appear here."
-      : "SVG preview will appear here.";
+    cPreviewEmptyEl.textContent = "Load input to see a preview";
   }
 }
 
@@ -431,8 +600,8 @@ function setDirection(next) {
 function clearSizeSteppers() {
   applyingMetadata = true;
   try {
-    widthStepper?.clear({ emit: false });
-    heightStepper?.clear({ emit: false });
+    widthStepper?.setValue(1);
+    heightStepper?.setValue(1);
     widthStepper?.setDisabled(false);
     heightStepper?.setDisabled(false);
   } finally {
@@ -470,6 +639,29 @@ function applySourceMetadata(source) {
 /**
  * @param {number} frameCount
  */
+function ensureFrameStepperMax(maxIndex) {
+  if (frameStepper && frameStepperMax === maxIndex) return;
+
+  const currentValue = frameStepper?.getValue() ?? 0;
+  const nextValue = currentValue > maxIndex ? 0 : currentValue;
+
+  if (frameStepper) {
+    const nextEl = /** @type {HTMLElement} */ (frameStepperEl.cloneNode(true));
+    nextEl.dataset.stepperMax = String(maxIndex);
+    frameStepperEl.replaceWith(nextEl);
+    frameStepperEl = nextEl;
+  } else {
+    frameStepperEl.dataset.stepperMax = String(maxIndex);
+  }
+
+  frameStepper = initStepper(frameStepperEl, {
+    max: maxIndex,
+    defaultValue: nextValue,
+    onChange: onOptionChange,
+  });
+  frameStepperMax = maxIndex;
+}
+
 function updateFrameStepper(frameCount) {
   const wasMulti = lastFrameCount > 1;
   lastFrameCount = Math.max(1, frameCount || 1);
@@ -478,7 +670,7 @@ function updateFrameStepper(frameCount) {
   setHidden(animateOptionsWrapEl, !multi);
 
   if (!multi) {
-    frameStepper?.setBounds({ min: 0, max: 0, emit: false });
+    ensureFrameStepperMax(0);
     frameStepper?.setValue(0);
     if (animateFramesToggle?.getChecked()) {
       animateFramesToggle.setChecked(false, { emit: false });
@@ -498,7 +690,7 @@ function updateFrameStepper(frameCount) {
   setHidden(frameFpsStepperEl, !animate);
 
   const maxIndex = lastFrameCount - 1;
-  frameStepper?.setBounds({ min: 0, max: maxIndex, emit: false });
+  ensureFrameStepperMax(maxIndex);
 
   if (animate) return;
 
@@ -559,38 +751,62 @@ function showWarnings(warnings) {
   }
 }
 
-/**
- * @param {string} message
- */
-function showSuccessBanner(message) {
-  if (successBody) successBody.textContent = message;
-  showBanner(successBanner);
-}
-
 function syncCopyEnabled() {
   const hasOutput = writesC() ? Boolean(latestC) : Boolean(latestSvg);
   if (copyOutputBtn) copyOutputBtn.disabled = !hasOutput;
 }
 
+/**
+ * @param {number} bytes
+ * @returns {string}
+ */
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(kb < 10 ? 1 : 0)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * @param {string | null} content
+ */
+function syncOutputFileSize(content) {
+  if (!outputFileSizeEl) return;
+  if (!content) {
+    outputFileSizeEl.textContent = "";
+    setHidden(outputFileSizeEl, true);
+    return;
+  }
+  outputFileSizeEl.textContent = `Output size: ${formatFileSize(
+    new Blob([content]).size
+  )}`;
+  setHidden(outputFileSizeEl, false);
+}
+
 function clearPreview() {
+  cancelPreviewUpdate();
   latestSvg = null;
-  previewEl?.querySelector("svg")?.remove();
-  setHidden(previewEmptyEl, false);
-  setHidden(metaEl, true);
+  syncOutputFileSize(null);
+  previewApi?.setMetaExtra("");
+  previewApi?.clear();
+  svgOutputCodeBlock?.setSource("");
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
   syncCopyEnabled();
 }
 
 function clearCPreview() {
-  cPreviewEl?.querySelector("svg")?.remove();
-  setHidden(cPreviewEmptyEl, false);
+  cPreviewApi?.clear();
 }
 
 function clearCOutput() {
+  cancelPreviewUpdate();
   latestC = null;
-  if (cOutputTextarea) cOutputTextarea.value = "";
+  syncOutputFileSize(null);
+  cOutputCodeBlock?.setSource("");
   clearCPreview();
-  setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
   syncCopyEnabled();
 }
@@ -634,16 +850,21 @@ async function triggerCopyOutput() {
   if (!text) return;
 
   const restoreLabel = () => {
-    copyOutputBtn.textContent = "Copy";
+    setButtonLabelFlash(copyOutputBtn, "Copy code");
+    copyOutputBtn.setAttribute("aria-label", "Copy code");
   };
 
   try {
-    await copyTextToClipboard(text);
-    copyOutputBtn.textContent = "Copied";
-    window.setTimeout(restoreLabel, 2000);
+    await copyText(text);
+    flashButtonLabel(copyOutputBtn, true, {
+      durationMs: 2000,
+      reset: restoreLabel,
+    });
   } catch {
-    copyOutputBtn.textContent = "Failed";
-    window.setTimeout(restoreLabel, 2000);
+    flashButtonLabel(copyOutputBtn, false, {
+      durationMs: 2000,
+      reset: restoreLabel,
+    });
   }
 }
 
@@ -665,22 +886,71 @@ function readFileText(file) {
 }
 
 function syncSourceActionVisibility() {
-  const hasSource = Boolean(sourceTextarea?.value);
+  const hasSource = Boolean(sourceCodeBlock?.getSource());
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
-  setHidden(loadExampleBtn, hasSource);
+  setHidden(sourceDropzoneEl, hasSource);
+}
+
+/**
+ * @param {unknown} next
+ * @param {{ persist?: boolean }} [options]
+ */
+function setSourceCode(next, { persist = true } = {}) {
+  if (!sourceCodeBlock) return;
+  const value = String(next ?? "").replace(/\n+$/, "");
+  suppressSourceCodeMutation =
+    sourceCodeObserverReady && sourceCodeBlock.getSource() !== value;
+  sourceCodeBlock.setSource(value);
+  if (persist) persistCode(SOURCE_CODE_STORAGE_KEY, value);
+}
+
+function moveSourceActionsToCodeToolbar() {
+  const toolbar = sourceCodeBlockEl?.querySelector(".code-block-toolbar");
+  const leftGroup = toolbar?.querySelector(".code-block-toolbar__group--left");
+  const rightGroup = toolbar?.querySelector(".code-block-toolbar__group--right");
+  if (!leftGroup || !rightGroup) return;
+
+  if (clearSourceBtn) leftGroup.appendChild(clearSourceBtn);
+  if (loadExampleBtn) rightGroup.appendChild(loadExampleBtn);
+}
+
+function moveSvgActionsToCodeToolbar() {
+  const toolbar = svgSourceCodeBlockEl?.querySelector(".code-block-toolbar");
+  const leftGroup = toolbar?.querySelector(".code-block-toolbar__group--left");
+  const rightGroup = toolbar?.querySelector(".code-block-toolbar__group--right");
+  if (!leftGroup || !rightGroup) return;
+
+  if (clearSvgBtn) leftGroup.appendChild(clearSvgBtn);
+  if (loadExampleSvgBtn) rightGroup.appendChild(loadExampleSvgBtn);
 }
 
 function syncSvgActionVisibility() {
-  const hasSvg = Boolean(svgTextarea?.value);
+  const hasSvg = Boolean(svgSourceCodeBlock?.getSource());
   if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
-  setHidden(loadExampleSvgBtn, hasSvg);
+  setHidden(svgDropzoneEl, hasSvg);
 }
 
-function clearSourceInputs() {
+/**
+ * @param {unknown} next
+ * @param {{ persist?: boolean }} [options]
+ */
+function setSvgSourceCode(next, { persist = true } = {}) {
+  if (!svgSourceCodeBlock) return;
+  const value = String(next ?? "").replace(/\n+$/, "");
+  suppressSvgSourceCodeMutation =
+    svgSourceCodeObserverReady && svgSourceCodeBlock.getSource() !== value;
+  svgSourceCodeBlock.setSource(value);
+  if (persist) persistCode(SVG_SOURCE_CODE_STORAGE_KEY, value);
+}
+
+/**
+ * @param {{ persist?: boolean }} [options]
+ */
+function clearSourceInputs({ persist = true } = {}) {
   sourceFromFile = false;
   downloadFilename = "converted.svg";
   if (isCToC()) downloadCFilename = "converted.c";
-  if (sourceTextarea) sourceTextarea.value = "";
+  setSourceCode("", { persist });
   ignoringDropzoneClear = true;
   try {
     sourceDropzone?.clear();
@@ -697,10 +967,13 @@ function clearSourceInputs() {
   hideWarningBanners();
 }
 
-function clearSvgInputs() {
+/**
+ * @param {{ persist?: boolean }} [options]
+ */
+function clearSvgInputs({ persist = true } = {}) {
   svgFromFile = false;
   downloadCFilename = "converted.c";
-  if (svgTextarea) svgTextarea.value = "";
+  setSvgSourceCode("", { persist });
   ignoringSvgDropzoneClear = true;
   try {
     svgDropzone?.clear();
@@ -721,12 +994,12 @@ function clearSvgInputs() {
 async function loadSourceFile(file) {
   try {
     const text = await readFileText(file);
-    if (!sourceTextarea) {
-      showError("Source text area is missing.");
+    if (!sourceCodeBlock) {
+      showError("Source code block is missing.");
       return;
     }
     sourceFromFile = true;
-    sourceTextarea.value = text;
+    setSourceCode(text);
     syncSourceActionVisibility();
     const base = file.name.replace(/\.(c|h|txt)$/i, "");
     if (isCToC()) {
@@ -734,7 +1007,7 @@ async function loadSourceFile(file) {
     } else {
       downloadFilename = `${base}.svg`;
     }
-    runConvert({ showSuccess: true });
+    runConvert();
     if (!text.trim()) {
       showWarnings(["File was empty."]);
     }
@@ -754,15 +1027,15 @@ async function loadSourceFile(file) {
 async function loadSvgFile(file) {
   try {
     const text = await readFileText(file);
-    if (!svgTextarea) {
-      showError("SVG text area is missing.");
+    if (!svgSourceCodeBlock) {
+      showError("SVG code block is missing.");
       return;
     }
     svgFromFile = true;
-    svgTextarea.value = text;
+    setSvgSourceCode(text);
     syncSvgActionVisibility();
     downloadCFilename = file.name.replace(/\.svg$/i, "") + ".c";
-    runConvert({ showSuccess: true });
+    runConvert();
     if (!text.trim()) {
       showWarnings(["File was empty."]);
     }
@@ -776,32 +1049,56 @@ async function loadSvgFile(file) {
   }
 }
 
-function loadExampleSource() {
-  if (!sourceTextarea) {
-    showError("Source text area is missing.");
+function requestExampleLoad(load) {
+  pendingExampleLoad = load;
+  if (!overwriteDialog) {
+    pendingExampleLoad = null;
+    showError("Overwrite confirmation failed to initialize.");
+    return;
+  }
+  overwriteDialog.openDialog();
+}
+
+/**
+ * @param {{ confirmed?: boolean }} [options]
+ */
+function loadExampleSource({ confirmed = false } = {}) {
+  if (!sourceCodeBlock) {
+    showError("Source code block is missing.");
+    return;
+  }
+  if (sourceCodeBlock.getSource().trim() && !confirmed) {
+    requestExampleLoad(() => loadExampleSource({ confirmed: true }));
     return;
   }
   clearFileIfEditingSource();
-  sourceTextarea.value = EXAMPLE_SOURCE;
+  setSourceCode(EXAMPLE_SOURCE);
   syncSourceActionVisibility();
   if (isCToC()) {
     downloadCFilename = "example-packed.c";
   } else {
     downloadFilename = "example.svg";
   }
-  runConvert({ showSuccess: true });
+  runConvert();
 }
 
-function loadExampleSvg() {
-  if (!svgTextarea) {
-    showError("SVG text area is missing.");
+/**
+ * @param {{ confirmed?: boolean }} [options]
+ */
+function loadExampleSvg({ confirmed = false } = {}) {
+  if (!svgSourceCodeBlock) {
+    showError("SVG code block is missing.");
+    return;
+  }
+  if (svgSourceCodeBlock.getSource().trim() && !confirmed) {
+    requestExampleLoad(() => loadExampleSvg({ confirmed: true }));
     return;
   }
   clearFileIfEditingSvg();
-  svgTextarea.value = EXAMPLE_SVG;
+  setSvgSourceCode(EXAMPLE_SVG);
   syncSvgActionVisibility();
   downloadCFilename = "example.c";
-  runConvert({ showSuccess: true });
+  runConvert();
 }
 
 function clearFileIfEditingSource() {
@@ -829,11 +1126,8 @@ function clearFileIfEditingSvg() {
   }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvertCToSvg({ showSuccess = true } = {}) {
-  const source = sourceTextarea?.value ?? "";
+function runConvertCToSvg() {
+  const source = sourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearPreview();
     hideBanner(errorBanner);
@@ -892,44 +1186,25 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
   }
 
   latestSvg = result.svg;
+  syncOutputFileSize(result.svg);
   showWarnings(result.warnings);
 
-  setHidden(previewEmptyEl, true);
-  previewEl?.querySelector("svg")?.remove();
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(result.svg, "image/svg+xml");
-  const svgNode = doc.documentElement;
-  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
-    previewEl?.append(document.importNode(svgNode, true));
+  if (previewEl) {
+    previewEl.dataset.imagePreviewDownloadName = downloadFilename;
+  }
+  if (!previewApi?.setSvg(result.svg)) {
+    showError("Preview failed: generated SVG could not be displayed.");
+    clearPreview();
+    return;
   }
 
-  const formatLabel = formatIdLabel(result.format);
-  const detected =
-    result.detectedFormat && result.detectedFormat !== result.format
-      ? ` (detected ${formatIdLabel(result.detectedFormat)})`
-      : result.detectedFormat
-        ? ` (from ${result.elementType || "type"})`
-        : "";
-
-  if (metaEl) {
-    const outW = Number((result.width * displayScale).toFixed(4));
-    const outH = Number((result.height * displayScale).toFixed(4));
-    const anim =
-      result.animated && result.frameCount > 1
-        ? ` · ${result.frameCount} frames animated`
-        : "";
-    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected}${anim} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
-  }
-  setHidden(metaEl, false);
+  svgOutputCodeBlock?.setSource(result.svg);
+  previewApi?.setMetaExtra(
+    `${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`
+  );
   if (downloadSvgBtn) downloadSvgBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner(
-      `Output ready - ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}.`
-    );
-  }
 }
 
 /**
@@ -938,20 +1213,11 @@ function runConvertCToSvg({ showSuccess = true } = {}) {
 function showCPreviewSvg(svgMarkup) {
   clearCPreview();
   if (!svgMarkup) return;
-  setHidden(cPreviewEmptyEl, true);
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgMarkup, "image/svg+xml");
-  const svgNode = doc.documentElement;
-  if (svgNode && svgNode.nodeName.toLowerCase() === "svg") {
-    cPreviewEl?.append(document.importNode(svgNode, true));
-  }
+  cPreviewApi?.setSvg(svgMarkup);
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-async function runConvertSvgToC({ showSuccess = true } = {}) {
-  const source = svgTextarea?.value ?? "";
+async function runConvertSvgToC() {
+  const source = svgSourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearCOutput();
     hideBanner(errorBanner);
@@ -978,6 +1244,8 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
         return Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
       })(),
       arrayName: arrayNameInput?.value?.trim() || "image",
+      overrideFill: overrideToggle?.getChecked() ?? false,
+      fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
@@ -1002,35 +1270,17 @@ async function runConvertSvgToC({ showSuccess = true } = {}) {
   }
 
   latestC = result.source;
-  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  syncOutputFileSize(result.source);
+  cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
-
-  if (cMetaEl) {
-    const scaled =
-      result.scale !== 1
-        ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
-        : "";
-    const anim =
-      result.animated && result.frameCount > 1
-        ? ` · ${result.frameCount} frames animated`
-        : ` · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"}`;
-    cMetaEl.textContent = `${result.width}×${result.height}${scaled} · ${formatIdLabel(result.format)}${anim} · ${result.elementType}`;
-  }
-  setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner("C array ready.");
-  }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvertCToC({ showSuccess = true } = {}) {
-  const source = sourceTextarea?.value ?? "";
+function runConvertCToC() {
+  const source = sourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearCOutput();
     hideBanner(errorBanner);
@@ -1067,6 +1317,8 @@ function runConvertCToC({ showSuccess = true } = {}) {
       height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
       scale,
       arrayName: arrayNameInput?.value?.trim() || "image",
+      overrideFill: overrideToggle?.getChecked() ?? false,
+      fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
@@ -1091,45 +1343,158 @@ function runConvertCToC({ showSuccess = true } = {}) {
   }
 
   latestC = result.source;
-  if (cOutputTextarea) cOutputTextarea.value = result.source;
+  syncOutputFileSize(result.source);
+  cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
-
-  const resized =
-    result.scale !== 1
-      ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
-      : "";
-  const detected =
-    result.detectedFormat && result.detectedFormat !== result.inputFormat
-      ? ` (in ${formatIdLabel(result.detectedFormat)})`
-      : "";
-  const anim =
-    result.animated && result.frameCount > 1
-      ? ` · ${result.frameCount} frames animated`
-      : ` · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"}`;
-
-  if (cMetaEl) {
-    cMetaEl.textContent = `${result.width}×${result.height}${resized} · ${formatLabelWithType(result.inputFormat)}${detected} → ${formatLabelWithType(result.outputFormat)}${anim}`;
-  }
-  setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
-  if (showSuccess) {
-    showSuccessBanner("C array ready.");
-  }
 }
 
-/**
- * @param {{ showSuccess?: boolean }} [options]
- */
-function runConvert(options = {}) {
-  if (isSvgToC()) void runConvertSvgToC(options);
-  else if (isCToC()) runConvertCToC(options);
-  else runConvertCToSvg(options);
+function runConvert() {
+  const scheduledFinish = pendingPreviewFinish;
+  pendingPreviewFinish = null;
+  const finishPreviewUpdate = scheduledFinish ?? beginPreviewUpdate();
+  if (isSvgToC()) {
+    void runConvertSvgToC().finally(finishPreviewUpdate);
+    return;
+  }
+
+  if (scheduledFinish) {
+    syncConvertTimer = window.setTimeout(() => {
+      syncConvertTimer = 0;
+      try {
+        if (isCToC()) runConvertCToC();
+        else runConvertCToSvg();
+      } finally {
+        finishPreviewUpdate();
+      }
+    }, Math.max(0, PREVIEW_SPINNER_DELAY_MS - CONVERSION_DEBOUNCE_MS) + 16);
+    return;
+  }
+
+  // Synchronous conversion blocks the event loop, so let the delayed spinner
+  // render before starting work that may take a while.
+  syncConvertTimer = window.setTimeout(() => {
+    syncConvertTimer = 0;
+    try {
+      if (isCToC()) runConvertCToC();
+      else runConvertCToSvg();
+    } finally {
+      finishPreviewUpdate();
+    }
+  }, PREVIEW_SPINNER_DELAY_MS + 16);
+}
+
+function restoreStoredInput() {
+  if (isSvgToC()) {
+    const value = loadStoredCode(SVG_SOURCE_CODE_STORAGE_KEY);
+    if (!value) return;
+    setSvgSourceCode(value);
+    syncSvgActionVisibility();
+  } else {
+    const value = loadStoredCode(SOURCE_CODE_STORAGE_KEY);
+    if (!value) return;
+    setSourceCode(value);
+    syncSourceActionVisibility();
+  }
+  runConvert();
 }
 
 try {
+  sourceCodeBlock = initCodeBlock(sourceCodeBlockEl);
+  moveSourceActionsToCodeToolbar();
+  svgSourceCodeBlock = initCodeBlock(svgSourceCodeBlockEl);
+  moveSvgActionsToCodeToolbar();
+  svgOutputCodeBlock = initCodeBlock(svgOutputCodeBlockEl);
+  cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
+  initExpandableSurfaces(document);
+
+  const converterTour = initTutorial({
+    id: "cpp-image-converter-overview",
+    steps: [
+      {
+        target: "#direction-control",
+        title: "Conversion",
+        body:
+          "Chose the conversion type or direction.",
+        position: "bottom",
+      },
+      {
+        target: "#input-section",
+        title: "Source",
+        body:
+          "Import a file or insert your code directly into the code block.",
+        position: "bottom",
+      },
+      {
+        target: "#options",
+        title: "Configuration",
+        body:
+          "Adjust input and output options as needed. The preview will update automatically.",
+        position: "top",
+      },
+      {
+        target: "#output",
+        title: "Result",
+        body:
+          "Validate and export the result.",
+        position: "top",
+      },
+      {
+        target: () => (isSvgToC() ? loadExampleSvgBtn : loadExampleBtn),
+        title: "Load an example",
+        body:
+          "Press the button now to see it in action!",
+        position: "bottom",
+        interactive: true,
+        advanceOn: "click",
+      },
+    ],
+  });
+
+  const aboutDialog = initAboutDialog({
+    dialogEl: aboutDialogEl,
+    openTriggers: [aboutOpenBtn],
+    onOpen: () => dismissAboutHint(),
+  });
+
+  aboutGuidedTourBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+    dismissAboutHint();
+    aboutDialog?.closeDialog();
+    converterTour?.start();
+  });
+
+  if (aboutOpenBtn instanceof HTMLElement && !hasSeenAboutHint()) {
+    aboutHintPopover = initPopover({
+      anchor: aboutOpenBtn,
+      body: "Check here for more info and a guided tour!",
+      position: "right",
+      dismissible: false,
+      trapFocus: false,
+      actions: [
+        {
+          label: "Got it",
+          className: "btn btn-primary",
+          closeOnClick: false,
+          onClick: () => dismissAboutHint(),
+        },
+      ],
+      onClose: () => {
+        if (!aboutHintPopover) return;
+        const popover = aboutHintPopover;
+        aboutHintPopover = null;
+        markAboutHintSeen();
+        queueMicrotask(() => popover.destroy());
+      },
+    });
+    window.requestAnimationFrame(() => {
+      aboutHintPopover?.open();
+    });
+  }
+
   directionControl = initSegmentedControl(document.getElementById("direction-control"), {
     defaultValue: loadStoredDirection(),
     onChange: ({ value }) => {
@@ -1139,7 +1504,11 @@ try {
     },
   });
 
+  populateFormatMenus();
+
   initDropdown(document.getElementById("format-dropdown"), {
+    gridMin: 0,
+    gridCols: 2,
     onSelect: ({ value, label }) => {
       setFormatSelection(value || "auto", label);
       onOptionChange();
@@ -1147,13 +1516,14 @@ try {
   });
 
   initDropdown(document.getElementById("output-format-dropdown"), {
+    gridMin: 0,
+    gridCols: 2,
     onSelect: ({ value, label }) => {
       setOutputFormatSelection(value || "argb32", label);
       onOptionChange();
     },
   });
 
-  populateFormatMenus();
   setFormatSelection("auto", "Auto");
   setOutputFormatSelection("argb32");
 
@@ -1176,6 +1546,7 @@ try {
   frameStepper = initStepper(frameStepperEl, {
     onChange: onOptionChange,
   });
+  frameStepperMax = Number(frameStepperEl?.dataset.stepperMax ?? 0);
 
   animateFramesToggle = initToggle(document.getElementById("animate-frames-toggle"), {
     onChange: () => {
@@ -1188,11 +1559,11 @@ try {
     onChange: onOptionChange,
   });
 
-  fillPicker = initColorPicker(document.getElementById("fill-color-picker"), {
+  fillPicker = initColorInput(document.getElementById("fill-color-picker"), {
     onChange: onOptionChange,
   });
 
-  backgroundPicker = initColorPicker(backgroundColorPickerEl, {
+  backgroundPicker = initColorInput(backgroundColorPickerEl, {
     onChange: onOptionChange,
   });
 
@@ -1207,9 +1578,31 @@ try {
     onChange: onOptionChange,
   });
 
+  if (copyOutputBtn) {
+    prepareButtonLabelFlash(copyOutputBtn, {
+      idle: "Copy code",
+      success: "Copied",
+      fail: "Failed",
+    });
+    copyOutputBtn.setAttribute("aria-label", "Copy code");
+  }
+
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
 
-  sourceDropzone = initFileDropzone(document.getElementById("source-dropzone"), {
+  overwriteDialog = initDialog({
+    dialogEl: overwriteDialogEl,
+    onClose: () => {
+      pendingExampleLoad = null;
+    },
+  });
+  confirmOverwriteBtn?.addEventListener("click", () => {
+    const load = pendingExampleLoad;
+    pendingExampleLoad = null;
+    overwriteDialog?.closeDialog();
+    load?.();
+  });
+
+  sourceDropzone = initFileDropzone(sourceDropzoneEl, {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
@@ -1224,7 +1617,7 @@ try {
       sourceFromFile = false;
       downloadFilename = "converted.svg";
       if (isCToC()) downloadCFilename = "converted.c";
-      if (sourceTextarea) sourceTextarea.value = "";
+      setSourceCode("");
       syncSourceActionVisibility();
       clearSizeSteppers();
       updateFrameStepper(1);
@@ -1237,7 +1630,7 @@ try {
     onError: ({ message }) => showError(message || "File upload failed."),
   });
 
-  svgDropzone = initFileDropzone(document.getElementById("svg-dropzone"), {
+  svgDropzone = initFileDropzone(svgDropzoneEl, {
     onFiles: ({ files }) => {
       const file = files[0];
       if (!file) return;
@@ -1251,7 +1644,7 @@ try {
       if (ignoringSvgDropzoneClear) return;
       svgFromFile = false;
       downloadCFilename = "converted.c";
-      if (svgTextarea) svgTextarea.value = "";
+      setSvgSourceCode("");
       syncSvgActionVisibility();
       updateFrameStepper(1);
       clearCOutput();
@@ -1288,56 +1681,83 @@ try {
   window.addEventListener("pageshow", syncSourceActionVisibility);
   window.setTimeout(syncSourceActionVisibility, 0);
 
-  sourceTextarea?.addEventListener("paste", () => {
-    sourceChangeFromPaste = true;
+  const sourceCode = sourceCodeBlockEl?.querySelector("code");
+  const svgSourceCode = svgSourceCodeBlockEl?.querySelector("code");
+  const sourceObserver = sourceCode
+    ? new MutationObserver(() => {
+        if (suppressSourceCodeMutation) {
+          suppressSourceCodeMutation = false;
+          return;
+        }
+        clearFileIfEditingSource();
+        syncSourceActionVisibility();
+        persistCode(
+          SOURCE_CODE_STORAGE_KEY,
+          sourceCodeBlock?.getSource() ?? ""
+        );
+        window.clearTimeout(convertTimer);
+
+        if (!sourceCodeBlock?.getSource().trim()) {
+          if (isCToC()) clearCOutput();
+          else clearPreview();
+          clearSizeSteppers();
+          hideBanner(errorBanner);
+          return;
+        }
+
+        scheduleConvert();
+      })
+    : null;
+  sourceObserver?.observe(sourceCode, {
+    attributes: true,
+    attributeFilter: ["data-source"],
   });
+  sourceCodeObserverReady = Boolean(sourceObserver);
 
-  sourceTextarea?.addEventListener("input", () => {
-    const fromPaste = sourceChangeFromPaste;
-    sourceChangeFromPaste = false;
-    clearFileIfEditingSource();
-    syncSourceActionVisibility();
-    window.clearTimeout(convertTimer);
-
-    if (!sourceTextarea.value.trim()) {
-      if (isCToC()) clearCOutput();
-      else clearPreview();
-      clearSizeSteppers();
-      hideBanner(errorBanner);
-      return;
-    }
-
-    if (fromPaste) {
-      runConvert({ showSuccess: true });
-      return;
-    }
-    scheduleConvert();
-  });
-
-  svgTextarea?.addEventListener("paste", () => {
+  const svgEditor = svgSourceCodeBlockEl?.querySelector(".code-block-editor");
+  svgEditor?.addEventListener("paste", () => {
     svgChangeFromPaste = true;
+    window.setTimeout(() => {
+      svgChangeFromPaste = false;
+    }, 0);
   });
 
-  svgTextarea?.addEventListener("input", () => {
-    const fromPaste = svgChangeFromPaste;
-    svgChangeFromPaste = false;
-    clearFileIfEditingSvg();
-    syncSvgActionVisibility();
-    window.clearTimeout(convertTimer);
+  const svgSourceObserver = svgSourceCode
+    ? new MutationObserver(() => {
+        if (suppressSvgSourceCodeMutation) {
+          suppressSvgSourceCodeMutation = false;
+          return;
+        }
+        const fromPaste = svgChangeFromPaste;
+        svgChangeFromPaste = false;
+        clearFileIfEditingSvg();
+        syncSvgActionVisibility();
+        persistCode(
+          SVG_SOURCE_CODE_STORAGE_KEY,
+          svgSourceCodeBlock?.getSource() ?? ""
+        );
+        window.clearTimeout(convertTimer);
 
-    if (!svgTextarea.value.trim()) {
-      clearCOutput();
-      updateFrameStepper(1);
-      hideBanner(errorBanner);
-      return;
-    }
+        if (!svgSourceCodeBlock?.getSource().trim()) {
+          clearCOutput();
+          updateFrameStepper(1);
+          hideBanner(errorBanner);
+          return;
+        }
 
-    if (fromPaste) {
-      runConvert({ showSuccess: true });
-      return;
-    }
-    scheduleConvert();
+        if (fromPaste) {
+          runConvert();
+          return;
+        }
+        scheduleConvert();
+      })
+    : null;
+  svgSourceObserver?.observe(svgSourceCode, {
+    attributes: true,
+    attributeFilter: ["data-source"],
   });
+  svgSourceCodeObserverReady = Boolean(svgSourceObserver);
+  restoreStoredInput();
 } catch (err) {
   showError(
     err instanceof Error
