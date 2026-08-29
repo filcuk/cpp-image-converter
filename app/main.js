@@ -61,7 +61,7 @@ function persistDirection(value) {
 }
 
 const sourceCodeBlockEl = document.getElementById("source-code-block");
-const svgTextarea = document.getElementById("svg-textarea");
+const svgSourceCodeBlockEl = document.getElementById("svg-source-code-block");
 const arrayNameInput = document.getElementById("array-name-input");
 const clearSourceBtn = document.getElementById("clear-source-btn");
 const clearSvgBtn = document.getElementById("clear-svg-btn");
@@ -102,6 +102,8 @@ const cPreviewApi = initImagePreview(cPreviewEl);
 let sourceCodeBlock = null;
 /** @type {ReturnType<typeof initCodeBlock>} */
 let cOutputCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let svgSourceCodeBlock = null;
 
 const errorBanner = document.getElementById("converter-error");
 const errorBody = document.getElementById("converter-error-body");
@@ -189,6 +191,10 @@ let pendingExampleLoad = null;
 /** Skip clearing the textarea when we clear the dropzone ourselves */
 let ignoringDropzoneClear = false;
 let ignoringSvgDropzoneClear = false;
+let sourceCodeObserverReady = false;
+let svgSourceCodeObserverReady = false;
+let suppressSourceCodeMutation = false;
+let suppressSvgSourceCodeMutation = false;
 
 function isSvgToC() {
   return direction === "svg-to-c";
@@ -213,7 +219,9 @@ function fpsToFrameDurationMs(fps) {
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
-  const source = isSvgToC() ? svgTextarea?.value : sourceCodeBlock?.getSource();
+  const source = isSvgToC()
+    ? svgSourceCodeBlock?.getSource()
+    : sourceCodeBlock?.getSource();
   if (!source?.trim()) return;
   convertTimer = window.setTimeout(() => {
     runConvert();
@@ -719,6 +727,14 @@ function syncSourceActionVisibility() {
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
 }
 
+function setSourceCode(next) {
+  if (!sourceCodeBlock) return;
+  const value = String(next ?? "").replace(/\n+$/, "");
+  suppressSourceCodeMutation =
+    sourceCodeObserverReady && sourceCodeBlock.getSource() !== value;
+  sourceCodeBlock.setSource(value);
+}
+
 function moveSourceActionsToCodeToolbar() {
   const toolbar = sourceCodeBlockEl?.querySelector(".code-block-toolbar");
   const leftGroup = toolbar?.querySelector(".code-block-toolbar__group--left");
@@ -729,16 +745,34 @@ function moveSourceActionsToCodeToolbar() {
   if (loadExampleBtn) rightGroup.appendChild(loadExampleBtn);
 }
 
+function moveSvgActionsToCodeToolbar() {
+  const toolbar = svgSourceCodeBlockEl?.querySelector(".code-block-toolbar");
+  const leftGroup = toolbar?.querySelector(".code-block-toolbar__group--left");
+  const rightGroup = toolbar?.querySelector(".code-block-toolbar__group--right");
+  if (!leftGroup || !rightGroup) return;
+
+  if (clearSvgBtn) leftGroup.appendChild(clearSvgBtn);
+  if (loadExampleSvgBtn) rightGroup.appendChild(loadExampleSvgBtn);
+}
+
 function syncSvgActionVisibility() {
-  const hasSvg = Boolean(svgTextarea?.value);
+  const hasSvg = Boolean(svgSourceCodeBlock?.getSource());
   if (clearSvgBtn) clearSvgBtn.disabled = !hasSvg;
+}
+
+function setSvgSourceCode(next) {
+  if (!svgSourceCodeBlock) return;
+  const value = String(next ?? "").replace(/\n+$/, "");
+  suppressSvgSourceCodeMutation =
+    svgSourceCodeObserverReady && svgSourceCodeBlock.getSource() !== value;
+  svgSourceCodeBlock.setSource(value);
 }
 
 function clearSourceInputs() {
   sourceFromFile = false;
   downloadFilename = "converted.svg";
   if (isCToC()) downloadCFilename = "converted.c";
-  sourceCodeBlock?.setSource("");
+  setSourceCode("");
   ignoringDropzoneClear = true;
   try {
     sourceDropzone?.clear();
@@ -758,7 +792,7 @@ function clearSourceInputs() {
 function clearSvgInputs() {
   svgFromFile = false;
   downloadCFilename = "converted.c";
-  if (svgTextarea) svgTextarea.value = "";
+  setSvgSourceCode("");
   ignoringSvgDropzoneClear = true;
   try {
     svgDropzone?.clear();
@@ -784,7 +818,7 @@ async function loadSourceFile(file) {
       return;
     }
     sourceFromFile = true;
-    sourceCodeBlock.setSource(text);
+    setSourceCode(text);
     syncSourceActionVisibility();
     const base = file.name.replace(/\.(c|h|txt)$/i, "");
     if (isCToC()) {
@@ -812,12 +846,12 @@ async function loadSourceFile(file) {
 async function loadSvgFile(file) {
   try {
     const text = await readFileText(file);
-    if (!svgTextarea) {
-      showError("SVG text area is missing.");
+    if (!svgSourceCodeBlock) {
+      showError("SVG code block is missing.");
       return;
     }
     svgFromFile = true;
-    svgTextarea.value = text;
+    setSvgSourceCode(text);
     syncSvgActionVisibility();
     downloadCFilename = file.name.replace(/\.svg$/i, "") + ".c";
     runConvert();
@@ -857,7 +891,7 @@ function loadExampleSource({ confirmed = false } = {}) {
     return;
   }
   clearFileIfEditingSource();
-  sourceCodeBlock.setSource(EXAMPLE_SOURCE);
+  setSourceCode(EXAMPLE_SOURCE);
   syncSourceActionVisibility();
   if (isCToC()) {
     downloadCFilename = "example-packed.c";
@@ -871,16 +905,16 @@ function loadExampleSource({ confirmed = false } = {}) {
  * @param {{ confirmed?: boolean }} [options]
  */
 function loadExampleSvg({ confirmed = false } = {}) {
-  if (!svgTextarea) {
-    showError("SVG text area is missing.");
+  if (!svgSourceCodeBlock) {
+    showError("SVG code block is missing.");
     return;
   }
-  if (svgTextarea.value.trim() && !confirmed) {
+  if (svgSourceCodeBlock.getSource().trim() && !confirmed) {
     requestExampleLoad(() => loadExampleSvg({ confirmed: true }));
     return;
   }
   clearFileIfEditingSvg();
-  svgTextarea.value = EXAMPLE_SVG;
+  setSvgSourceCode(EXAMPLE_SVG);
   syncSvgActionVisibility();
   downloadCFilename = "example.c";
   runConvert();
@@ -1015,7 +1049,7 @@ function showCPreviewSvg(svgMarkup) {
 }
 
 async function runConvertSvgToC() {
-  const source = svgTextarea?.value ?? "";
+  const source = svgSourceCodeBlock?.getSource() ?? "";
   if (!source.trim()) {
     clearCOutput();
     hideBanner(errorBanner);
@@ -1182,24 +1216,10 @@ function runConvert() {
 }
 
 try {
-  sourceCodeBlock = initCodeBlock(sourceCodeBlockEl, {
-    onInput: () => {
-      clearFileIfEditingSource();
-      syncSourceActionVisibility();
-      window.clearTimeout(convertTimer);
-
-      if (!sourceCodeBlock?.getSource().trim()) {
-        if (isCToC()) clearCOutput();
-        else clearPreview();
-        clearSizeSteppers();
-        hideBanner(errorBanner);
-        return;
-      }
-
-      scheduleConvert();
-    },
-  });
+  sourceCodeBlock = initCodeBlock(sourceCodeBlockEl);
   moveSourceActionsToCodeToolbar();
+  svgSourceCodeBlock = initCodeBlock(svgSourceCodeBlockEl);
+  moveSvgActionsToCodeToolbar();
   cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
   initExpandableSurfaces(document);
 
@@ -1325,7 +1345,7 @@ try {
       sourceFromFile = false;
       downloadFilename = "converted.svg";
       if (isCToC()) downloadCFilename = "converted.c";
-      sourceCodeBlock?.setSource("");
+      setSourceCode("");
       syncSourceActionVisibility();
       clearSizeSteppers();
       updateFrameStepper(1);
@@ -1352,7 +1372,7 @@ try {
       if (ignoringSvgDropzoneClear) return;
       svgFromFile = false;
       downloadCFilename = "converted.c";
-      if (svgTextarea) svgTextarea.value = "";
+      setSvgSourceCode("");
       syncSvgActionVisibility();
       updateFrameStepper(1);
       clearCOutput();
@@ -1389,30 +1409,74 @@ try {
   window.addEventListener("pageshow", syncSourceActionVisibility);
   window.setTimeout(syncSourceActionVisibility, 0);
 
-  svgTextarea?.addEventListener("paste", () => {
+  const sourceCode = sourceCodeBlockEl?.querySelector("code");
+  const svgSourceCode = svgSourceCodeBlockEl?.querySelector("code");
+  const sourceObserver = sourceCode
+    ? new MutationObserver(() => {
+        if (suppressSourceCodeMutation) {
+          suppressSourceCodeMutation = false;
+          return;
+        }
+        clearFileIfEditingSource();
+        syncSourceActionVisibility();
+        window.clearTimeout(convertTimer);
+
+        if (!sourceCodeBlock?.getSource().trim()) {
+          if (isCToC()) clearCOutput();
+          else clearPreview();
+          clearSizeSteppers();
+          hideBanner(errorBanner);
+          return;
+        }
+
+        scheduleConvert();
+      })
+    : null;
+  sourceObserver?.observe(sourceCode, {
+    attributes: true,
+    attributeFilter: ["data-source"],
+  });
+  sourceCodeObserverReady = Boolean(sourceObserver);
+
+  const svgEditor = svgSourceCodeBlockEl?.querySelector(".code-block-editor");
+  svgEditor?.addEventListener("paste", () => {
     svgChangeFromPaste = true;
+    window.setTimeout(() => {
+      svgChangeFromPaste = false;
+    }, 0);
   });
 
-  svgTextarea?.addEventListener("input", () => {
-    const fromPaste = svgChangeFromPaste;
-    svgChangeFromPaste = false;
-    clearFileIfEditingSvg();
-    syncSvgActionVisibility();
-    window.clearTimeout(convertTimer);
+  const svgSourceObserver = svgSourceCode
+    ? new MutationObserver(() => {
+        if (suppressSvgSourceCodeMutation) {
+          suppressSvgSourceCodeMutation = false;
+          return;
+        }
+        const fromPaste = svgChangeFromPaste;
+        svgChangeFromPaste = false;
+        clearFileIfEditingSvg();
+        syncSvgActionVisibility();
+        window.clearTimeout(convertTimer);
 
-    if (!svgTextarea.value.trim()) {
-      clearCOutput();
-      updateFrameStepper(1);
-      hideBanner(errorBanner);
-      return;
-    }
+        if (!svgSourceCodeBlock?.getSource().trim()) {
+          clearCOutput();
+          updateFrameStepper(1);
+          hideBanner(errorBanner);
+          return;
+        }
 
-    if (fromPaste) {
-      runConvert();
-      return;
-    }
-    scheduleConvert();
+        if (fromPaste) {
+          runConvert();
+          return;
+        }
+        scheduleConvert();
+      })
+    : null;
+  svgSourceObserver?.observe(svgSourceCode, {
+    attributes: true,
+    attributeFilter: ["data-source"],
   });
+  svgSourceCodeObserverReady = Boolean(svgSourceObserver);
 } catch (err) {
   showError(
     err instanceof Error

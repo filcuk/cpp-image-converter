@@ -187,24 +187,26 @@
             <ul class="file-dropzone-list hidden" hidden></ul>
           </div>
 
-          <label class="field converter-source-field" for="svg-textarea">
-            <textarea
-              id="svg-textarea"
-              class="textarea converter-svg-textarea"
-              rows="16"
-              spellcheck="false"
-              wrap="off"
-              placeholder="Enter SVG markup"
-            ></textarea>
-          </label>
-
-          <div class="toolbar converter-source-actions">
-            <button type="button" class="btn" id="clear-svg-btn" disabled>
-              Clear
-            </button>
-            <button type="button" class="btn" id="load-example-svg-btn">
-              Load Example
-            </button>
+          <div class="field converter-source-field">
+            <div
+              class="code-block converter-array-code-block"
+              id="svg-source-code-block"
+              data-code-mode="edit"
+              data-code-toolbar-actions="paste"
+              data-code-editor-label="SVG markup source"
+              data-expandable-surface
+              data-expandable-surface-label="SVG markup source"
+            >
+              <div class="code-block-body" data-expandable-surface-trigger>
+                <pre class="language-markup"><code class="language-markup"></code></pre>
+              </div>
+              <button type="button" class="btn" id="clear-svg-btn" disabled>
+                Clear
+              </button>
+              <button type="button" class="btn" id="load-example-svg-btn">
+                Load Example
+              </button>
+            </div>
           </div>
         </div>
       </section>

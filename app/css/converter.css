@@ -233,18 +233,6 @@ html[data-converter-direction="c-to-c"]
   width: 100%;
 }
 
-.converter-svg-textarea {
-  width: 100%;
-  min-height: 14rem;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
-  font-size: 0.8125rem;
-  box-sizing: border-box;
-  white-space: pre;
-  overflow-x: auto;
-  overflow-wrap: normal;
-  word-break: normal;
-}
-
 .converter-array-code-block {
   width: 100%;
   max-width: none;
@@ -260,6 +248,15 @@ html[data-converter-direction="c-to-c"]
 .converter-array-code-block--output .code-block-body pre {
   height: 18rem;
   min-height: 18rem;
+}
+
+/* The framework keeps line-numbered pre elements clipped for code scrolling.
+ * Output has no editor overlay, so its line-numbered pre must own vertical scroll. */
+.converter-array-code-block--output
+  .code-block-body
+  pre[class*="language-"].line-numbers {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Keep the editable input's line-number gutter above its transparent textarea. */
@@ -296,13 +293,25 @@ html[data-converter-direction="c-to-c"]
   .code-block-editor-stack
   pre[class*="language-"].line-numbers
   > code {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
 
 .converter-array-code-block.code-block--edit
   .code-block-body
   .code-block-editor-stack
   pre[class*="language-"].line-numbers::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.converter-array-code-block.code-block--edit
+  .code-block-body
+  .code-block-editor-stack
+  pre[class*="language-"].line-numbers
+  > code::-webkit-scrollbar {
   width: 0;
   height: 0;
   display: none;
@@ -327,15 +336,6 @@ html[data-converter-direction="c-to-c"]
 
 .converter-array-code-block .token.operator {
   color: var(--banner-warn-text);
-}
-
-.converter-source-actions {
-  align-self: stretch;
-}
-
-.converter-source-actions #load-example-btn,
-.converter-source-actions #load-example-svg-btn {
-  margin-inline-start: auto;
 }
 
 .converter-input-banners,
