@@ -751,6 +751,25 @@ test("svgToPixels reads style=fill colours", async () => {
   assert.match(backG.source, /0xff00ff00/i);
 });
 
+test("sanitizeSvgReferences removes external resource references", async () => {
+  const { sanitizeSvgReferences } = await import(
+    "../app/converter/svg-to-pixels.js"
+  );
+  const source = `<svg viewBox="0 0 2 1">
+    <defs><linearGradient id="local-gradient"/></defs>
+    <use href="#local-symbol"/>
+    <image href="https://example.com/image.png"/>
+    <image xlink:href="//example.com/other.png"/>
+    <rect style="fill:url(#local-gradient); background:url('https://example.com/bg.png')" width="1" height="1"/>
+  </svg>`;
+  const sanitized = sanitizeSvgReferences(source);
+  assert.match(sanitized, /href="#local-symbol"/);
+  assert.match(sanitized, /url\(#local-gradient\)/);
+  assert.doesNotMatch(sanitized, /example\.com/);
+  assert.doesNotMatch(sanitized, /xlink:href/);
+  assert.match(sanitized, /background:none/);
+});
+
 test("prepareFrameGroupMarkup forces opacity and drops animate", async () => {
   const { prepareFrameGroupMarkup } = await import(
     "../app/converter/svg-to-pixels.js"
