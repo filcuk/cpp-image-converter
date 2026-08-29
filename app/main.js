@@ -12,6 +12,9 @@ import { initImagePreview } from "./components/image-preview.js";
 import { initExpandableSurfaces } from "./components/expandable-surface.js";
 import { initCodeBlock } from "./components/code-block.js";
 import { initDialog } from "./components/dialog.js";
+import { initAboutDialog } from "./components/about-dialog.js";
+import { initPopover } from "./components/popover.js";
+import { initTutorial } from "./components/tutorial.js";
 import {
   prepareButtonLabelFlash,
   setButtonLabelFlash,
@@ -83,6 +86,9 @@ const cInputPanel = document.getElementById("c-input-panel");
 const sourceDropzoneEl = document.getElementById("source-dropzone");
 const svgInputPanel = document.getElementById("svg-input-panel");
 const svgDropzoneEl = document.getElementById("svg-dropzone");
+const aboutOpenBtn = document.getElementById("about-open-btn");
+const aboutDialogEl = document.getElementById("about-dialog");
+const aboutGuidedTourBtn = document.getElementById("about-guided-tour");
 const svgOutputPanel = document.getElementById("svg-output-panel");
 const cOutputPanel = document.getElementById("c-output-panel");
 let frameStepperEl = document.getElementById("frame-stepper");
@@ -200,6 +206,32 @@ let sourceCodeObserverReady = false;
 let svgSourceCodeObserverReady = false;
 let suppressSourceCodeMutation = false;
 let suppressSvgSourceCodeMutation = false;
+const ABOUT_HINT_STORAGE_KEY = "cpp-image-converter-about-hint-seen";
+let aboutHintPopover = null;
+
+function hasSeenAboutHint() {
+  try {
+    return localStorage.getItem(ABOUT_HINT_STORAGE_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markAboutHintSeen() {
+  try {
+    localStorage.setItem(ABOUT_HINT_STORAGE_KEY, "1");
+  } catch {
+    // Ignore storage restrictions, such as private browsing or quota errors.
+  }
+}
+
+function dismissAboutHint() {
+  if (!aboutHintPopover) return;
+  const popover = aboutHintPopover;
+  aboutHintPopover = null;
+  markAboutHintSeen();
+  popover.destroy();
+}
 
 function isSvgToC() {
   return direction === "svg-to-c";
@@ -1227,6 +1259,81 @@ try {
   svgOutputCodeBlock = initCodeBlock(svgOutputCodeBlockEl);
   cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
   initExpandableSurfaces(document);
+
+  const converterTour = initTutorial({
+    id: "cpp-image-converter-overview",
+    steps: [
+      {
+        target: "#direction-control",
+        title: "Conversion",
+        body:
+          "Chose the conversion type or direction.",
+        position: "bottom",
+      },
+      {
+        target: "#input-section",
+        title: "Source",
+        body:
+          "Import a file or insert your code directly into the code block.",
+        position: "bottom",
+      },
+      {
+        target: "#options",
+        title: "Configuration",
+        body:
+          "Adjust input and output options as needed. The preview will update automatically.",
+        position: "top",
+      },
+      {
+        target: "#output",
+        title: "Result",
+        body:
+          "Validate and export the result.",
+        position: "top",
+      },
+    ],
+  });
+
+  const aboutDialog = initAboutDialog({
+    dialogEl: aboutDialogEl,
+    openTriggers: [aboutOpenBtn],
+    onOpen: () => dismissAboutHint(),
+  });
+
+  aboutGuidedTourBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+    dismissAboutHint();
+    aboutDialog?.closeDialog();
+    converterTour?.start();
+  });
+
+  if (aboutOpenBtn instanceof HTMLElement && !hasSeenAboutHint()) {
+    aboutHintPopover = initPopover({
+      anchor: aboutOpenBtn,
+      body: "Check here for more info and a guided tour!",
+      position: "right",
+      dismissible: false,
+      trapFocus: false,
+      actions: [
+        {
+          label: "Got it",
+          className: "btn btn-primary",
+          closeOnClick: false,
+          onClick: () => dismissAboutHint(),
+        },
+      ],
+      onClose: () => {
+        if (!aboutHintPopover) return;
+        const popover = aboutHintPopover;
+        aboutHintPopover = null;
+        markAboutHintSeen();
+        queueMicrotask(() => popover.destroy());
+      },
+    });
+    window.requestAnimationFrame(() => {
+      aboutHintPopover?.open();
+    });
+  }
 
   directionControl = initSegmentedControl(document.getElementById("direction-control"), {
     defaultValue: loadStoredDirection(),

@@ -46,7 +46,16 @@
         />
         <h1>C++ Image Converter</h1>
       </div>
-      <p class="tagline">Convert between C/C++ image arrays and SVG locally in the browser.</p>
+      <p class="tagline">
+        Conversion you can <em>C</em> — converting image arrays to and from SVG.
+        <button
+          type="button"
+          class="btn btn-link tagline-link"
+          id="about-open-btn"
+          aria-label="What is C++ Image Converter?"
+          >What?</button
+        >
+      </p>
     </header>
 
     <main id="main">
@@ -94,8 +103,9 @@
         </div>
       </section>
 
-      <section class="content-section" id="input" aria-labelledby="input-heading">
-        <h2 id="input-heading" class="section-title">Input</h2>
+      <div id="input-section">
+        <section class="content-section" id="input" aria-labelledby="input-heading">
+          <h2 id="input-heading" class="section-title">Input</h2>
 
         <div class="converter-input-banners" id="converter-banners">
           <div
@@ -209,7 +219,8 @@
             </div>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
 
       <section class="content-section" id="options" aria-labelledby="options-heading">
         <h2 id="options-heading" class="section-title">Options</h2>
@@ -847,6 +858,79 @@
         </div>
       </section>
     </main>
+
+    <div
+      class="modal hidden"
+      id="about-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="about-dialog-title"
+      hidden
+    >
+      <div class="modal-backdrop" data-dialog-close></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2 id="about-dialog-title">What is this?</h2>
+          <button type="button" class="modal-close" data-dialog-close aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            C++ Image Converter turns C and C++ image arrays into SVG, or SVG
+            images back into C arrays, entirely in your browser.
+          </p>
+          <p>
+            Supports a vast selection of array formats, transparency, scaling
+            and animation.
+          </p>
+          <div class="about-extra-content">
+            <div
+              class="about-extra-block"
+              data-about-stage
+              data-about-next-label="Uhh…"
+            >
+              <p>
+                In short: choose a direction, supply an image, tune the
+                settings, then copy or download the generated code.
+              </p>
+            </div>
+            <div
+              class="about-extra-block"
+              data-about-stage
+              data-about-next-label="I don't get it"
+            >
+              <p>
+                Pretty image. Need change. Can do it? Put in, get out. Easy.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-about-confused>Huh?</button>
+          <a
+            class="btn hidden"
+            data-about-final
+            href="https://pbskids.org/games/play/hair-salon/8806"
+            target="_blank"
+            rel="noopener noreferrer"
+            hidden
+            >I don't get it</a
+          >
+          <div class="modal-footer-actions">
+            <button type="button" class="btn" id="about-guided-tour">Guided tour</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-dialog-close
+              data-dialog-default
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div
       class="modal hidden"

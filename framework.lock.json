@@ -20,6 +20,9 @@
     "expandable-surface",
     "date-picker",
     "dialog",
+    "about-dialog",
+    "popover",
+    "tutorial",
     "table",
     "tabular-input"
   ],
