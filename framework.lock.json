@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "frameworkVersion": "0.13.4",
+  "frameworkVersion": "0.13.5",
   "source": "filcuk/sma1-framework",
   "components": [
     "fields",
