@@ -529,9 +529,7 @@ function setDirection(next) {
     applyingMetadata = false;
   }
   if (cPreviewEmptyEl) {
-    cPreviewEmptyEl.textContent = cToC
-      ? "Converted preview will appear here."
-      : "SVG preview will appear here.";
+    cPreviewEmptyEl.textContent = "Load input to see a preview";
   }
 }
 
