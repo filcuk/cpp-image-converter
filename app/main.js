@@ -728,27 +728,12 @@ function syncSourceActionVisibility() {
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
 }
 
-/**
- * Let an input code block recalculate its natural height after its source
- * changes. The shared component caches measured inline heights for scrolling.
- *
- * @param {HTMLElement | null} container
- */
-function resetCodeBlockSizing(container) {
-  const pre = container?.querySelector(".code-block-body pre");
-  const editor = container?.querySelector(".code-block-editor");
-  pre?.style.removeProperty("min-height");
-  editor?.style.removeProperty("height");
-  editor?.style.removeProperty("margin-block-end");
-}
-
 function setSourceCode(next) {
   if (!sourceCodeBlock) return;
   const value = String(next ?? "").replace(/\n+$/, "");
   suppressSourceCodeMutation =
     sourceCodeObserverReady && sourceCodeBlock.getSource() !== value;
   sourceCodeBlock.setSource(value);
-  resetCodeBlockSizing(sourceCodeBlockEl);
 }
 
 function moveSourceActionsToCodeToolbar() {
@@ -782,7 +767,6 @@ function setSvgSourceCode(next) {
   suppressSvgSourceCodeMutation =
     svgSourceCodeObserverReady && svgSourceCodeBlock.getSource() !== value;
   svgSourceCodeBlock.setSource(value);
-  resetCodeBlockSizing(svgSourceCodeBlockEl);
 }
 
 function clearSourceInputs() {
@@ -1390,7 +1374,6 @@ try {
           suppressSourceCodeMutation = false;
           return;
         }
-        resetCodeBlockSizing(sourceCodeBlockEl);
         clearFileIfEditingSource();
         syncSourceActionVisibility();
         window.clearTimeout(convertTimer);
@@ -1426,7 +1409,6 @@ try {
           suppressSvgSourceCodeMutation = false;
           return;
         }
-        resetCodeBlockSizing(svgSourceCodeBlockEl);
         const fromPaste = svgChangeFromPaste;
         svgChangeFromPaste = false;
         clearFileIfEditingSvg();
