@@ -155,6 +155,53 @@ test("auto-detects indexed I1 when palette and packed bit stride", () => {
   assert.deepEqual(detected, { format: "i1", detected: "i1" });
 });
 
+test("auto-detects non-indexed uint8 formats from frame size", () => {
+  const cases = [
+    { width: 8, height: 1, valueCount: 2, expected: "p2" },
+    { width: 8, height: 1, valueCount: 4, expected: "p4" },
+    { width: 3, height: 1, valueCount: 3, expected: "l8" },
+    { width: 2, height: 1, valueCount: 4, expected: "al88" },
+    { width: 2, height: 1, valueCount: 6, expected: "rgb888" },
+  ];
+
+  for (const { width, height, valueCount, expected } of cases) {
+    const expectedResult = {
+      format: expected,
+      detected: expected,
+      ...(expected === "rgb888"
+        ? {
+            warning:
+              "Auto-selected RGB888; BGR888, RGB565A8, and ARGB8565 have the same byte count and require manual selection.",
+          }
+        : {}),
+    };
+    assert.deepEqual(
+      resolveFormat("auto", {
+        elementType: "uint8_t",
+        width,
+        height,
+        valueCount,
+        frameCount: 1,
+      }),
+      expectedResult
+    );
+  }
+});
+
+test("convertCToSvg reports ambiguous three-byte uint8 auto-detection", () => {
+  const source = `
+#define FRAME_WIDTH 2
+#define FRAME_HEIGHT 1
+static const uint8_t image_data[1][6] = {
+  { 0xff, 0, 0, 0, 0xff, 0 }
+};
+`;
+  const result = convertCToSvg({ source, format: "auto", displayScale: 1 });
+  assert.equal(result.error, null);
+  assert.equal(result.format, "rgb888");
+  assert.match(result.warnings.join(" "), /Auto-selected RGB888/);
+});
+
 test("convertCToSvg auto uses I8 for paletted uint8 image", () => {
   const source = `
 #define FRAME_WIDTH 2
