@@ -715,7 +715,10 @@
 
       <section class="content-section" id="output" aria-labelledby="output-heading">
         <h2 id="output-heading" class="section-title">Output</h2>
-        <div class="section-panel converter-output-section">
+        <div
+          class="section-panel converter-output-section spinner-host"
+          id="output-spinner-host"
+        >
           <div class="toolbar converter-output-toolbar">
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
               Download file
@@ -853,6 +856,18 @@
                   <pre class="language-cpp"><code class="language-cpp"></code></pre>
                 </div>
               </div>
+            </div>
+          </div>
+          <div class="spinner-overlay hidden" hidden>
+            <div
+              class="spinner"
+              role="status"
+              aria-live="polite"
+              aria-busy="false"
+              aria-label="Updating output"
+            >
+              <span class="spinner-indicator" aria-hidden="true"></span>
+              <span class="spinner-label">Updating output…</span>
             </div>
           </div>
         </div>

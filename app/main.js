@@ -2,6 +2,7 @@ import { initShell } from "./shell/shell.js";
 import { setHidden } from "./utils/dom.js";
 import { copyText } from "./utils/clipboard.js";
 import { initFileDropzone } from "./components/file-dropzone.js";
+import { initSpinner } from "./components/spinner.js";
 import { downloadFile } from "./components/file-download.js";
 import { initSegmentedControl } from "./components/segmented-control.js";
 import { initDropdown } from "./components/dropdown.js";
@@ -108,6 +109,7 @@ const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
 const outputFileSizeEl = document.getElementById("output-file-size");
 const previewEl = document.getElementById("svg-preview");
+const outputSpinnerHostEl = document.getElementById("output-spinner-host");
 const svgOutputCodeBlockEl = document.getElementById("svg-output-code-block");
 const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
@@ -137,6 +139,10 @@ const outputFormatTypeLabelEl = document.getElementById("output-format-type-labe
 
 const previewApi = initImagePreview(previewEl);
 const cPreviewApi = initImagePreview(cPreviewEl);
+const outputSpinner = initSpinner(outputSpinnerHostEl, {
+  visible: false,
+  label: "Updating output…",
+});
 /** @type {ReturnType<typeof initCodeBlock>} */
 let sourceCodeBlock = null;
 /** @type {ReturnType<typeof initCodeBlock>} */
@@ -186,6 +192,10 @@ let direction = "c-to-svg";
 /** Skip stepper-driven reconvert while syncing size from source defines */
 let applyingMetadata = false;
 let convertTimer = 0;
+let syncConvertTimer = 0;
+let previewSpinnerTimer = 0;
+let previewUpdateToken = 0;
+let pendingPreviewFinish = null;
 let svgChangeFromPaste = false;
 
 /** @type {string} */
@@ -275,6 +285,54 @@ function writesC() {
   return isSvgToC() || isCToC();
 }
 
+const PREVIEW_SPINNER_DELAY_MS = 150;
+
+/**
+ * @param {boolean} busy
+ */
+function setOutputSpinnerBusy(busy) {
+  if (busy) outputSpinner?.show();
+  else outputSpinner?.hide();
+}
+
+/**
+ * Show the active preview spinner only when conversion work lasts longer than
+ * the threshold. The token prevents an older async conversion from hiding a
+ * newer conversion's spinner.
+ *
+ * @returns {() => void}
+ */
+function beginPreviewUpdate() {
+  const token = ++previewUpdateToken;
+  window.clearTimeout(syncConvertTimer);
+  window.clearTimeout(previewSpinnerTimer);
+  setOutputSpinnerBusy(false);
+  if (downloadSvgBtn) downloadSvgBtn.disabled = true;
+  if (downloadCBtn) downloadCBtn.disabled = true;
+  if (copyOutputBtn) copyOutputBtn.disabled = true;
+
+  previewSpinnerTimer = window.setTimeout(() => {
+    if (token === previewUpdateToken) setOutputSpinnerBusy(true);
+  }, PREVIEW_SPINNER_DELAY_MS);
+
+  return () => {
+    if (token !== previewUpdateToken) return;
+    window.clearTimeout(previewSpinnerTimer);
+    previewSpinnerTimer = 0;
+    setOutputSpinnerBusy(false);
+    syncCopyEnabled();
+  };
+}
+
+function cancelPreviewUpdate() {
+  previewUpdateToken += 1;
+  pendingPreviewFinish = null;
+  window.clearTimeout(syncConvertTimer);
+  window.clearTimeout(previewSpinnerTimer);
+  previewSpinnerTimer = 0;
+  setOutputSpinnerBusy(false);
+}
+
 /**
  * @param {number} fps
  * @returns {number}
@@ -286,10 +344,12 @@ function fpsToFrameDurationMs(fps) {
 
 function scheduleConvert() {
   window.clearTimeout(convertTimer);
+  cancelPreviewUpdate();
   const source = isSvgToC()
     ? svgSourceCodeBlock?.getSource()
     : sourceCodeBlock?.getSource();
   if (!source?.trim()) return;
+  pendingPreviewFinish = beginPreviewUpdate();
   convertTimer = window.setTimeout(() => {
     runConvert();
   }, 200);
@@ -726,6 +786,7 @@ function syncOutputFileSize(content) {
 }
 
 function clearPreview() {
+  cancelPreviewUpdate();
   latestSvg = null;
   syncOutputFileSize(null);
   previewApi?.setMetaExtra("");
@@ -740,6 +801,7 @@ function clearCPreview() {
 }
 
 function clearCOutput() {
+  cancelPreviewUpdate();
   latestC = null;
   syncOutputFileSize(null);
   cOutputCodeBlock?.setSource("");
@@ -1290,9 +1352,35 @@ function runConvertCToC() {
 }
 
 function runConvert() {
-  if (isSvgToC()) void runConvertSvgToC();
-  else if (isCToC()) runConvertCToC();
-  else runConvertCToSvg();
+  const scheduledFinish = pendingPreviewFinish;
+  pendingPreviewFinish = null;
+  const finishPreviewUpdate = scheduledFinish ?? beginPreviewUpdate();
+  if (isSvgToC()) {
+    void runConvertSvgToC().finally(finishPreviewUpdate);
+    return;
+  }
+
+  if (scheduledFinish) {
+    try {
+      if (isCToC()) runConvertCToC();
+      else runConvertCToSvg();
+    } finally {
+      finishPreviewUpdate();
+    }
+    return;
+  }
+
+  // Synchronous conversion blocks the event loop, so let the delayed spinner
+  // render before starting work that may take a while.
+  syncConvertTimer = window.setTimeout(() => {
+    syncConvertTimer = 0;
+    try {
+      if (isCToC()) runConvertCToC();
+      else runConvertCToSvg();
+    } finally {
+      finishPreviewUpdate();
+    }
+  }, PREVIEW_SPINNER_DELAY_MS + 16);
 }
 
 function restoreStoredInput() {
