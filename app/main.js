@@ -286,6 +286,7 @@ function writesC() {
 }
 
 const PREVIEW_SPINNER_DELAY_MS = 150;
+const CONVERSION_DEBOUNCE_MS = 100;
 
 /**
  * @param {boolean} busy
@@ -352,7 +353,7 @@ function scheduleConvert() {
   pendingPreviewFinish = beginPreviewUpdate();
   convertTimer = window.setTimeout(() => {
     runConvert();
-  }, 200);
+  }, CONVERSION_DEBOUNCE_MS);
 }
 
 function onOptionChange() {
@@ -1361,12 +1362,15 @@ function runConvert() {
   }
 
   if (scheduledFinish) {
-    try {
-      if (isCToC()) runConvertCToC();
-      else runConvertCToSvg();
-    } finally {
-      finishPreviewUpdate();
-    }
+    syncConvertTimer = window.setTimeout(() => {
+      syncConvertTimer = 0;
+      try {
+        if (isCToC()) runConvertCToC();
+        else runConvertCToSvg();
+      } finally {
+        finishPreviewUpdate();
+      }
+    }, Math.max(0, PREVIEW_SPINNER_DELAY_MS - CONVERSION_DEBOUNCE_MS) + 16);
     return;
   }
 
