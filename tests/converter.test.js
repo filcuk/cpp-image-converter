@@ -12,7 +12,11 @@ import {
   oneBitStride,
   pixelColorKey,
 } from "../app/converter/decode-pixels.js";
-import { frameValueCount, formatNeedsBitOrder } from "../app/converter/formats.js";
+import {
+  MANUAL_FORMAT_IDS,
+  frameValueCount,
+  formatNeedsBitOrder,
+} from "../app/converter/formats.js";
 import { mergeRects } from "../app/converter/merge-rects.js";
 import { toSvg } from "../app/converter/to-svg.js";
 import { convertCToSvg } from "../app/converter/convert.js";
@@ -447,6 +451,153 @@ static const uint32_t data[1] = { 0x800000ff };
   const result = convertCToSvg({ source, format: "argb32", displayScale: 1 });
   assert.equal(result.error, null);
   assert.match(result.svg, /fill="#FF000080"/);
+});
+
+test("all manual formats encode and decode their supported pixel layout", async () => {
+  const { encodePixels } = await import("../app/converter/encode-pixels.js");
+  const red = { r: 255, g: 0, b: 0, a: 255 };
+  const green = { r: 0, g: 255, b: 0, a: 255 };
+  const blue = { r: 0, g: 0, b: 255, a: 255 };
+  const white = { r: 255, g: 255, b: 255, a: 255 };
+  const black = { r: 0, g: 0, b: 0, a: 255 };
+  const grayRamp4 = [
+    { r: 0, g: 0, b: 0, a: 255 },
+    { r: 85, g: 85, b: 85, a: 255 },
+    { r: 170, g: 170, b: 170, a: 255 },
+    { r: 255, g: 255, b: 255, a: 255 },
+  ];
+  const grayRamp16 = [
+    { r: 0, g: 0, b: 0, a: 255 },
+    { r: 17, g: 17, b: 17, a: 255 },
+    { r: 34, g: 34, b: 34, a: 255 },
+    { r: 51, g: 51, b: 51, a: 255 },
+  ];
+  const commonPixels = [red, green, blue, white];
+  const cases = new Map([
+    ["argb32", { pixels: commonPixels, width: 4, height: 1 }],
+    ["argb32-classic", { pixels: commonPixels, width: 4, height: 1 }],
+    ["xrgb8888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["bgr888", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb565", { pixels: commonPixels, width: 4, height: 1 }],
+    ["rgb565-swap", { pixels: commonPixels, width: 4, height: 1 }],
+    [
+      "rgb565a8",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "argb8565",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "1bit",
+      {
+        pixels: [black, white, black, white],
+        expected: [black, null, black, null],
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    ["l8", { pixels: [black, white], width: 2, height: 1 }],
+    [
+      "al88",
+      {
+        pixels: [
+          { ...red, a: 128 },
+          green,
+        ],
+        expected: [
+          { r: 76, g: 76, b: 76, a: 128 },
+          { r: 150, g: 150, b: 150, a: 255 },
+        ],
+        width: 2,
+        height: 1,
+      },
+    ],
+    [
+      "p2",
+      { pixels: grayRamp4, width: 4, height: 1, bitOrder: "lsb" },
+    ],
+    [
+      "p4",
+      { pixels: grayRamp16, width: 4, height: 1, bitOrder: "lsb" },
+    ],
+    [
+      "i1",
+      {
+        pixels: [red, green],
+        width: 2,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    [
+      "i2",
+      {
+        pixels: commonPixels,
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    [
+      "i4",
+      {
+        pixels: commonPixels,
+        width: 4,
+        height: 1,
+        bitOrder: "lsb",
+      },
+    ],
+    ["i8", { pixels: commonPixels, width: 4, height: 1 }],
+  ]);
+
+  assert.deepEqual(
+    [...cases.keys()].sort(),
+    [...MANUAL_FORMAT_IDS].sort()
+  );
+
+  for (const format of MANUAL_FORMAT_IDS) {
+    const { pixels, expected = pixels, width, height, bitOrder = "msb" } =
+      cases.get(format);
+    const encoded = encodePixels({
+      format,
+      pixels,
+      width,
+      height,
+      bitOrder,
+    });
+    assert.equal(
+      encoded.values.length,
+      frameValueCount(format, width, height),
+      `${format} encoded length`
+    );
+    const decoded = decodePixels({
+      format,
+      values: encoded.values,
+      width,
+      height,
+      bitOrder,
+      palette: encoded.palette,
+    });
+    assert.deepEqual(decoded.warnings, [], `${format} warnings`);
+    assert.deepEqual(decoded.pixels, expected, `${format} pixels`);
+  }
 });
 
 test("opacityKeyframes cycles frames", async () => {

@@ -33,7 +33,7 @@ Then open `http://localhost:3000`.
 
 1. Choose **C → SVG**
 2. Paste array source or upload a `.c` / `.h` / `.txt` file
-3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 LE RGBA, `uint16_t` → RGB565, `uint8_t` → 1-bit) and **input** size when defines are missing
+3. Confirm pixel format (Auto uses `uint32_t` → ARGB32 LE RGBA, `uint16_t` → RGB565, and uses `uint8_t` dimensions/value count when available) and **input** size when defines are missing
 4. Optionally set **output scale**, override fill, or animate multi-frame sources
 5. Preview and download the `.svg`
 
@@ -53,6 +53,13 @@ Then open `http://localhost:3000`.
 4. Set **input** width/height if the source has no size defines; use **output scale** to resize (nearest-neighbour)
 5. For multi-frame sources: keep **Animate frames** (all frames + FPS preview) or pick a single frame
 6. Download the converted `.c` file
+
+### Format notes
+
+- Auto-detection can identify non-indexed `uint8_t` streams from dimensions and byte count. A three-byte stream could be RGB888, BGR888, RGB565A8, or ARGB8565, so Auto selects RGB888 and warns; choose the format manually when the channel layout matters.
+- RGB565A8 uses the LVGL layout: all little-endian RGB565 colour bytes followed by the alpha-byte plane. ARGB8565 uses one alpha byte followed by little-endian RGB565 bytes per pixel.
+- Palette entries use the Piskel-compatible little-endian RGBA word format `0xAABBGGRR`, the same representation used by ARGB32 (LE RGBA).
+- Typed array declarations with storage attributes such as `PROGMEM` between the array dimensions and `=` are not auto-detected. Remove the attribute around the declaration before importing, or provide a plain supported declaration.
 
 ## Documentation
 
