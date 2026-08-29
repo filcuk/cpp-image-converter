@@ -74,11 +74,9 @@ const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
-const metaEl = document.getElementById("converter-meta");
 const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
 const cPreviewEmptyEl = document.getElementById("c-preview-empty");
-const cMetaEl = document.getElementById("c-converter-meta");
 const cInputPanel = document.getElementById("c-input-panel");
 const svgInputPanel = document.getElementById("svg-input-panel");
 const svgOutputPanel = document.getElementById("svg-output-panel");
@@ -629,8 +627,8 @@ function syncCopyEnabled() {
 
 function clearPreview() {
   latestSvg = null;
+  previewApi?.setMetaExtra("");
   previewApi?.clear();
-  setHidden(metaEl, true);
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
   syncCopyEnabled();
 }
@@ -643,7 +641,6 @@ function clearCOutput() {
   latestC = null;
   cOutputCodeBlock?.setSource("");
   clearCPreview();
-  setHidden(cMetaEl, true);
   if (downloadCBtn) downloadCBtn.disabled = true;
   syncCopyEnabled();
 }
@@ -1016,24 +1013,9 @@ function runConvertCToSvg() {
     return;
   }
 
-  const formatLabel = formatIdLabel(result.format);
-  const detected =
-    result.detectedFormat && result.detectedFormat !== result.format
-      ? ` (detected ${formatIdLabel(result.detectedFormat)})`
-      : result.detectedFormat
-        ? ` (from ${result.elementType || "type"})`
-        : "";
-
-  if (metaEl) {
-    const outW = Number((result.width * displayScale).toFixed(4));
-    const outH = Number((result.height * displayScale).toFixed(4));
-    const anim =
-      result.animated && result.frameCount > 1
-        ? ` · ${result.frameCount} frames animated`
-        : "";
-    metaEl.textContent = `${outW}×${outH} · ${formatLabel}${detected}${anim} · ${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`;
-  }
-  setHidden(metaEl, false);
+  previewApi?.setMetaExtra(
+    `${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`
+  );
   if (downloadSvgBtn) downloadSvgBtn.disabled = false;
   syncCopyEnabled();
 
@@ -1103,19 +1085,6 @@ async function runConvertSvgToC() {
   cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
-
-  if (cMetaEl) {
-    const scaled =
-      result.scale !== 1
-        ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
-        : "";
-    const anim =
-      result.animated && result.frameCount > 1
-        ? ` · ${result.frameCount} frames animated`
-        : ` · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"}`;
-    cMetaEl.textContent = `${result.width}×${result.height}${scaled} · ${formatIdLabel(result.format)}${anim} · ${result.elementType}`;
-  }
-  setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
@@ -1186,24 +1155,6 @@ function runConvertCToC() {
   cOutputCodeBlock?.setSource(result.source);
   showWarnings(result.warnings);
   showCPreviewSvg(result.previewSvg);
-
-  const resized =
-    result.scale !== 1
-      ? ` · scaled ×${result.scale} from ${result.sourceWidth}×${result.sourceHeight}`
-      : "";
-  const detected =
-    result.detectedFormat && result.detectedFormat !== result.inputFormat
-      ? ` (in ${formatIdLabel(result.detectedFormat)})`
-      : "";
-  const anim =
-    result.animated && result.frameCount > 1
-      ? ` · ${result.frameCount} frames animated`
-      : ` · ${result.frameCount} frame${result.frameCount === 1 ? "" : "s"}`;
-
-  if (cMetaEl) {
-    cMetaEl.textContent = `${result.width}×${result.height}${resized} · ${formatLabelWithType(result.inputFormat)}${detected} → ${formatLabelWithType(result.outputFormat)}${anim}`;
-  }
-  setHidden(cMetaEl, false);
   if (downloadCBtn) downloadCBtn.disabled = false;
   syncCopyEnabled();
 
