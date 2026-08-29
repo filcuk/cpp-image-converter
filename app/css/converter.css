@@ -222,7 +222,7 @@ html[data-converter-direction="c-to-c"]
   max-width: none;
 }
 
-#c-output-panel {
+.converter-output-panel {
   display: flex;
   flex-direction: column;
   gap: 1rem;

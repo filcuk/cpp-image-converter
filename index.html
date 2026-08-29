@@ -730,11 +730,15 @@
             </div>
           </div>
 
-          <hr class="section-panel__divider" />
+        </div>
+      </section>
 
-          <div class="toolbar">
+      <section class="content-section" id="output" aria-labelledby="output-heading">
+        <h2 id="output-heading" class="section-title">Output</h2>
+        <div class="section-panel converter-output-section">
+          <div class="toolbar converter-output-toolbar">
             <button type="button" class="btn btn-primary" id="download-svg-btn" disabled>
-              Download
+              Download file
             </button>
             <button
               type="button"
@@ -743,76 +747,86 @@
               disabled
               hidden
             >
-              Download
+              Download file
             </button>
             <button
               type="button"
               class="btn"
               id="copy-output-btn"
-              aria-label="Copy"
+              aria-label="Copy code"
               disabled
             >
-              <span class="btn-label-flash__label">Copy</span>
+              <span class="btn-label-flash__label">Copy code</span>
             </button>
           </div>
-        </div>
-      </section>
-
-      <section class="content-section" id="output" aria-labelledby="output-heading">
-        <h2 id="output-heading" class="section-title">Output</h2>
-        <div id="svg-output-panel">
-          <div
-            class="image-preview converter-preview"
-            id="svg-preview"
-            aria-live="polite"
-            data-image-preview-pixelated
-            data-image-preview-maximize
-            data-image-preview-expand-on-click
-            data-image-preview-download
-            data-image-preview-dimensions
-            data-image-preview-frames
-            data-image-preview-duration
-            data-image-preview-meta="hover"
-            data-expandable-surface-label="SVG preview"
-          >
-            <p class="image-preview__empty converter-preview__empty" id="svg-preview-empty">
-              Load array to see a preview
-            </p>
-          </div>
-        </div>
-        <div class="hidden" id="c-output-panel" hidden>
-          <div class="field converter-source-field">
-            <div
-              class="code-block code-block--full converter-array-code-block"
-              id="c-output-code-block"
-              data-code-mode="select"
-              data-code-toolbar-actions="none"
-              data-expandable-surface
-              data-expandable-surface-label="Generated C / C++ array"
-            >
-              <div class="code-block-body" data-expandable-surface-trigger>
-                <pre class="language-cpp"><code class="language-cpp"></code></pre>
-              </div>
-            </div>
-          </div>
-          <div class="field converter-source-field">
+          <div class="converter-output-panel" id="svg-output-panel">
             <div
               class="image-preview converter-preview"
-              id="c-preview"
+              id="svg-preview"
               aria-live="polite"
-              aria-label="Preview"
               data-image-preview-pixelated
               data-image-preview-maximize
               data-image-preview-expand-on-click
+              data-image-preview-download
               data-image-preview-dimensions
               data-image-preview-frames
               data-image-preview-duration
               data-image-preview-meta="hover"
-              data-expandable-surface-label="Converted image preview"
+              data-expandable-surface-label="SVG preview"
             >
-              <p class="image-preview__empty converter-preview__empty" id="c-preview-empty">
-                Convert SVG to see a preview
+              <p class="image-preview__empty converter-preview__empty" id="svg-preview-empty">
+                Load array to see a preview
               </p>
+            </div>
+            <div class="field converter-source-field">
+              <div
+                class="code-block code-block--full converter-array-code-block"
+                id="svg-output-code-block"
+                data-code-mode="select"
+                data-code-toolbar-actions="none"
+                data-expandable-surface
+                data-expandable-surface-label="Generated SVG"
+              >
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <pre class="language-markup"><code class="language-markup"></code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="converter-output-panel hidden" id="c-output-panel" hidden>
+            <div class="field converter-source-field">
+              <div
+                class="image-preview converter-preview"
+                id="c-preview"
+                aria-live="polite"
+                aria-label="Preview"
+                data-image-preview-pixelated
+                data-image-preview-maximize
+                data-image-preview-expand-on-click
+                data-image-preview-dimensions
+                data-image-preview-frames
+                data-image-preview-duration
+                data-image-preview-meta="hover"
+                data-expandable-surface-label="Converted image preview"
+              >
+                <p class="image-preview__empty converter-preview__empty" id="c-preview-empty">
+                  Convert SVG to see a preview
+                </p>
+              </div>
+            </div>
+            <div class="field converter-source-field">
+              <div
+                class="code-block code-block--full converter-array-code-block"
+                id="c-output-code-block"
+                data-code-mode="select"
+                data-code-toolbar-actions="none"
+                data-expandable-surface
+                data-expandable-surface-label="Generated C / C++ array"
+              >
+                <div class="code-block-body" data-expandable-surface-trigger>
+                  <pre class="language-cpp"><code class="language-cpp"></code></pre>
+                </div>
+              </div>
             </div>
           </div>
         </div>

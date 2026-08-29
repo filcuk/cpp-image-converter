@@ -74,6 +74,7 @@ const downloadSvgBtn = document.getElementById("download-svg-btn");
 const downloadCBtn = document.getElementById("download-c-btn");
 const copyOutputBtn = document.getElementById("copy-output-btn");
 const previewEl = document.getElementById("svg-preview");
+const svgOutputCodeBlockEl = document.getElementById("svg-output-code-block");
 const cOutputCodeBlockEl = document.getElementById("c-output-code-block");
 const cPreviewEl = document.getElementById("c-preview");
 const cPreviewEmptyEl = document.getElementById("c-preview-empty");
@@ -100,6 +101,8 @@ const cPreviewApi = initImagePreview(cPreviewEl);
 let sourceCodeBlock = null;
 /** @type {ReturnType<typeof initCodeBlock>} */
 let cOutputCodeBlock = null;
+/** @type {ReturnType<typeof initCodeBlock>} */
+let svgOutputCodeBlock = null;
 /** @type {ReturnType<typeof initCodeBlock>} */
 let svgSourceCodeBlock = null;
 
@@ -629,6 +632,7 @@ function clearPreview() {
   latestSvg = null;
   previewApi?.setMetaExtra("");
   previewApi?.clear();
+  svgOutputCodeBlock?.setSource("");
   if (downloadSvgBtn) downloadSvgBtn.disabled = true;
   syncCopyEnabled();
 }
@@ -684,8 +688,8 @@ async function triggerCopyOutput() {
   if (!text) return;
 
   const restoreLabel = () => {
-    setButtonLabelFlash(copyOutputBtn, "Copy");
-    copyOutputBtn.setAttribute("aria-label", "Copy");
+    setButtonLabelFlash(copyOutputBtn, "Copy code");
+    copyOutputBtn.setAttribute("aria-label", "Copy code");
   };
 
   try {
@@ -724,12 +728,27 @@ function syncSourceActionVisibility() {
   if (clearSourceBtn) clearSourceBtn.disabled = !hasSource;
 }
 
+/**
+ * Let an input code block recalculate its natural height after its source
+ * changes. The shared component caches measured inline heights for scrolling.
+ *
+ * @param {HTMLElement | null} container
+ */
+function resetCodeBlockSizing(container) {
+  const pre = container?.querySelector(".code-block-body pre");
+  const editor = container?.querySelector(".code-block-editor");
+  pre?.style.removeProperty("min-height");
+  editor?.style.removeProperty("height");
+  editor?.style.removeProperty("margin-block-end");
+}
+
 function setSourceCode(next) {
   if (!sourceCodeBlock) return;
   const value = String(next ?? "").replace(/\n+$/, "");
   suppressSourceCodeMutation =
     sourceCodeObserverReady && sourceCodeBlock.getSource() !== value;
   sourceCodeBlock.setSource(value);
+  resetCodeBlockSizing(sourceCodeBlockEl);
 }
 
 function moveSourceActionsToCodeToolbar() {
@@ -763,6 +782,7 @@ function setSvgSourceCode(next) {
   suppressSvgSourceCodeMutation =
     svgSourceCodeObserverReady && svgSourceCodeBlock.getSource() !== value;
   svgSourceCodeBlock.setSource(value);
+  resetCodeBlockSizing(svgSourceCodeBlockEl);
 }
 
 function clearSourceInputs() {
@@ -1013,6 +1033,7 @@ function runConvertCToSvg() {
     return;
   }
 
+  svgOutputCodeBlock?.setSource(result.svg);
   previewApi?.setMetaExtra(
     `${result.rectCount} shape${result.rectCount === 1 ? "" : "s"}`
   );
@@ -1171,6 +1192,7 @@ try {
   moveSourceActionsToCodeToolbar();
   svgSourceCodeBlock = initCodeBlock(svgSourceCodeBlockEl);
   moveSvgActionsToCodeToolbar();
+  svgOutputCodeBlock = initCodeBlock(svgOutputCodeBlockEl);
   cOutputCodeBlock = initCodeBlock(cOutputCodeBlockEl);
   initExpandableSurfaces(document);
 
@@ -1259,11 +1281,11 @@ try {
 
   if (copyOutputBtn) {
     prepareButtonLabelFlash(copyOutputBtn, {
-      idle: "Copy",
+      idle: "Copy code",
       success: "Copied",
       fail: "Failed",
     });
-    copyOutputBtn.setAttribute("aria-label", "Copy");
+    copyOutputBtn.setAttribute("aria-label", "Copy code");
   }
 
   syncFillEnabled(overrideToggle?.getChecked() ?? false);
@@ -1368,6 +1390,7 @@ try {
           suppressSourceCodeMutation = false;
           return;
         }
+        resetCodeBlockSizing(sourceCodeBlockEl);
         clearFileIfEditingSource();
         syncSourceActionVisibility();
         window.clearTimeout(convertTimer);
@@ -1403,6 +1426,7 @@ try {
           suppressSvgSourceCodeMutation = false;
           return;
         }
+        resetCodeBlockSizing(svgSourceCodeBlockEl);
         const fromPaste = svgChangeFromPaste;
         svgChangeFromPaste = false;
         clearFileIfEditingSvg();
