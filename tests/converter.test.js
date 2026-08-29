@@ -317,6 +317,18 @@ test("decodePixels RGB888", () => {
   assert.deepEqual(pixels[1], { r: 0, g: 255, b: 0, a: 255 });
 });
 
+test("decodePixels warns before falling back for an unsupported format", () => {
+  const { pixels, warnings } = decodePixels({
+    format: "not-a-format",
+    values: [0xf800],
+    width: 1,
+    height: 1,
+  });
+  assert.deepEqual(pixels[0], { r: 255, g: 0, b: 0, a: 255 });
+  assert.match(warnings.join(" "), /Unsupported decode format/);
+  assert.match(warnings.join(" "), /falling back to RGB565/);
+});
+
 test("RGB565A8 uses planar colour then alpha layout", async () => {
   const { encodePixels } = await import("../app/converter/encode-pixels.js");
   const red = { r: 255, g: 0, b: 0, a: 128 };

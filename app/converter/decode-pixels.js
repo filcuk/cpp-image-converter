@@ -4,6 +4,7 @@
 
 import {
   frameValueCount,
+  getFormatInfo,
   indexedBitsPerPixel,
   packedGrayBitsPerPixel,
   packedStride,
@@ -482,6 +483,12 @@ export function decodePixels({
       ),
       warnings,
     };
+  }
+
+  if (!getFormatInfo(format)) {
+    warnings.push(
+      `Unsupported decode format “${format}”; falling back to RGB565.`
+    );
   }
 
   /** @type {(Rgba | null)[]} */
