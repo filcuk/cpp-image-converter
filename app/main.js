@@ -1291,6 +1291,15 @@ try {
           "Validate and export the result.",
         position: "top",
       },
+      {
+        target: () => (isSvgToC() ? loadExampleSvgBtn : loadExampleBtn),
+        title: "Load an example",
+        body:
+          "Press the button now to see it in action!",
+        position: "bottom",
+        interactive: true,
+        advanceOn: "click",
+      },
     ],
   });
 
