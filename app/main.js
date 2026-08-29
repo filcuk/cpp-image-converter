@@ -41,6 +41,8 @@ import { EXAMPLE_SVG } from "./examples/example-svg.js";
 initShell({ pageNav: false, headingLinks: false });
 
 const DIRECTION_STORAGE_KEY = "cpp-image-converter-direction";
+const SOURCE_CODE_STORAGE_KEY = "cpp-image-converter-source-code";
+const SVG_SOURCE_CODE_STORAGE_KEY = "cpp-image-converter-svg-source-code";
 /** @type {ReadonlySet<"c-to-svg" | "svg-to-c" | "c-to-c">} */
 const DIRECTIONS = new Set(["c-to-svg", "svg-to-c", "c-to-c"]);
 
@@ -61,6 +63,34 @@ function loadStoredDirection() {
 function persistDirection(value) {
   localStorage.setItem(DIRECTION_STORAGE_KEY, value);
   document.documentElement.dataset.converterDirection = value;
+}
+
+/**
+ * @param {string} key
+ * @returns {string}
+ */
+function loadStoredCode(key) {
+  try {
+    return localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {string} value
+ */
+function persistCode(key, value) {
+  try {
+    if (value) {
+      localStorage.setItem(key, value);
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore storage restrictions, such as private browsing or quota errors.
+  }
 }
 
 const sourceCodeBlockEl = document.getElementById("source-code-block");
@@ -490,8 +520,8 @@ function setDirection(next) {
   hideWarningBanners();
 
   // Fresh inputs/outputs whenever the direction changes
-  clearSourceInputs();
-  clearSvgInputs();
+  clearSourceInputs({ persist: false });
+  clearSvgInputs({ persist: false });
   applyingMetadata = true;
   try {
     scaleStepper?.setValue(1);
@@ -800,12 +830,17 @@ function syncSourceActionVisibility() {
   setHidden(sourceDropzoneEl, hasSource);
 }
 
-function setSourceCode(next) {
+/**
+ * @param {unknown} next
+ * @param {{ persist?: boolean }} [options]
+ */
+function setSourceCode(next, { persist = true } = {}) {
   if (!sourceCodeBlock) return;
   const value = String(next ?? "").replace(/\n+$/, "");
   suppressSourceCodeMutation =
     sourceCodeObserverReady && sourceCodeBlock.getSource() !== value;
   sourceCodeBlock.setSource(value);
+  if (persist) persistCode(SOURCE_CODE_STORAGE_KEY, value);
 }
 
 function moveSourceActionsToCodeToolbar() {
@@ -834,19 +869,27 @@ function syncSvgActionVisibility() {
   setHidden(svgDropzoneEl, hasSvg);
 }
 
-function setSvgSourceCode(next) {
+/**
+ * @param {unknown} next
+ * @param {{ persist?: boolean }} [options]
+ */
+function setSvgSourceCode(next, { persist = true } = {}) {
   if (!svgSourceCodeBlock) return;
   const value = String(next ?? "").replace(/\n+$/, "");
   suppressSvgSourceCodeMutation =
     svgSourceCodeObserverReady && svgSourceCodeBlock.getSource() !== value;
   svgSourceCodeBlock.setSource(value);
+  if (persist) persistCode(SVG_SOURCE_CODE_STORAGE_KEY, value);
 }
 
-function clearSourceInputs() {
+/**
+ * @param {{ persist?: boolean }} [options]
+ */
+function clearSourceInputs({ persist = true } = {}) {
   sourceFromFile = false;
   downloadFilename = "converted.svg";
   if (isCToC()) downloadCFilename = "converted.c";
-  setSourceCode("");
+  setSourceCode("", { persist });
   ignoringDropzoneClear = true;
   try {
     sourceDropzone?.clear();
@@ -863,10 +906,13 @@ function clearSourceInputs() {
   hideWarningBanners();
 }
 
-function clearSvgInputs() {
+/**
+ * @param {{ persist?: boolean }} [options]
+ */
+function clearSvgInputs({ persist = true } = {}) {
   svgFromFile = false;
   downloadCFilename = "converted.c";
-  setSvgSourceCode("");
+  setSvgSourceCode("", { persist });
   ignoringSvgDropzoneClear = true;
   try {
     svgDropzone?.clear();
@@ -1251,6 +1297,21 @@ function runConvert() {
   else runConvertCToSvg();
 }
 
+function restoreStoredInput() {
+  if (isSvgToC()) {
+    const value = loadStoredCode(SVG_SOURCE_CODE_STORAGE_KEY);
+    if (!value) return;
+    setSvgSourceCode(value);
+    syncSvgActionVisibility();
+  } else {
+    const value = loadStoredCode(SOURCE_CODE_STORAGE_KEY);
+    if (!value) return;
+    setSourceCode(value);
+    syncSourceActionVisibility();
+  }
+  runConvert();
+}
+
 try {
   sourceCodeBlock = initCodeBlock(sourceCodeBlockEl);
   moveSourceActionsToCodeToolbar();
@@ -1540,6 +1601,10 @@ try {
         }
         clearFileIfEditingSource();
         syncSourceActionVisibility();
+        persistCode(
+          SOURCE_CODE_STORAGE_KEY,
+          sourceCodeBlock?.getSource() ?? ""
+        );
         window.clearTimeout(convertTimer);
 
         if (!sourceCodeBlock?.getSource().trim()) {
@@ -1577,6 +1642,10 @@ try {
         svgChangeFromPaste = false;
         clearFileIfEditingSvg();
         syncSvgActionVisibility();
+        persistCode(
+          SVG_SOURCE_CODE_STORAGE_KEY,
+          svgSourceCodeBlock?.getSource() ?? ""
+        );
         window.clearTimeout(convertTimer);
 
         if (!svgSourceCodeBlock?.getSource().trim()) {
@@ -1598,6 +1667,7 @@ try {
     attributeFilter: ["data-source"],
   });
   svgSourceCodeObserverReady = Boolean(svgSourceObserver);
+  restoreStoredInput();
 } catch (err) {
   showError(
     err instanceof Error
