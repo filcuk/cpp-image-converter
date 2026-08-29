@@ -591,6 +591,20 @@ test("svg to c preview respects frameDurationMs", async () => {
   assert.match(result.previewSvg, /dur="0\.1s"/);
 });
 
+test("svg to c override fill replaces visible pixels", async () => {
+  const { convertSvgToC } = await import("../app/converter/convert-svg-to-c.js");
+  const svg = `<svg viewBox="0 0 1 1"><rect width="1" height="1" fill="#FF0000"/></svg>`;
+  const result = convertSvgToC({
+    source: svg,
+    format: "argb32",
+    overrideFill: true,
+    fillColor: "#112233",
+  });
+  assert.equal(result.error, null);
+  assert.match(result.source, /0xff332211/i);
+  assert.doesNotMatch(result.source, /0xffff0000/i);
+});
+
 test("formatPreservesAlpha distinguishes opaque formats", async () => {
   const { formatPreservesAlpha } = await import("../app/converter/formats.js");
   assert.equal(formatPreservesAlpha("argb32"), true);
@@ -696,6 +710,25 @@ static const uint32_t data[1][1] = { { 0xff0000ff } };
   assert.equal(result.elementType, "uint16_t");
   assert.match(result.source, /static const uint16_t pix_data/);
   assert.match(result.source, /0xf800/i);
+});
+
+test("convertCToC override fill replaces visible pixels", async () => {
+  const { convertCToC } = await import("../app/converter/convert-c-to-c.js");
+  const source = `
+#define FRAME_WIDTH 1
+#define FRAME_HEIGHT 1
+static const uint32_t data[1][1] = { { 0xffff0000 } };
+`;
+  const result = convertCToC({
+    source,
+    inputFormat: "argb32",
+    outputFormat: "argb32",
+    overrideFill: true,
+    fillColor: "#112233",
+  });
+  assert.equal(result.error, null);
+  assert.match(result.source, /0xff332211/i);
+  assert.doesNotMatch(result.source, /0xffff0000/i);
 });
 
 test("convertCToC can export a single selected frame", async () => {

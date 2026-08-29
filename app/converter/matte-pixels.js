@@ -75,6 +75,20 @@ export function compositeFrameOntoMatte(pixels, matte) {
 }
 
 /**
+ * Replace every non-transparent pixel with one solid colour.
+ *
+ * @param {(Rgba | null)[][]} frames
+ * @param {string} fillColor
+ * @returns {(Rgba | null)[][]}
+ */
+export function overrideFramesFill(frames, fillColor) {
+  const { colour } = resolveMatteColour(fillColor);
+  return frames.map((frame) =>
+    frame.map((pixel) => (pixel && pixel.a > 0 ? { ...colour } : null))
+  );
+}
+
+/**
  * @param {number[][]} encodedFrames
  * @returns {number}
  */

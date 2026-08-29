@@ -9,6 +9,7 @@ import { toCArray } from "./to-c-array.js";
 import { previewSvgFromEncoded } from "./preview-from-encoded.js";
 import { indexedBitsPerPixel, isManualFormat } from "./formats.js";
 import {
+  overrideFramesFill,
   prepareFramesForOpaqueFormat,
   warningsForCollapsedFrames,
 } from "./matte-pixels.js";
@@ -29,6 +30,8 @@ function scaledSize(size, scale) {
  * @property {"msb" | "lsb"} [bitOrder]
  * @property {number} [scale] Output scale factor (nearest-neighbour resize before encode)
  * @property {string} [arrayName]
+ * @property {boolean} [overrideFill] Replace non-transparent pixels with fillColor
+ * @property {string} [fillColor] `#RRGGBB`
  * @property {number} [frameIndex] Used when animateFrames is false
  * @property {boolean} [animateFrames] Keep all frames (default true when multi-frame)
  * @property {number} [frameDurationMs] Preview animation frame duration
@@ -141,9 +144,12 @@ function encodeRaster(options, raster) {
       : sourceFrames.map((frame) =>
           resizePixels(frame, sourceWidth, sourceHeight, outWidth, outHeight)
         );
+  const fillFrames = options.overrideFill
+    ? overrideFramesFill(resizedFrames, options.fillColor ?? "#FFFFFF")
+    : resizedFrames;
 
   const prepared = prepareFramesForOpaqueFormat({
-    frames: resizedFrames,
+    frames: fillFrames,
     format,
     backgroundColor: options.backgroundColor,
   });

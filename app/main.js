@@ -1063,6 +1063,8 @@ async function runConvertSvgToC() {
         return Number.isFinite(scaleFromUi) && scaleFromUi > 0 ? scaleFromUi : 1;
       })(),
       arrayName: arrayNameInput?.value?.trim() || "image",
+      overrideFill: overrideToggle?.getChecked() ?? false,
+      fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
@@ -1133,6 +1135,8 @@ function runConvertCToC() {
       height: heightFromUi > 0 ? heightFromUi : parsedHint.height,
       scale,
       arrayName: arrayNameInput?.value?.trim() || "image",
+      overrideFill: overrideToggle?.getChecked() ?? false,
+      fillColor: fillPicker?.getValue() ?? "#FFFFFF",
       frameIndex: getFrameIndex(),
       animateFrames: animateFramesToggle?.getChecked() ?? false,
       frameDurationMs: fpsToFrameDurationMs(frameFpsStepper?.getValue() ?? 10),
