@@ -234,41 +234,26 @@ html[data-converter-direction="c-to-c"]
 }
 
 .converter-array-code-block {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  max-width: none;
+  max-height: 18rem;
 }
 
-.converter-array-code-block .code-block-body pre {
-  height: 14rem;
-  min-height: 14rem;
-  overflow-x: auto;
-  overflow-y: auto;
+.converter-array-code-block .code-block-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.converter-array-code-block--output .code-block-body pre {
-  height: 18rem;
-  min-height: 18rem;
+.converter-array-code-block .code-block-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
-.converter-array-code-block .token.comment {
-  color: var(--muted);
-}
-
-.converter-array-code-block .token.directive,
-.converter-array-code-block .token.keyword {
-  color: var(--banner-important-text);
-}
-
-.converter-array-code-block .token.number {
-  color: var(--accent);
-}
-
-.converter-array-code-block .token.string {
-  color: var(--banner-success-text);
-}
-
-.converter-array-code-block .token.operator {
-  color: var(--banner-warn-text);
+.converter-array-code-block.is-expanded {
+  max-height: none;
 }
 
 .converter-input-banners,
